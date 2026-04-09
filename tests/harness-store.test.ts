@@ -21,4 +21,22 @@ describe('saveHarnessRun', () => {
     expect(raw).toContain('demo task');
     await fs.rm(root, { recursive: true, force: true });
   });
+
+  it('uses an explicit run id when provided', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-harness-${Date.now()}-explicit`);
+    const saved = await saveHarnessRun({
+      ok: false,
+      workspace: '/tmp/demo',
+      task: 'demo task',
+      iterations: 2,
+      lastGuidance: 'retry',
+      lastValidationStdout: '',
+      lastValidationStderr: 'boom',
+      validateCommand: 'npm test',
+      runId: 'run-fixed-123',
+    }, root, 'run-fixed-123');
+    expect(saved.runId).toBe('run-fixed-123');
+    expect(saved.path.endsWith('run-fixed-123.json')).toBe(true);
+    await fs.rm(root, { recursive: true, force: true });
+  });
 });

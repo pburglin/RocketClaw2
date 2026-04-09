@@ -179,6 +179,8 @@ export async function runCodingHarness(
 
   await initWorkspace(input.workspace);
 
+  const runId = `run-${Date.now()}`;
+
   for (let i = 1; i <= input.maxIterations; i += 1) {
     const workspaceContext = await scanWorkspace(input.workspace);
     lastGuidance = await runLlmQuery(
@@ -227,7 +229,7 @@ export async function runCodingHarness(
       });
     }
 
-    await saveIterationEntry(`pending-${Date.now()}`, {
+    await saveIterationEntry(runId, {
       iteration: i,
       timestamp: new Date().toISOString(),
       guidance: lastGuidance,
@@ -251,7 +253,7 @@ export async function runCodingHarness(
         lastValidationStderr,
         validateCommand: input.validateCommand,
       };
-      const artifact = await saveHarnessRun(result);
+      const artifact = await saveHarnessRun({ ...result, runId }, undefined, runId);
       return { ...result, runId: artifact.runId, artifactPath: artifact.path };
     }
   }
@@ -267,7 +269,7 @@ export async function runCodingHarness(
     lastValidationStderr,
     validateCommand: input.validateCommand,
   };
-  const artifact = await saveHarnessRun(failed);
+  const artifact = await saveHarnessRun({ ...failed, runId }, undefined, runId);
   return { ...failed, runId: artifact.runId, artifactPath: artifact.path };
 }
 

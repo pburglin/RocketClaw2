@@ -7,8 +7,9 @@ import type { CodingHarnessResult } from './coding-harness.js';
 export async function saveHarnessRun(
   result: CodingHarnessResult,
   root = getDefaultProjectRoot(),
+  explicitRunId?: string,
 ): Promise<{ runId: string; path: string }> {
-  const runId = randomUUID();
+  const runId = explicitRunId ?? result.runId ?? randomUUID();
   const dir = getHarnessRunsDir(root);
   await fs.mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${runId}.json`);

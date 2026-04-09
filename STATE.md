@@ -97,3 +97,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Approval inspection now supports filtering by kind and summary output for operator workflows.
 
 - Approval workflow now includes a helper that approves a request and returns the recommended next execution step.
+
+- Approval queue views now include next-step hints for smoother operator workflows.

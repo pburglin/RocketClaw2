@@ -138,3 +138,6 @@ Note: approval requests may now be created automatically when governed execution
 - `rocketclaw2 approval-list --summary`
 
 - `rocketclaw2 approval-approve-run --id <approval-id>`
+
+
+Approval list and summary views now surface recommended next steps directly in the terminal output.

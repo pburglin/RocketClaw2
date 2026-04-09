@@ -458,3 +458,6 @@ Approval inspection now supports filtering by kind and aggregate summaries for f
 RocketClaw2 now includes a helper command for approving a request and immediately showing the recommended next execution step.
 
 - `rocketclaw2 approval-approve-run --id <approval-id>`
+
+
+Approval queue views now include next-step hints so operators can see what to do next without leaving the list view.

@@ -84,3 +84,5 @@
 - Improve approval queue inspection with filters and aggregate summaries.
 
 - Add approval-aware execution helpers so operators can move from approval to rerun more smoothly.
+
+- Add next-step hints directly into approval queue views for better operator flow.

@@ -516,6 +516,7 @@ program
   .requiredOption('--workspace <path>', 'target workspace path')
   .requiredOption('--task <text>', 'task description')
   .requiredOption('--validate <cmd>', 'validation command that would be used during execution')
+  .option('--request-approval', 'also create a persistent approval request for this plan')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
@@ -531,7 +532,17 @@ program
       validateCommand: options.validate,
     });
     const artifact = await saveHarnessRun(result);
-    const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path };
+    const approval = options.requestApproval
+      ? await createApprovalRequest({
+          kind: 'harness-plan',
+          target: artifact.runId,
+          detail: `Review harness plan for task: ${options.task}`,
+        })
+      : null;
+    if (approval) {
+      await saveHarnessRun({ ...result, runId: artifact.runId, approvalRequestId: approval.id }, undefined, artifact.runId);
+    }
+    const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path, approvalRequestId: approval?.id };
     console.log(options.json ? JSON.stringify(enriched, null, 2) : formatHarnessPlan(enriched));
   });
 
@@ -771,7 +782,7 @@ program
 program
   .command('approval-create')
   .description('Create a persistent approval request')
-  .requiredOption('--kind <kind>', 'tool-write|message-send')
+  .requiredOption('--kind <kind>', 'tool-write|message-send|harness-plan')
   .requiredOption('--target <target>', 'target tool or channel')
   .requiredOption('--detail <detail>', 'approval detail')
   .action(async (options) => {
@@ -792,7 +803,7 @@ program
   .command('approval-list')
   .description('List approval requests')
   .option('--status <status>', 'pending|approved|rejected')
-  .option('--kind <kind>', 'tool-write|message-send')
+  .option('--kind <kind>', 'tool-write|message-send|harness-plan')
   .option('--json', 'output raw JSON')
   .option('--summary', 'show aggregate summary')
   .action(async (options) => {

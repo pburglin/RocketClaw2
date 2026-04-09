@@ -6,7 +6,7 @@ import { getDefaultProjectRoot } from '../config/app-paths.js';
 
 export const ApprovalRequestSchema = z.object({
   id: z.string(),
-  kind: z.enum(['tool-write', 'message-send']),
+  kind: z.enum(['tool-write', 'message-send', 'harness-plan']),
   target: z.string(),
   detail: z.string(),
   status: z.enum(['pending', 'approved', 'rejected']),

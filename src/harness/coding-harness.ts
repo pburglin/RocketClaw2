@@ -109,6 +109,7 @@ export type HarnessPlan = {
   kind: 'plan';
   ok: true;
   approvalStatus: 'draft' | 'approved';
+  approvalRequestId?: string;
   approvedAt?: string;
   workspace: string;
   task: string;

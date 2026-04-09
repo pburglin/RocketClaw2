@@ -3,14 +3,17 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { approveHarnessPlan, loadHarnessRunnableInput, saveHarnessRun } from '../src/harness/store.js';
+import { createApprovalRequest, loadApprovals } from '../src/approval/store.js';
 
 describe('approveHarnessPlan', () => {
   it('marks a draft plan as approved', async () => {
     const root = path.join(os.tmpdir(), `rocketclaw2-harness-approve-${Date.now()}`);
+    const approval = await createApprovalRequest({ kind: 'harness-plan', target: 'placeholder', detail: 'Review plan' }, root);
     const saved = await saveHarnessRun({
       kind: 'plan',
       ok: true,
       approvalStatus: 'draft',
+      approvalRequestId: approval.id,
       workspace: '/tmp/demo',
       task: 'ship feature',
       validateCommand: 'npm test',
@@ -23,6 +26,8 @@ describe('approveHarnessPlan', () => {
 
     const runnable = await loadHarnessRunnableInput(saved.runId, root);
     expect(runnable?.approvalStatus).toBe('approved');
+    const approvals = await loadApprovals(root);
+    expect(approvals[0]?.status).toBe('approved');
     await fs.rm(root, { recursive: true, force: true });
   });
 

@@ -14,4 +14,13 @@ describe('approval workflow', () => {
     expect(resolved.status).toBe('approved');
     await fs.rm(root, { recursive: true, force: true });
   });
+
+  it('supports harness-plan approval requests', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-approval-harness-${Date.now()}`);
+    const item = await createApprovalRequest({ kind: 'harness-plan', target: 'run-123', detail: 'Review harness plan' }, root);
+    expect(item.kind).toBe('harness-plan');
+    const resolved = await resolveApprovalRequest(item.id, 'approved', root);
+    expect(resolved.status).toBe('approved');
+    await fs.rm(root, { recursive: true, force: true });
+  });
 });

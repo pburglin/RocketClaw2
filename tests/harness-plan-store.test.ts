@@ -12,6 +12,7 @@ describe('harness plan storage', () => {
       ok: true,
       approvalStatus: 'draft',
       workspace: '/tmp/demo',
+      approvalRequestId: 'appr-1',
       task: 'review before write',
       validateCommand: 'npm test',
       planText: 'Summary\n- Do the thing',
@@ -22,6 +23,7 @@ describe('harness plan storage', () => {
     const loaded = await loadHarnessRun(saved.runId, root);
     expect(loaded?.kind).toBe('plan');
     expect(loaded?.approvalStatus).toBe('draft');
+    expect(loaded?.approvalRequestId).toBe('appr-1');
     await fs.rm(root, { recursive: true, force: true });
   });
 });

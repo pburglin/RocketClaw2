@@ -3,6 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { getDefaultProjectRoot, getHarnessRunsDir } from '../config/app-paths.js';
 import type { CodingHarnessResult, HarnessPlan } from './coding-harness.js';
+import { resolveApprovalRequest } from '../approval/store.js';
 
 export async function saveHarnessRun(
   result: CodingHarnessResult | HarnessPlan,
@@ -72,6 +73,13 @@ export async function approveHarnessPlan(
     approvalStatus: 'approved',
     approvedAt: new Date().toISOString(),
   };
+  if (typeof run.approvalRequestId === 'string' && run.approvalRequestId) {
+    try {
+      await resolveApprovalRequest(run.approvalRequestId, 'approved', root);
+    } catch {
+      // keep plan approval independent if queue item is missing
+    }
+  }
   await saveHarnessRun(updated as HarnessPlan, root, runId);
   return updated;
 }

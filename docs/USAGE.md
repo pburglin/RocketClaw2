@@ -5,12 +5,13 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 ## Core commands
 - `rocketclaw2 init`
 - `rocketclaw2 doctor`
+- `rocketclaw2 config-show`
 - `rocketclaw2 run`
 - `rocketclaw2 roadmap`
 - `rocketclaw2 channels`
 - `rocketclaw2 send`
 
-`doctor` now includes the active recall-scoring profile from persisted config, so runtime diagnostics reflect the current memory-ranking behavior.
+`doctor` now includes the active recall-scoring profile from persisted config, so runtime diagnostics reflect the current memory-ranking behavior. Use `config-show` when you want the full resolved app config instead of just diagnostics.
 
 ## Session commands
 - `rocketclaw2 session-create --title "Demo Session"`

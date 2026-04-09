@@ -109,6 +109,14 @@ program
   });
 
 program
+  .command('config-show')
+  .description('Print the active persisted app config')
+  .action(async () => {
+    const config = await loadConfigFromDisk();
+    console.log(JSON.stringify(config, null, 2));
+  });
+
+program
   .command('chat')
   .description('Start or resume a simple interactive chat session')
   .option('--title <title>', 'title for a new session')

@@ -48,6 +48,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Recall now loads persisted scoring config from disk during normal runtime, so ranking behavior can be tuned without passing in-process overrides.
 - The CLI now includes `recall-profile` so operators can inspect the active recall-scoring settings from persisted config.
 - `doctor` runtime diagnostics now include the active recall-scoring profile, and setup docs include a concrete `config.yaml` tuning example.
+- The CLI now includes `config-show` so operators can inspect the full resolved persisted app config, not just recall-specific diagnostics.
 
 - Interactive chat now consults unified recall and can surface remembered context in replies.
 - Interactive chat now treats explicit memory questions differently from normal chat, returning memory-focused answers instead of pure echo output.

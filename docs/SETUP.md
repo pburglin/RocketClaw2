@@ -27,6 +27,7 @@ You can inspect the active profile with:
 ```bash
 node dist/cli.js recall-profile
 node dist/cli.js doctor
+node dist/cli.js config-show
 ```
 
 This is the current tuning surface for:

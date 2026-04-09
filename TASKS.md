@@ -54,3 +54,5 @@
 - Enforce configured governance in runtime behavior, not just config metadata.
 
 - Improve governance ergonomics with filtered policy inspection and aggregate summaries.
+
+- Add a config inspection command so operators can view the resolved persisted runtime configuration.

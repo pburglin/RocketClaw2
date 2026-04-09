@@ -62,6 +62,27 @@ describe('getRuntimeSummary', () => {
     await fs.rm(homeRoot, { recursive: true, force: true });
   });
 
+  it('prints the resolved persisted config from the CLI', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-config-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ profile: 'demo', recallScoring: { diversityPenaltyPerBucketHit: 11 } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'config-show'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    const parsed = JSON.parse(stdout);
+    expect(parsed.profile).toBe('demo');
+    expect(parsed.recallScoring.diversityPenaltyPerBucketHit).toBe(11);
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
   it('includes persisted recall scoring in doctor/runtime diagnostics', async () => {
     const root = path.join(os.tmpdir(), `rocketclaw2-doctor-${Date.now()}`);
     await fs.mkdir(root, { recursive: true });

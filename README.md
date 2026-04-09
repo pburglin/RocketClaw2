@@ -331,3 +331,13 @@ This is still early-stage enforcement, but it is the first direct connection bet
 
 
 Governance inspection is now easier from the terminal: operators can filter policy views and inspect an aggregate access summary without reading raw JSON.
+
+
+## Config inspection
+
+RocketClaw2 now includes a CLI command to inspect the fully resolved persisted configuration.
+
+### Current command
+- `rocketclaw2 config-show`
+
+This helps operators verify the active runtime profile, recall settings, messaging configuration, and tool governance state from the terminal.

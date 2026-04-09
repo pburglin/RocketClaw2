@@ -603,3 +603,22 @@ RocketClaw2 now includes commands to inspect persisted autonomous harness runs.
 
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-show --id <run-id>`
+
+
+### How the autonomous coding harness works
+
+The `harness-run` command parses LLM responses for fenced code blocks with a filename on the first line, then writes those files to the target workspace before running the validation command. This is the core loop:
+
+1. LLM generates code files (as fenced blocks with filenames)
+2. Harness writes the files to the workspace
+3. Validation command runs in the workspace
+4. If validation fails, the loop repeats with failure context
+
+```
+```package.json
+{ "name": "my-app" }
+```
+```src/index.js
+console.log("hello");
+```
+```

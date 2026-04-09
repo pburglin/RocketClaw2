@@ -233,3 +233,15 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-show --id <run-id>`
+
+
+## Autonomous coding harness
+
+The `harness-run` command implements a full coding loop:
+
+1. Sends the task to the LLM with workspace context
+2. Parses fenced code blocks from the response and writes them to the workspace
+3. Runs the validation command
+4. Repeats on failure until validation passes or max iterations is reached
+
+Code block format: ```filename.ext followed by file content, ending with ```

@@ -383,3 +383,15 @@ RocketClaw2 now includes a single operator command for inspecting the overall ru
 - `rocketclaw2 system-summary --json`
 
 This command pulls together profile, yolo mode, messaging posture, tool access summary, override counts, and recall scoring into one place.
+
+
+### Messaging send ergonomics
+
+RocketClaw2 now supports a default WhatsApp recipient fallback and more readable send output.
+
+Examples:
+- `rocketclaw2 send --channel whatsapp --text "hello"`
+- `rocketclaw2 send --channel whatsapp --to "+15551234567" --text "hello"`
+- `rocketclaw2 send --channel whatsapp --text "hello" --json`
+
+If a default WhatsApp recipient is configured, the operator no longer has to repeat `--to` every time.

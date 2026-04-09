@@ -95,3 +95,9 @@ node dist/cli.js chat --session-id <session-id>
 
 - `rocketclaw2 system-summary`
 - `rocketclaw2 system-summary --json`
+
+## Messaging send ergonomics
+
+- `rocketclaw2 send --channel whatsapp --text "hello"`
+- `rocketclaw2 send --channel whatsapp --to "+15551234567" --text "hello"`
+- `rocketclaw2 send --channel whatsapp --text "hello" --json`

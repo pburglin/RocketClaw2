@@ -21,6 +21,7 @@ import { createDefaultChannelRegistry } from './messaging/index.js';
 import { configureWhatsApp } from './messaging/whatsapp-config.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
+import { formatSendResult } from './messaging/send-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
@@ -265,13 +266,19 @@ program
   .command('send')
   .description('Send a message through a configured channel plugin')
   .requiredOption('--channel <id>', 'channel plugin id')
-  .requiredOption('--to <target>', 'destination')
+  .option('--to <target>', 'destination')
   .requiredOption('--text <message>', 'message text')
+  .option('--json', 'output raw JSON')
   .action(async (options) => {
     const config = await loadAppConfig();
+    let destination = options.to;
     if (options.channel === 'whatsapp') {
       assertWhatsAppSendAllowed(config);
       assertToolAccess(config, 'human-approval', 'read');
+      destination = destination || config.messaging.whatsapp.defaultRecipient;
+      if (!destination) {
+        throw new Error('No destination provided and no WhatsApp default recipient configured');
+      }
     }
     const registry = createDefaultChannelRegistry(config.messaging);
     const plugin = registry.get(options.channel);
@@ -280,8 +287,8 @@ program
       process.exitCode = 1;
       return;
     }
-    const result = await plugin.send({ to: options.to, text: options.text });
-    console.log(JSON.stringify(result, null, 2));
+    const result = await plugin.send({ to: destination, text: options.text });
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatSendResult(result));
   });
 
 

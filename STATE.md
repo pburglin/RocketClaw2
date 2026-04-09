@@ -79,3 +79,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Yolo mode now exists as an explicit risky override mode with warning logs and auto-approval behavior.
 
 - RocketClaw2 now includes `system-summary` for unified operator inspection of runtime posture.
+
+- Messaging send flow now supports default WhatsApp recipient fallback and human-readable send summaries.

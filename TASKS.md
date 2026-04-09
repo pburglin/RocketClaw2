@@ -66,3 +66,5 @@
 - Add explicit yolo mode with warnings and auto-approval behavior for users who intentionally opt into riskier execution.
 
 - Add a unified system/operator summary command for quick runtime posture inspection.
+
+- Add default WhatsApp recipient fallback and cleaner send-result operator UX.

@@ -268,3 +268,8 @@ Each iteration now produces a JSON entry under `harness-runs/<run-id>/iteration-
 - full LLM guidance for that iteration
 
 This makes every run fully inspectable after the fact.
+
+
+## Critic/self-reflection
+
+`harness-run` now performs a critic step after failed validation. The critic summarizes the most likely root cause and suggested corrective direction, and that insight is included in the next prompt iteration.

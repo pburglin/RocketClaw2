@@ -7,6 +7,7 @@ export type IterationEntry = {
   iteration: number;
   timestamp: string;
   guidance: string;
+  criticInsight?: string;
   filesCreated: string[];
   filesModified: string[];
   validationPassed: boolean;

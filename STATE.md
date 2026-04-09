@@ -151,3 +151,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - `harness-show` now supports `--full` for full artifact inspection.
 
 - Per-iteration harness artifacts now track created/modified files, validation output, and LLM guidance for every loop iteration.
+
+- Autonomous harness runs now include critic/self-reflection after validation failures, feeding root-cause hints into subsequent iterations.

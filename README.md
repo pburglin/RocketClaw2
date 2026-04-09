@@ -634,3 +634,8 @@ Use `rocketclaw2 harness-show --id <run-id> --full` to inspect full stored guida
 ### Per-iteration run artifacts
 
 Each `harness-run` now records every iteration as a separate JSON entry under `harness-runs/<run-id>/iteration-NNN.json`, tracking which files were created or modified, validation output, and the full LLM guidance. This makes the autonomous loop fully auditable and resumable.
+
+
+### Critic-driven autonomous loop
+
+The harness now includes a critic/self-reflection step after validation failures. When a run fails validation, RocketClaw2 asks the LLM for a concise root-cause analysis and corrective direction, then feeds that critic insight into the next implementation iteration.

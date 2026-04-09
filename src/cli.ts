@@ -36,6 +36,7 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
+import { runLlmQuery } from './llm/client.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
 import { loadImportedSkills } from './skills/store.js';
@@ -659,6 +660,23 @@ program
   .description('Print smart CLI and TUI roadmap items')
   .action(() => {
     console.log(JSON.stringify(getCliTuiRoadmap(), null, 2));
+  });
+
+
+program
+  .command('llm-query')
+  .description('Run a real query against the configured or session-overridden LLM')
+  .requiredOption('--prompt <text>', 'prompt to send to the model')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    const response = await runLlmQuery(config, options.prompt);
+    console.log(response);
   });
 
 program

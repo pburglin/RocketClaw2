@@ -192,3 +192,8 @@ Imported skill listings now show update-related metadata such as last action and
 ## Interactive setup
 
 - `rocketclaw2 setup-wizard --interactive`
+
+## Real LLM query
+
+- `rocketclaw2 --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
+- `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "custom-model" llm-query --prompt "Say hello"`

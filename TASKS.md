@@ -106,3 +106,5 @@
 - Improve skill update reporting with metadata like last action and update count.
 
 - Improve setup wizard with interactive questions for LLM and messaging access details.
+
+- Add a real LLM query command using configured or session-overridden LLM access details.

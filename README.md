@@ -536,3 +536,11 @@ Skill update tracking now includes metadata such as update count and last action
 RocketClaw2 setup can now ask questions interactively, including LLM base URL, model, API key, and default WhatsApp recipient.
 
 - `rocketclaw2 setup-wizard --interactive`
+
+
+## Real LLM query
+
+RocketClaw2 now includes a real LLM query command.
+
+- `rocketclaw2 --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
+- `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "custom-model" llm-query --prompt "Say hello"`

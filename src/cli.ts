@@ -39,7 +39,7 @@ import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-st
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessPlan, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
-import { formatHarnessRuns } from './harness/list-formatters.js';
+import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
 import { runTaskLoop } from './loops/task-loop.js';
@@ -474,10 +474,28 @@ program
 program
   .command('harness-list')
   .description('List persisted autonomous harness runs')
+  .option('--kind <kind>', 'plan|run')
+  .option('--approval <status>', 'draft|approved|n/a')
+  .option('--ok <value>', 'true|false')
+  .option('--summary', 'show aggregate artifact summary')
   .option('--json', 'output raw JSON')
   .action(async (options) => {
-    const runs = await loadHarnessRuns();
-    console.log(options.json ? JSON.stringify(runs, null, 2) : formatHarnessRuns(runs));
+    let runs = await loadHarnessRuns();
+    if (options.kind) {
+      runs = runs.filter((item) => (options.kind === 'run' ? (item.kind ?? 'run') === 'run' : item.kind === options.kind));
+    }
+    if (options.approval) {
+      runs = runs.filter((item) => String(item.approvalStatus ?? 'n/a') === options.approval);
+    }
+    if (options.ok !== undefined) {
+      const wanted = options.ok === 'true';
+      runs = runs.filter((item) => Boolean(item.ok) === wanted);
+    }
+    if (options.json) {
+      console.log(JSON.stringify(runs, null, 2));
+      return;
+    }
+    console.log(options.summary ? formatHarnessRunSummary(runs) : formatHarnessRuns(runs));
   });
 
 program

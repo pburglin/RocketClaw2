@@ -41,3 +41,16 @@ export async function loadHarnessRun(runId: string, root = getDefaultProjectRoot
     return null;
   }
 }
+
+export async function loadHarnessRunnableInput(
+  runId: string,
+  root = getDefaultProjectRoot(),
+): Promise<{ workspace: string; task: string; validateCommand: string } | null> {
+  const run = await loadHarnessRun(runId, root);
+  if (!run) return null;
+  const workspace = String(run.workspace ?? '');
+  const task = String(run.task ?? '');
+  const validateCommand = String(run.validateCommand ?? '');
+  if (!workspace || !task || !validateCommand) return null;
+  return { workspace, task, validateCommand };
+}

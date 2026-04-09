@@ -38,7 +38,7 @@ import { formatRecommendedNextActions, getRecommendedNextActions } from './core/
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessPlan, formatValidationResult } from './harness/formatters.js';
-import { loadHarnessRun, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
+import { loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
@@ -538,9 +538,10 @@ program
 program
   .command('harness-run')
   .description('Run an autonomous coding harness loop for a workspace task until validation passes or iterations are exhausted')
-  .requiredOption('--workspace <path>', 'target workspace path')
-  .requiredOption('--task <text>', 'task description')
-  .requiredOption('--validate <cmd>', 'validation command to run in the workspace')
+  .option('--id <run-id>', 'saved plan id to execute')
+  .option('--workspace <path>', 'target workspace path')
+  .option('--task <text>', 'task description')
+  .option('--validate <cmd>', 'validation command to run in the workspace')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
@@ -551,10 +552,22 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
     });
+    const resolved = options.id
+      ? await loadHarnessRunnableInput(options.id)
+      : null;
+    if (options.id && !resolved) {
+      throw new Error(`Runnable harness artifact not found or incomplete: ${options.id}`);
+    }
+    const workspace = resolved?.workspace ?? options.workspace;
+    const task = resolved?.task ?? options.task;
+    const validateCommand = resolved?.validateCommand ?? options.validate;
+    if (!workspace || !task || !validateCommand) {
+      throw new Error('harness-run requires either --id <plan-id> or all of --workspace, --task, and --validate');
+    }
     const result = await runCodingHarness(config, {
-      workspace: options.workspace,
-      task: options.task,
-      validateCommand: options.validate,
+      workspace,
+      task,
+      validateCommand,
       maxIterations: Number(options.maxIterations),
     });
     const artifact = await saveHarnessRun(result);

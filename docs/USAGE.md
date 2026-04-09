@@ -238,6 +238,7 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-show --id <run-id>`
 - `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>"` — generate a reviewable plan without writing files
+- `rocketclaw2 harness-run --id <plan-id>` — execute a previously reviewed plan artifact
 - `rocketclaw2 harness-validate --id <run-id>` — re-apply saved code blocks and re-run the validate command
 - `rocketclaw2 harness-resume --id <run-id>` — resume a failed run with one fresh iteration
 

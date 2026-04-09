@@ -604,6 +604,7 @@ RocketClaw2 now includes commands to inspect persisted autonomous harness runs.
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-show --id <run-id>`
 - `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>"`
+- `rocketclaw2 harness-run --id <plan-id>`
 - `rocketclaw2 harness-resume --id <run-id>`
 
 

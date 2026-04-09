@@ -16,3 +16,7 @@ export function getStatePath(root = getDefaultProjectRoot()): string {
 export function getMemoryDir(root = getDefaultProjectRoot()): string {
   return path.join(root, 'memory');
 }
+
+export function getHarnessRunsDir(root = getDefaultProjectRoot()): string {
+  return path.join(root, 'harness-runs');
+}

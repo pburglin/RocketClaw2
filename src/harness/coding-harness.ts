@@ -13,6 +13,8 @@ export type CodingHarnessResult = {
   lastGuidance: string;
   lastValidationStdout: string;
   lastValidationStderr: string;
+  runId?: string;
+  artifactPath?: string;
 };
 
 export async function runCodingHarness(

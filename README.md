@@ -590,3 +590,8 @@ Examples:
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
 
 This first milestone provides the full outer loop: workspace selection, task description, LLM-guided iteration, validation, and result reporting.
+
+
+### Harness run artifacts
+
+Each `harness-run` now writes a persistent JSON artifact so autonomous runs are inspectable after the fact. This is the first step toward more resumable and auditable autonomous coding workflows.

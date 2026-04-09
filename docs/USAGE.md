@@ -225,3 +225,6 @@ In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
 
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
+
+
+Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 data directory so runs can be inspected later.

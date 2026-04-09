@@ -141,3 +141,6 @@ rocketclaw2 --llm-base-url "https://api.openai.com/v1" --llm-api-key "$API_KEY" 
 ```bash
 rocketclaw2 setup-wizard --interactive
 ```
+
+
+RocketClaw2 stores autonomous coding run artifacts under its local data directory in `harness-runs/`.

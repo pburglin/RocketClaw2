@@ -38,6 +38,7 @@ import { formatRecommendedNextActions, getRecommendedNextActions } from './core/
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { runCodingHarness } from './harness/coding-harness.js';
 import { formatCodingHarnessResult } from './harness/formatters.js';
+import { saveHarnessRun } from './harness/store.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
 import { runTaskLoop } from './loops/task-loop.js';
@@ -447,7 +448,9 @@ program
       validateCommand: options.validate,
       maxIterations: Number(options.maxIterations),
     });
-    console.log(options.json ? JSON.stringify(result, null, 2) : formatCodingHarnessResult(result));
+    const artifact = await saveHarnessRun(result);
+    const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path };
+    console.log(options.json ? JSON.stringify(enriched, null, 2) : formatCodingHarnessResult(enriched));
     if (!result.ok) process.exitCode = 1;
   });
 

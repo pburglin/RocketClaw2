@@ -9,5 +9,7 @@ export function formatCodingHarnessResult(result: CodingHarnessResult): string {
     `Last guidance: ${result.lastGuidance || 'n/a'}`,
     `Last validation stdout: ${result.lastValidationStdout || 'n/a'}`,
     `Last validation stderr: ${result.lastValidationStderr || 'n/a'}`,
+    `Run ID: ${result.runId || 'n/a'}`,
+    `Artifact: ${result.artifactPath || 'n/a'}`,
   ].join('\n');
 }

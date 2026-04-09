@@ -36,7 +36,7 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
-import { replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
+import { harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatValidationResult } from './harness/formatters.js';
 import { loadHarnessRun, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { formatHarnessRuns } from './harness/list-formatters.js';
@@ -532,6 +532,26 @@ program
       validateCommand: options.validate,
       maxIterations: Number(options.maxIterations),
     });
+    const artifact = await saveHarnessRun(result);
+    const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path };
+    console.log(options.json ? JSON.stringify(enriched, null, 2) : formatCodingHarnessResult(enriched));
+    if (!result.ok) process.exitCode = 1;
+  });
+
+program
+  .command('harness-resume')
+  .description('Resume a failed harness run with a fresh LLM iteration from the last saved state')
+  .requiredOption('--id <run-id>', 'harness run id to resume')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    const result = await harnessResume(config, options.id);
     const artifact = await saveHarnessRun(result);
     const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path };
     console.log(options.json ? JSON.stringify(enriched, null, 2) : formatCodingHarnessResult(enriched));

@@ -58,6 +58,28 @@ export async function saveConfigToDisk(config: AppConfig, root = getDefaultProje
   await fs.writeFile(getConfigPath(root), YAML.stringify(config));
 }
 
+export function listRecallScoringPaths(): string[] {
+  return [
+    'sessionSalienceMultiplier',
+    'duplicateSemanticPriorityBonus',
+    'diversityPenaltyPerBucketHit',
+    'sessionRecency.within1Day',
+    'sessionRecency.within7Days',
+    'sessionRecency.within30Days',
+    'sessionRecency.within90Days',
+    'sessionRecency.older',
+    'semanticRecency.within1Day',
+    'semanticRecency.within7Days',
+    'semanticRecency.within30Days',
+    'semanticRecency.within180Days',
+    'semanticRecency.older',
+  ];
+}
+
+function buildUnknownRecallPathError(path: string): Error {
+  return new Error(`Unknown recall scoring path: ${path}. Valid paths: ${listRecallScoringPaths().join(', ')}`);
+}
+
 export async function setRecallScoringValue(
   path: string,
   value: number,
@@ -73,14 +95,14 @@ export async function setRecallScoringValue(
     const key = segments[i]!;
     const child = cursor[key];
     if (!child || typeof child !== 'object' || Array.isArray(child)) {
-      throw new Error(`Unknown recall scoring path: ${path}`);
+      throw buildUnknownRecallPathError(path);
     }
     cursor = child as Record<string, unknown>;
   }
 
   const leaf = segments[segments.length - 1]!;
   if (!(leaf in cursor)) {
-    throw new Error(`Unknown recall scoring path: ${path}`);
+    throw buildUnknownRecallPathError(path);
   }
   cursor[leaf] = value;
 

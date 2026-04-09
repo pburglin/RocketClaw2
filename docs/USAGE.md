@@ -26,6 +26,7 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 recall --query "alpha"`
 - `rocketclaw2 recall-profile`
 - `rocketclaw2 recall-explain`
+- `rocketclaw2 recall-paths`
 - `rocketclaw2 recall-set --path sessionSalienceMultiplier --value 4`
 - `rocketclaw2 dream`
 - `rocketclaw2 remember`
@@ -168,3 +169,11 @@ Approval list and summary views now surface recommended next steps directly in t
 
 - `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" doctor`
 - `rocketclaw2 --llm-model "custom-model" system-summary`
+
+## Skill management
+
+- `rocketclaw2 skill-import --url "https://github.com/example/demo-skill.git"`
+- `rocketclaw2 skill-list`
+- `rocketclaw2 skill-update --id demo-skill`
+- `rocketclaw2 skill-update`
+- `rocketclaw2 skill-remove --id demo-skill`

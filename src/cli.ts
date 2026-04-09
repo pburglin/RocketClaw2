@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 import { getRuntimeSummary } from './core/runtime.js';
 import { formatDoctorReport, runDoctorChecks } from './core/doctor.js';
-import { loadConfig, loadConfigFromDisk, setRecallScoringValue } from './config/load-config.js';
+import { listRecallScoringPaths, loadConfig, loadConfigFromDisk, setRecallScoringValue } from './config/load-config.js';
 import { CORE_TOOL_CATALOG, ToolAccessLevelSchema } from './tools/catalog.js';
 import { describeToolRiskPosture } from './tools/policy.js';
 import { formatToolPolicies, formatToolPolicySummary } from './tools/formatters.js';
@@ -36,6 +36,9 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
+import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
+import { formatImportedSkills } from './skills/formatters.js';
+import { loadImportedSkills } from './skills/store.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
@@ -164,6 +167,13 @@ program
   });
 
 program
+  .command('recall-paths')
+  .description('List valid persisted recall scoring dot paths')
+  .action(() => {
+    console.log(JSON.stringify({ validPaths: listRecallScoringPaths() }, null, 2));
+  });
+
+program
   .command('recall-set')
   .description('Set a persisted recall scoring value by dot path')
   .requiredOption('--path <path>', 'e.g. sessionSalienceMultiplier or sessionRecency.older')
@@ -173,6 +183,48 @@ program
     console.log(JSON.stringify(next.recallScoring, null, 2));
   });
 
+
+
+program
+  .command('skill-import')
+  .description('Import a skill from a user-provided source URL')
+  .requiredOption('--url <url>', 'source URL, typically a git repository')
+  .action(async (options) => {
+    const skill = await importSkill(options.url);
+    console.log(JSON.stringify(skill, null, 2));
+  });
+
+program
+  .command('skill-list')
+  .description('List imported skills')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const skills = await loadImportedSkills();
+    console.log(options.json ? JSON.stringify(skills, null, 2) : formatImportedSkills(skills));
+  });
+
+program
+  .command('skill-remove')
+  .description('Remove an imported skill')
+  .requiredOption('--id <id>', 'imported skill id')
+  .action(async (options) => {
+    const removed = await deleteImportedSkill(options.id);
+    console.log(JSON.stringify({ removed, id: options.id }, null, 2));
+  });
+
+program
+  .command('skill-update')
+  .description('Update one imported skill or all imported skills')
+  .option('--id <id>', 'skill id, omit to update all')
+  .action(async (options) => {
+    if (options.id) {
+      const updated = await updateImportedSkill(options.id);
+      console.log(JSON.stringify(updated, null, 2));
+      return;
+    }
+    const updated = await updateAllImportedSkills();
+    console.log(JSON.stringify(updated, null, 2));
+  });
 
 program
   .command('workspace-status')

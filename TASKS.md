@@ -98,3 +98,5 @@
 - Add a compact workspace status command that summarizes runtime state in one place.
 
 - Support session-scoped LLM URL/API key/model overrides from CLI parameters.
+
+- Add local skill management commands for import/list/update/remove with persisted source URL metadata.

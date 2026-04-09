@@ -505,3 +505,17 @@ RocketClaw2 now supports passing LLM connection details on the CLI for the curre
 Examples:
 - `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" doctor`
 - `rocketclaw2 --llm-model "custom-model" system-summary`
+
+
+## Skill management
+
+RocketClaw2 now includes local skill management commands so operators can manage imported skills in their local agent instance.
+
+### Current commands
+- `rocketclaw2 skill-import --url "https://github.com/example/demo-skill.git"`
+- `rocketclaw2 skill-list`
+- `rocketclaw2 skill-update --id demo-skill`
+- `rocketclaw2 skill-update`
+- `rocketclaw2 skill-remove --id demo-skill`
+
+Imported skills persist their original source URL metadata so later updates know where the skill came from.

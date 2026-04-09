@@ -102,3 +102,7 @@ This checks whether the current runtime posture is ready for use and highlights 
 ## Temporary LLM overrides
 
 For one-off sessions, you can override persisted LLM settings from the CLI without changing saved config.
+
+## Importing skills
+
+Skills can be imported later from source URLs and tracked locally by RocketClaw2.

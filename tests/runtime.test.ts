@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import YAML from 'yaml';
 import { getRuntimeSummary } from '../src/core/runtime.js';
-import { loadConfig, loadConfigFromDisk, setRecallScoringValue } from '../src/config/load-config.js';
+import { listRecallScoringPaths, loadConfig, loadConfigFromDisk, setRecallScoringValue } from '../src/config/load-config.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -130,6 +130,18 @@ describe('getRuntimeSummary', () => {
     await fs.rm(root, { recursive: true, force: true });
   });
 
+  it('lists valid recall scoring paths', () => {
+    expect(listRecallScoringPaths()).toContain('sessionSalienceMultiplier');
+    expect(listRecallScoringPaths()).toContain('semanticRecency.older');
+  });
+
+  it('throws a helpful error for unknown recall scoring paths', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-set-recall-error-${Date.now()}`);
+    await fs.mkdir(root, { recursive: true });
+    await expect(setRecallScoringValue('not.real', 1, root)).rejects.toThrow('Valid paths:');
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
   it('updates recall scoring from the CLI', async () => {
     const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-set-home-${Date.now()}`);
     const appRoot = path.join(homeRoot, '.rocketclaw2');
@@ -148,5 +160,15 @@ describe('getRuntimeSummary', () => {
     expect(reloaded.recallScoring.semanticRecency.older).toBe(-9);
 
     await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('prints valid recall scoring paths from the CLI', async () => {
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-paths'], {
+      cwd: process.cwd(),
+      env: { ...process.env },
+    });
+
+    const parsed = JSON.parse(stdout);
+    expect(parsed.validPaths).toContain('sessionRecency.older');
   });
 });

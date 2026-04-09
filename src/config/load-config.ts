@@ -78,6 +78,43 @@ export function listRecallScoringPaths(): string[] {
   return Object.keys(RECALL_SCORING_RANGE_RULES);
 }
 
+export function getRecallScoringRanges(): Record<string, { min: number; max: number }> {
+  return structuredClone(RECALL_SCORING_RANGE_RULES);
+}
+
+export function getDefaultRecallScoringConfig(): RecallScoringConfig {
+  return RecallScoringConfigSchema.parse({});
+}
+
+export interface RecallScoringField {
+  current: number;
+  default: number;
+  delta: number;
+}
+
+export function buildRecallScoringDiff(
+  root = getDefaultProjectRoot(),
+): Promise<Record<string, RecallScoringField>> {
+  return loadConfigFromDisk(root).then((config) => {
+    const defaults = getDefaultRecallScoringConfig();
+    const result: Record<string, RecallScoringField> = {};
+    for (const p of listRecallScoringPaths()) {
+      const segments = p.split('.').filter(Boolean);
+      let cur: Record<string, unknown> = config.recallScoring as unknown as Record<string, unknown>;
+      let def: Record<string, unknown> = defaults as unknown as Record<string, unknown>;
+      for (let i = 0; i < segments.length - 1; i += 1) {
+        cur = cur[segments[i]!] as Record<string, unknown>;
+        def = def[segments[i]!] as Record<string, unknown>;
+      }
+      const leaf = segments[segments.length - 1]!;
+      const current = (cur[leaf] as number) ?? 0;
+      const defaultVal = (def[leaf] as number) ?? 0;
+      result[p] = { current, default: defaultVal, delta: current - defaultVal };
+    }
+    return result;
+  });
+}
+
 function buildUnknownRecallPathError(path: string): Error {
   return new Error(`Unknown recall scoring path: ${path}. Valid paths: ${listRecallScoringPaths().join(', ')}`);
 }
@@ -121,6 +158,46 @@ export async function setRecallScoringValue(
     throw buildUnknownRecallPathError(path);
   }
   cursor[leaf] = value;
+
+  const parsed = loadConfig(next);
+  await saveConfigToDisk(parsed, root);
+  return parsed;
+}
+
+export async function resetRecallScoring(
+  paths?: string[],
+  root = getDefaultProjectRoot(),
+): Promise<AppConfig> {
+  const defaults = getDefaultRecallScoringConfig();
+  const config = await loadConfigFromDisk(root);
+  const next = structuredClone(config) as AppConfig;
+
+  const toReset = paths && paths.length > 0 ? paths : listRecallScoringPaths();
+
+  for (const p of toReset) {
+    if (!(p in RECALL_SCORING_RANGE_RULES)) {
+      throw buildUnknownRecallPathError(p);
+    }
+  }
+
+  for (const p of toReset) {
+    const segments = p.split('.').filter(Boolean);
+    let cursor: Record<string, unknown> = next.recallScoring as unknown as Record<string, unknown>;
+    for (let i = 0; i < segments.length - 1; i += 1) {
+      const key = segments[i]!;
+      const child = cursor[key];
+      if (!child || typeof child !== 'object' || Array.isArray(child)) {
+        throw buildUnknownRecallPathError(p);
+      }
+      cursor = child as Record<string, unknown>;
+    }
+    const leaf = segments[segments.length - 1]!;
+    let defaultCursor: Record<string, unknown> = defaults as unknown as Record<string, unknown>;
+    for (const seg of segments) {
+      defaultCursor = defaultCursor[seg] as Record<string, unknown>;
+    }
+    cursor[leaf] = defaultCursor;
+  }
 
   const parsed = loadConfig(next);
   await saveConfigToDisk(parsed, root);

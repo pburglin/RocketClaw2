@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 import { getRuntimeSummary } from './core/runtime.js';
 import { formatDoctorReport, runDoctorChecks } from './core/doctor.js';
-import { listRecallScoringPaths, loadConfig, loadConfigFromDisk, setRecallScoringValue } from './config/load-config.js';
+import { buildRecallScoringDiff, getDefaultRecallScoringConfig, getRecallScoringRanges, listRecallScoringPaths, loadConfig, loadConfigFromDisk, resetRecallScoring, setRecallScoringValue } from './config/load-config.js';
 import { CORE_TOOL_CATALOG, ToolAccessLevelSchema } from './tools/catalog.js';
 import { describeToolRiskPosture } from './tools/policy.js';
 import { formatToolPolicies, formatToolPolicySummary } from './tools/formatters.js';
@@ -183,16 +183,59 @@ program
   });
 
 program
+  .command('recall-diff')
+  .description('Show delta between current recall scoring values and defaults')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const diff = await buildRecallScoringDiff();
+    if (options.json) {
+      console.log(JSON.stringify(diff, null, 2));
+      return;
+    }
+    const hasNonZero = Object.values(diff).some((f) => f.delta !== 0);
+    if (!hasNonZero) {
+      console.log('All recall scoring fields are at their default values. No deltas.');
+      return;
+    }
+    for (const [path, field] of Object.entries(diff)) {
+      if (field.delta === 0) continue;
+      const sign = field.delta > 0 ? '+' : '';
+      console.log(`${path}: current=${field.current} default=${field.default} delta=${sign}${field.delta}`);
+    }
+  });
+
+program
+  .command('recall-reset')
+  .description('Reset one or more recall scoring fields to defaults (omit --path to reset all)')
+  .option('--path <path>', 'dot path to reset (e.g. sessionSalienceMultiplier), omit to reset everything')
+  .action(async (options) => {
+    const paths = options.path ? [options.path] : undefined;
+    const next = await resetRecallScoring(paths);
+    console.log(JSON.stringify(next.recallScoring, null, 2));
+  });
+
+program
   .command('recall-set')
   .description('Set a persisted recall scoring value by dot path')
   .requiredOption('--path <path>', 'e.g. sessionSalienceMultiplier or sessionRecency.older')
   .requiredOption('--value <number>', 'numeric value')
   .action(async (options) => {
-    const next = await setRecallScoringValue(options.path, Number(options.value));
-    console.log(JSON.stringify(next.recallScoring, null, 2));
+    try {
+      const next = await setRecallScoringValue(options.path, Number(options.value));
+      console.log(JSON.stringify(next.recallScoring, null, 2));
+    } catch (error) {
+      if (error instanceof Error) {
+        const ranges = getRecallScoringRanges();
+        const rule = ranges[options.path];
+        if (rule && error.message.includes('Allowed range:')) {
+          console.error(`Error: ${error.message}. Suggested range: ${rule.min} to ${rule.max}`);
+        } else {
+          console.error(`Error: ${error.message}`);
+        }
+      }
+      process.exitCode = 1;
+    }
   });
-
-
 
 program
   .command('skill-import')

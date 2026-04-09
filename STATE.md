@@ -53,6 +53,9 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - The CLI now includes `recall-set` so operators can tune persisted recall scoring values by dot path without manually editing YAML.
 - Recall tuning now exposes valid dot paths and returns clearer invalid-path errors, reducing guesswork when editing scoring values.
 - Recall tuning now rejects obviously extreme values with lightweight numeric range guardrails before they can distort ranking behavior.
+- Recall tuning error output now shows the allowed range and a suggestion when values are out of bounds.
+- `recall-reset` command now lets operators restore one or all recall scoring fields to defaults without manual YAML editing.
+- `recall-diff` command now shows delta between current recall scoring values and defaults, making tuned fields visible at a glance.
 
 - Interactive chat now consults unified recall and can surface remembered context in replies.
 - Interactive chat now treats explicit memory questions differently from normal chat, returning memory-focused answers instead of pure echo output.

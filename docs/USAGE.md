@@ -27,7 +27,10 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 recall-profile`
 - `rocketclaw2 recall-explain`
 - `rocketclaw2 recall-paths`
+- `rocketclaw2 recall-reset` (reset all recall scoring fields to defaults)
+- `rocketclaw2 recall-reset --path sessionSalienceMultiplier` (reset a specific field)
 - `rocketclaw2 recall-set --path sessionSalienceMultiplier --value 4`
+- `rocketclaw2 recall-diff` (show delta vs. defaults)
 
 `recall-set` now validates values against lightweight safety ranges so extreme tuning mistakes are rejected early.
 - `rocketclaw2 dream`

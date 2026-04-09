@@ -126,3 +126,4 @@
 - Add persistent run artifacts for autonomous harness executions so runs are auditable and resumable.
 
 - Add list/show commands for persisted autonomous harness runs.
+- Add `recall-reset` so operators can restore recall scoring fields to defaults without manual YAML editing.

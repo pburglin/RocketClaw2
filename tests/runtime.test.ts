@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import YAML from 'yaml';
 import { getRuntimeSummary } from '../src/core/runtime.js';
-import { listRecallScoringPaths, loadConfig, loadConfigFromDisk, setRecallScoringValue } from '../src/config/load-config.js';
+import { buildRecallScoringDiff, getDefaultRecallScoringConfig, listRecallScoringPaths, loadConfig, loadConfigFromDisk, resetRecallScoring, setRecallScoringValue } from '../src/config/load-config.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -186,5 +186,137 @@ describe('getRuntimeSummary', () => {
         env: { ...process.env },
       }),
     ).rejects.toThrow('Allowed range:');
+  });
+
+  it('resets a specific recall scoring path to its default', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-reset-specific-${Date.now()}`);
+    await fs.mkdir(root, { recursive: true });
+    await fs.writeFile(
+      path.join(root, 'config.yaml'),
+      YAML.stringify({ recallScoring: { sessionSalienceMultiplier: 9, diversityPenaltyPerBucketHit: 77 } }),
+    );
+
+    const defaults = getDefaultRecallScoringConfig();
+    const updated = await resetRecallScoring(['sessionSalienceMultiplier'], root);
+    expect(updated.recallScoring.sessionSalienceMultiplier).toBe(defaults.sessionSalienceMultiplier);
+    // diversityPenaltyPerBucketHit should be unchanged
+    expect(updated.recallScoring.diversityPenaltyPerBucketHit).toBe(77);
+
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('resets all recall scoring paths to defaults when no path is specified', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-reset-all-${Date.now()}`);
+    await fs.mkdir(root, { recursive: true });
+    await fs.writeFile(
+      path.join(root, 'config.yaml'),
+      YAML.stringify({ recallScoring: { sessionSalienceMultiplier: 9, semanticRecency: { older: 99 } } }),
+    );
+
+    const defaults = getDefaultRecallScoringConfig();
+    const updated = await resetRecallScoring(undefined, root);
+    expect(updated.recallScoring.sessionSalienceMultiplier).toBe(defaults.sessionSalienceMultiplier);
+    expect(updated.recallScoring.semanticRecency.older).toBe(defaults.semanticRecency.older);
+
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('resets all recall scoring from the CLI', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-reset-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ recallScoring: { sessionSalienceMultiplier: 9 } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-reset'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    const defaults = getDefaultRecallScoringConfig();
+    const parsed = JSON.parse(stdout);
+    expect(parsed.sessionSalienceMultiplier).toBe(defaults.sessionSalienceMultiplier);
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('resets a specific recall scoring path from the CLI', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-reset-path-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ recallScoring: { sessionSalienceMultiplier: 9, duplicateSemanticPriorityBonus: 400 } }),
+    );
+
+    const defaults = getDefaultRecallScoringConfig();
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-reset', '--path', 'sessionSalienceMultiplier'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    const parsed = JSON.parse(stdout);
+    expect(parsed.sessionSalienceMultiplier).toBe(defaults.sessionSalienceMultiplier);
+    // other field should be unchanged
+    expect(parsed.duplicateSemanticPriorityBonus).toBe(400);
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('builds a recall scoring diff between current and defaults', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-diff-${Date.now()}`);
+    await fs.mkdir(root, { recursive: true });
+    await fs.writeFile(
+      path.join(root, 'config.yaml'),
+      YAML.stringify({ recallScoring: { sessionSalienceMultiplier: 7, semanticRecency: { older: -30 } } }),
+    );
+
+    const diff = await buildRecallScoringDiff(root);
+    expect(diff['sessionSalienceMultiplier'].current).toBe(7);
+    expect(diff['sessionSalienceMultiplier'].delta).toBe(7 - 3); // default is 3
+    expect(diff['semanticRecency.older'].current).toBe(-30);
+    expect(diff['semanticRecency.older'].delta).toBe(-30 - (-6)); // default is -6
+    expect(diff['sessionRecency.within1Day'].current).toBe(18); // default unchanged
+    expect(diff['sessionRecency.within1Day'].delta).toBe(0);
+
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('prints no-delta message from CLI when all fields are at defaults', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-diff-cli-defaults-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(path.join(appRoot, 'config.yaml'), YAML.stringify({}));
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-diff'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('at their default values');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('shows non-zero deltas from CLI when values differ from defaults', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-diff-cli-delta-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ recallScoring: { sessionSalienceMultiplier: 9 } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-diff'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('sessionSalienceMultiplier');
+    expect(stdout).toContain('delta=');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
   });
 });

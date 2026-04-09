@@ -60,3 +60,5 @@
 - Add messaging integration summaries for operator inspection.
 
 - Add governed tool execution flow so runtime actions are checked against policy and approval requirements.
+
+- Improve recall inspection with filtered and summarized operator views.

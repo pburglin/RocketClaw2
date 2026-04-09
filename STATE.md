@@ -73,3 +73,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Messaging governance/operator UX now includes a readable messaging summary command.
 
 - RocketClaw2 now includes a governed tool execution flow (`tool-run`) that enforces policy and approval requirements.
+
+- Recall inspection now supports filtered and summarized operator views for terminal workflows.

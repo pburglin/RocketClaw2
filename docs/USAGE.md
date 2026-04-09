@@ -79,3 +79,9 @@ node dist/cli.js chat --session-id <session-id>
 
 - `rocketclaw2 tool-run --tool file-management --action read`
 - `rocketclaw2 tool-run --tool file-management --action write --approve`
+
+## Recall inspection
+
+- `rocketclaw2 recall --query "alpha"`
+- `rocketclaw2 recall --query "alpha" --kind semantic`
+- `rocketclaw2 recall --query "alpha" --summary`

@@ -188,6 +188,8 @@ RocketClaw2 now includes retrieval over persisted sessions and unified recall ac
 ### Current commands
 - `rocketclaw2 search --query "alpha"`
 - `rocketclaw2 recall --query "alpha"`
+- `rocketclaw2 recall --query "alpha" --kind semantic`
+- `rocketclaw2 recall --query "alpha" --summary`
 
 `search` focuses on persisted session messages. `recall` searches both episodic session memory and curated semantic memory together.
 
@@ -353,3 +355,6 @@ RocketClaw2 now includes an operator-visible governed tool execution path.
 - `rocketclaw2 tool-run --tool file-management --action write --approve`
 
 This currently simulates execution, but it already enforces configured policy and approval requirements before allowing the action.
+
+
+Recall inspection now supports filtered and summarized operator views in addition to raw JSON.

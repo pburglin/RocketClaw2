@@ -13,6 +13,7 @@ import { runInit } from './commands/init.js';
 import { getMemoryStrategy } from './memory/strategy.js';
 import { searchSessionMemory } from './memory/retrieval.js';
 import { recallMemory } from './memory/recall.js';
+import { formatRecallHits, formatRecallSummary } from './memory/formatters.js';
 import { buildConsolidationPlan } from './memory/consolidation.js';
 import { rememberCandidate } from './memory/remember.js';
 import { loadSemanticMemory } from './memory/semantic-store.js';
@@ -50,9 +51,19 @@ program
   .command('recall')
   .description('Search across session memory and curated semantic memory')
   .requiredOption('--query <text>', 'text to recall')
+  .option('--json', 'output raw JSON')
+  .option('--kind <kind>', 'filter by semantic|session')
+  .option('--summary', 'show only aggregate summary')
   .action(async (options) => {
-    const hits = await recallMemory(options.query);
-    console.log(JSON.stringify(hits, null, 2));
+    let hits = await recallMemory(options.query);
+    if (options.kind) {
+      hits = hits.filter((hit) => hit.kind === options.kind);
+    }
+    if (options.json) {
+      console.log(JSON.stringify(hits, null, 2));
+      return;
+    }
+    console.log(options.summary ? formatRecallSummary(hits) : formatRecallHits(hits));
   });
 
 program

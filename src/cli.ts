@@ -14,6 +14,7 @@ import { getMemoryStrategy } from './memory/strategy.js';
 import { searchSessionMemory } from './memory/retrieval.js';
 import { recallMemory } from './memory/recall.js';
 import { formatRecallHits, formatRecallSummary } from './memory/formatters.js';
+import { formatSemanticMemoryFiltered, formatSemanticMemorySummary } from './memory/semantic-formatters.js';
 import { buildConsolidationPlan } from './memory/consolidation.js';
 import { rememberCandidate } from './memory/remember.js';
 import { loadSemanticMemory } from './memory/semantic-store.js';
@@ -73,9 +74,23 @@ program
   .command('memory-list')
   .description('List curated semantic memory entries')
   .option('--json', 'output raw JSON')
+  .option('--tag <tag>', 'filter by tag')
+  .option('--min-salience <n>', 'filter by minimum salience')
+  .option('--summary', 'show aggregate summary')
   .action(async (options) => {
-    const entries = await loadSemanticMemory();
-    console.log(options.json ? JSON.stringify(entries, null, 2) : formatSemanticMemory(entries));
+    let entries = await loadSemanticMemory();
+    if (options.tag) {
+      entries = entries.filter((entry) => entry.tags.includes(options.tag));
+    }
+    if (options.minSalience) {
+      const threshold = Number(options.minSalience);
+      entries = entries.filter((entry) => entry.salience >= threshold);
+    }
+    if (options.json) {
+      console.log(JSON.stringify(entries, null, 2));
+      return;
+    }
+    console.log(options.summary ? formatSemanticMemorySummary(entries) : formatSemanticMemoryFiltered(entries));
   });
 
 program

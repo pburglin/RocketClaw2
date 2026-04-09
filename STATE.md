@@ -81,3 +81,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes `system-summary` for unified operator inspection of runtime posture.
 
 - Messaging send flow now supports default WhatsApp recipient fallback and human-readable send summaries.
+
+- Semantic memory inspection now supports tag filtering, salience filtering, and summary output.

@@ -68,3 +68,5 @@
 - Add a unified system/operator summary command for quick runtime posture inspection.
 
 - Add default WhatsApp recipient fallback and cleaner send-result operator UX.
+
+- Improve semantic memory inspection with filters and summary views.

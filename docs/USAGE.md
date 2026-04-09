@@ -101,3 +101,9 @@ node dist/cli.js chat --session-id <session-id>
 - `rocketclaw2 send --channel whatsapp --text "hello"`
 - `rocketclaw2 send --channel whatsapp --to "+15551234567" --text "hello"`
 - `rocketclaw2 send --channel whatsapp --text "hello" --json`
+
+## Semantic memory inspection
+
+- `rocketclaw2 memory-list`
+- `rocketclaw2 memory-list --tag preference`
+- `rocketclaw2 memory-list --min-salience 40 --summary`

@@ -210,6 +210,8 @@ RocketClaw2 now has a first semantic memory store for promoted durable insights.
 
 ### Current commands
 - `rocketclaw2 memory-list`
+- `rocketclaw2 memory-list --tag preference`
+- `rocketclaw2 memory-list --min-salience 40 --summary`
 - `rocketclaw2 remember`
 
 The current `remember` flow promotes the strongest available consolidation candidate into curated semantic memory. This is the first real write path for the dreaming-inspired memory system.
@@ -236,6 +238,8 @@ RocketClaw2 now includes more human-readable operator views for sessions and sem
 - `rocketclaw2 session-show --id <session-id>`
 - `rocketclaw2 session-stats`
 - `rocketclaw2 memory-list`
+- `rocketclaw2 memory-list --tag preference`
+- `rocketclaw2 memory-list --min-salience 40 --summary`
 - add `--json` when raw structured output is preferred
 
 This is the first step toward a richer terminal operator experience before a full TUI is introduced.
@@ -395,3 +399,6 @@ Examples:
 - `rocketclaw2 send --channel whatsapp --text "hello" --json`
 
 If a default WhatsApp recipient is configured, the operator no longer has to repeat `--to` every time.
+
+
+Semantic memory inspection now supports filtering by tag, filtering by salience threshold, and aggregate summary output.

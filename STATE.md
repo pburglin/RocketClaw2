@@ -77,3 +77,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Recall inspection now supports filtered and summarized operator views for terminal workflows.
 
 - Yolo mode now exists as an explicit risky override mode with warning logs and auto-approval behavior.
+
+- RocketClaw2 now includes `system-summary` for unified operator inspection of runtime posture.

@@ -372,3 +372,14 @@ RocketClaw2 now supports an explicit **yolo mode** that auto-approves actions wh
 - yolo mode is intentionally risky
 - RocketClaw2 logs warnings when yolo mode is enabled or used to bypass approval
 - this mode should only be enabled by a user who understands and accepts the risks
+
+
+## Unified system summary
+
+RocketClaw2 now includes a single operator command for inspecting the overall runtime posture.
+
+### Current command
+- `rocketclaw2 system-summary`
+- `rocketclaw2 system-summary --json`
+
+This command pulls together profile, yolo mode, messaging posture, tool access summary, override counts, and recall scoring into one place.

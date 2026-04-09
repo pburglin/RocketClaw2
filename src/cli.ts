@@ -22,6 +22,7 @@ import { configureWhatsApp } from './messaging/whatsapp-config.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { configureYolo } from './config/yolo-config.js';
+import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
@@ -128,6 +129,17 @@ program
   .action(async () => {
     const config = await loadConfigFromDisk();
     console.log(formatRecallScoringExplanation(config.recallScoring));
+  });
+
+
+program
+  .command('system-summary')
+  .description('Show a unified operator view of runtime posture and configuration')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const config = await loadAppConfig();
+    const summary = buildSystemSummary(config);
+    console.log(options.json ? JSON.stringify(summary, null, 2) : formatSystemSummary(summary));
   });
 
 program

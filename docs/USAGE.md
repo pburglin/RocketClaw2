@@ -90,3 +90,8 @@ node dist/cli.js chat --session-id <session-id>
 
 - `rocketclaw2 yolo-config`
 - `rocketclaw2 yolo-config --enabled true --warn true`
+
+## System summary
+
+- `rocketclaw2 system-summary`
+- `rocketclaw2 system-summary --json`

@@ -79,3 +79,12 @@ Future provider and messaging integrations may introduce optional environment va
 Current baseline validation:
 - `npm run build` ✅
 - `npm test` ✅
+
+## Guided setup
+
+Run:
+```bash
+rocketclaw2 setup-wizard
+```
+
+This prints the current runtime posture and recommended next configuration actions.

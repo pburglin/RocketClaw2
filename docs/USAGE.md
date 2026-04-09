@@ -143,3 +143,7 @@ Note: approval requests may now be created automatically when governed execution
 Approval list and summary views now surface recommended next steps directly in the terminal output.
 
 - `rocketclaw2 approval-pending`
+
+## Setup wizard
+
+- `rocketclaw2 setup-wizard`

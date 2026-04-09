@@ -465,3 +465,10 @@ Approval queue views now include next-step hints so operators can see what to do
 - `rocketclaw2 approval-pending`
 
 The pending approval view is optimized for actionability and shows only items that still need operator attention.
+
+
+## Setup wizard
+
+RocketClaw2 now includes a guided setup helper.
+
+- `rocketclaw2 setup-wizard`

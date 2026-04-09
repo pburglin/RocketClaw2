@@ -31,6 +31,7 @@ import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
 import { formatRalphLoopResult } from './loops/ralph-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
+import { runSetupWizard } from './setup/wizard.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
@@ -153,6 +154,15 @@ program
     console.log(formatRecallScoringExplanation(config.recallScoring));
   });
 
+
+
+program
+  .command('setup-wizard')
+  .description('Show guided setup and next-step recommendations')
+  .action(async () => {
+    const text = await runSetupWizard();
+    console.log(text);
+  });
 
 program
   .command('system-summary')

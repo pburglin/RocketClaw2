@@ -88,3 +88,5 @@
 - Add next-step hints directly into approval queue views for better operator flow.
 
 - Add an actionable pending-approval view for faster operator review.
+
+- Add a guided setup helper to improve first-run and operator onboarding.

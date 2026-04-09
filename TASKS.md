@@ -124,3 +124,5 @@
 - Add an autonomous coding harness command with workspace selection, LLM guidance, validation, and result reporting.
 
 - Add persistent run artifacts for autonomous harness executions so runs are auditable and resumable.
+
+- Add list/show commands for persisted autonomous harness runs.

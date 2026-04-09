@@ -140,3 +140,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes an initial autonomous coding harness command with workspace/task/validation flow.
 
 - Autonomous harness runs now write persistent artifacts for later inspection.
+
+- RocketClaw2 now includes list/show commands for persisted autonomous harness runs.

@@ -595,3 +595,11 @@ This first milestone provides the full outer loop: workspace selection, task des
 ### Harness run artifacts
 
 Each `harness-run` now writes a persistent JSON artifact so autonomous runs are inspectable after the fact. This is the first step toward more resumable and auditable autonomous coding workflows.
+
+
+## Harness run inspection
+
+RocketClaw2 now includes commands to inspect persisted autonomous harness runs.
+
+- `rocketclaw2 harness-list`
+- `rocketclaw2 harness-show --id <run-id>`

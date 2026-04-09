@@ -38,7 +38,8 @@ import { formatRecommendedNextActions, getRecommendedNextActions } from './core/
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { runCodingHarness } from './harness/coding-harness.js';
 import { formatCodingHarnessResult } from './harness/formatters.js';
-import { saveHarnessRun } from './harness/store.js';
+import { loadHarnessRun, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
+import { formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
 import { runTaskLoop } from './loops/task-loop.js';
@@ -425,6 +426,28 @@ program
 
 
 
+
+
+program
+  .command('harness-list')
+  .description('List persisted autonomous harness runs')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const runs = await loadHarnessRuns();
+    console.log(options.json ? JSON.stringify(runs, null, 2) : formatHarnessRuns(runs));
+  });
+
+program
+  .command('harness-show')
+  .description('Show a persisted autonomous harness run artifact')
+  .requiredOption('--id <id>', 'harness run id')
+  .action(async (options) => {
+    const run = await loadHarnessRun(options.id);
+    if (!run) {
+      throw new Error(`Harness run not found: ${options.id}`);
+    }
+    console.log(JSON.stringify(run, null, 2));
+  });
 
 program
   .command('harness-run')

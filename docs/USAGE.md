@@ -228,3 +228,8 @@ In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
 
 
 Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 data directory so runs can be inspected later.
+
+## Harness run inspection
+
+- `rocketclaw2 harness-list`
+- `rocketclaw2 harness-show --id <run-id>`

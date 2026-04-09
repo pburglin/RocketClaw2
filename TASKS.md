@@ -118,3 +118,5 @@
 - Make chat use the configured LLM with recalled memory context, with fallback behavior only when no LLM is configured.
 
 - Polish chat UX so Ctrl+C exits cleanly without a raw stack trace.
+
+- Add a first-class iterative task loop for LLM-guided development with validation retries.

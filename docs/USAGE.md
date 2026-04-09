@@ -215,3 +215,8 @@ Chat now uses the configured LLM when available, instead of only echoing or list
 
 
 In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
+
+## Iterative task loop
+
+- `rocketclaw2 --llm-api-key "$API_KEY" task-loop --task "Make the failing tests pass" --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" task-loop --task "Fix lint errors" --validate "npm run build" --max-iterations 5`

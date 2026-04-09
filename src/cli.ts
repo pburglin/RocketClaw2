@@ -38,6 +38,8 @@ import { formatRecommendedNextActions, getRecommendedNextActions } from './core/
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
+import { runTaskLoop } from './loops/task-loop.js';
+import { formatTaskLoopResult } from './loops/task-loop-formatters.js';
 import { buildLlmStatus, formatLlmStatus } from './llm/status.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
@@ -418,6 +420,31 @@ program
   });
 
 
+
+
+program
+  .command('task-loop')
+  .description('Run an LLM-guided iterative task loop until validation passes or max iterations is reached')
+  .requiredOption('--task <text>', 'task description')
+  .requiredOption('--validate <cmd>', 'validation command to run each iteration')
+  .option('--max-iterations <n>', 'maximum loop iterations', '5')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    const result = await runTaskLoop(config, {
+      task: options.task,
+      validateCommand: options.validate,
+      maxIterations: Number(options.maxIterations),
+    });
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatTaskLoopResult(result));
+    if (!result.ok) process.exitCode = 1;
+  });
 
 program
   .command('ralph-loop')

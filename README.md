@@ -568,3 +568,14 @@ Chat now uses the configured LLM when an API key is available, with recalled mem
 
 
 Chat now exits cleanly on Ctrl+C instead of dumping a raw AbortError stack trace.
+
+
+## Iterative coding task loop
+
+RocketClaw2 now includes a first-class iterative task loop command.
+
+Examples:
+- `rocketclaw2 --llm-api-key "$API_KEY" task-loop --task "Make the failing tests pass" --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" task-loop --task "Fix lint errors" --validate "npm run build" --max-iterations 5`
+
+This is the built-in version of the LLM + validation + retry pattern that Ralph loop previously only demonstrated indirectly.

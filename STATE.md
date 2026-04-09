@@ -134,3 +134,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Chat now uses the configured LLM with recalled memory context when LLM access is available, and falls back only when no LLM is configured.
 
 - Chat now handles Ctrl+C gracefully and exits with a clean message.
+
+- RocketClaw2 now includes a first-class iterative task loop for LLM-guided development with validation retries.

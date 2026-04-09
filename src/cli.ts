@@ -37,7 +37,7 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
-import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
+import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { loadIterationEntries } from './harness/iteration-store.js';
 import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
@@ -531,6 +531,16 @@ program
       const { lastGuidance, planText, ...summary } = run as any;
       console.log(JSON.stringify(summary, null, 2));
     }
+  });
+
+program
+  .command('harness-iterations')
+  .description('Show the per-iteration history for a harness run')
+  .requiredOption('--id <id>', 'harness run id')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const entries = await loadIterationEntries(options.id);
+    console.log(options.json ? JSON.stringify(entries, null, 2) : formatHarnessIterations(entries));
   });
 
 program

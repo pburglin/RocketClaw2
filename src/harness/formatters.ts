@@ -1,4 +1,5 @@
 import type { CodingHarnessResult, HarnessPlan, ValidationResult } from './coding-harness.js';
+import type { IterationEntry } from './iteration-store.js';
 
 export function formatValidationResult(r: ValidationResult): string {
   const status = r.passed ? 'PASSED' : 'FAILED';
@@ -57,6 +58,16 @@ export function formatHarnessPlanView(item: Record<string, unknown>): string {
     '',
     String(item.planText ?? 'n/a'),
   ].join('\n');
+}
+
+export function formatHarnessIterations(entries: IterationEntry[]): string {
+  if (entries.length === 0) return 'No iteration entries found.';
+  return entries.map((entry) => [
+    `Iteration ${entry.iteration} | passed=${entry.validationPassed} | created=${entry.filesCreated.length} | modified=${entry.filesModified.length}`,
+    `stdout: ${entry.validationStdout || '(empty)'}`,
+    `stderr: ${entry.validationStderr || '(empty)'}`,
+    entry.criticInsight ? `critic: ${entry.criticInsight}` : null,
+  ].filter(Boolean).join('\n')).join('\n\n');
 }
 
 export function formatCodingHarnessResult(result: CodingHarnessResult): string {

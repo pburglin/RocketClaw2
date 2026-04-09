@@ -537,9 +537,22 @@ program
   .command('harness-iterations')
   .description('Show the per-iteration history for a harness run')
   .requiredOption('--id <id>', 'harness run id')
+  .option('--latest', 'show only the latest iteration')
+  .option('--failed-only', 'show only failed iterations')
+  .option('--iteration <n>', 'show only a specific iteration number')
   .option('--json', 'output raw JSON')
   .action(async (options) => {
-    const entries = await loadIterationEntries(options.id);
+    let entries = await loadIterationEntries(options.id);
+    if (options.iteration) {
+      const wanted = Number(options.iteration);
+      entries = entries.filter((entry) => entry.iteration === wanted);
+    }
+    if (options.failedOnly) {
+      entries = entries.filter((entry) => entry.validationPassed === false);
+    }
+    if (options.latest && entries.length > 0) {
+      entries = [entries[entries.length - 1]!];
+    }
     console.log(options.json ? JSON.stringify(entries, null, 2) : formatHarnessIterations(entries));
   });
 

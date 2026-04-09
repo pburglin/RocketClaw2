@@ -160,5 +160,6 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Harness artifact inspection now supports filtering by artifact kind, approval state, and success/failure posture, plus compact summaries.
 - `harness-show` now supports focused plan, guidance, and validation views instead of only raw artifact JSON.
 - Operators can now inspect full step-by-step loop history with `harness-iterations --id <run-id>`.
+- Iteration inspection now supports latest-only, failed-only, and per-iteration filtering for long harness runs.
 
 - Full harness inspection now embeds per-iteration details directly in `harness-show --full` output.

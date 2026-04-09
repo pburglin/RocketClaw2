@@ -19,7 +19,7 @@ export async function importSkill(sourceUrl: string, root = getDefaultProjectRoo
   await fs.mkdir(localPath, { recursive: true });
   await fs.writeFile(path.join(localPath, 'SOURCE_URL.txt'), `${sourceUrl}\n`);
   const now = new Date().toISOString();
-  const skill: ImportedSkill = { id, name, sourceUrl, installedAt: now, updatedAt: now, localPath };
+  const skill: ImportedSkill = { id, name, sourceUrl, installedAt: now, updatedAt: now, localPath, updateCount: 0, lastAction: 'imported' };
   await upsertImportedSkill(skill, root);
   return skill;
 }
@@ -28,7 +28,7 @@ export async function updateImportedSkill(id: string, root = getDefaultProjectRo
   const skills = await loadImportedSkills(root);
   const skill = skills.find((item) => item.id === id);
   if (!skill) throw new Error(`Imported skill not found: ${id}`);
-  const updated: ImportedSkill = { ...skill, updatedAt: new Date().toISOString() };
+  const updated: ImportedSkill = { ...skill, updatedAt: new Date().toISOString(), updateCount: (skill.updateCount ?? 0) + 1, lastAction: 'updated' };
   await upsertImportedSkill(updated, root);
   return updated;
 }

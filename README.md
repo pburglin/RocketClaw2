@@ -526,3 +526,6 @@ Skill inspection now supports source-aware filtering and aggregate summary views
 - `rocketclaw2 skill-list --source-contains github.com`
 - `rocketclaw2 skill-list --summary`
 - `rocketclaw2 skill-summary`
+
+
+Skill update tracking now includes metadata such as update count and last action, so operators can see which imported skills have actually been refreshed.

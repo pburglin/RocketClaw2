@@ -10,6 +10,8 @@ export const ImportedSkillSchema = z.object({
   installedAt: z.string(),
   updatedAt: z.string(),
   localPath: z.string(),
+  updateCount: z.number().default(0),
+  lastAction: z.enum(['imported', 'updated']).default('imported'),
 });
 
 export type ImportedSkill = z.infer<typeof ImportedSkillSchema>;

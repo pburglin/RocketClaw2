@@ -183,3 +183,6 @@ Approval list and summary views now surface recommended next steps directly in t
 - `rocketclaw2 skill-list --source-contains github.com`
 - `rocketclaw2 skill-list --summary`
 - `rocketclaw2 skill-summary`
+
+
+Imported skill listings now show update-related metadata such as last action and update count.

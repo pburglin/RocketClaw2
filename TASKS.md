@@ -102,3 +102,5 @@
 - Add local skill management commands for import/list/update/remove with persisted source URL metadata.
 
 - Improve skill inspection with source-aware filtering and aggregate summaries.
+
+- Improve skill update reporting with metadata like last action and update count.

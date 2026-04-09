@@ -96,3 +96,5 @@
 - Add a command that turns current runtime posture into recommended operator next steps.
 
 - Add a compact workspace status command that summarizes runtime state in one place.
+
+- Support session-scoped LLM URL/API key/model overrides from CLI parameters.

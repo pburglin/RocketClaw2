@@ -110,3 +110,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a command for recommending operator next steps from current runtime posture.
 
 - RocketClaw2 now includes `workspace-status` for a compact dashboard-like operator view.
+
+- RocketClaw2 now supports session-scoped LLM URL/API key/model overrides from CLI parameters.

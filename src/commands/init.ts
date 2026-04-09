@@ -31,6 +31,10 @@ export async function runInit(profile: string): Promise<void> {
       enabled: false,
       warn: true,
     },
+    llm: {
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o-mini',
+    },
     tools: buildDefaultToolPolicies(),
     recallScoring: loadConfig({}).recallScoring,
   };

@@ -5,6 +5,7 @@ import { getConfigPath, getDefaultProjectRoot } from './app-paths.js';
 import { ToolPolicySchema, buildDefaultToolPolicies } from '../tools/policy.js';
 import { MessagingConfigSchema } from '../messaging/config.js';
 import { YoloConfigSchema } from './yolo.js';
+import { LlmConfigSchema } from './llm.js';
 
 export const RecallScoringConfigSchema = z.object({
   sessionSalienceMultiplier: z.number().default(3),
@@ -30,6 +31,7 @@ export const AppConfigSchema = z.object({
   profile: z.string().default('default'),
   messaging: MessagingConfigSchema.default({ whatsapp: { enabled: true, mode: 'mock' } }),
   yolo: YoloConfigSchema.default({ enabled: false, warn: true }),
+  llm: LlmConfigSchema.default({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' }),
   tools: z.array(ToolPolicySchema).default(buildDefaultToolPolicies()),
   recallScoring: RecallScoringConfigSchema.default({}),
 });

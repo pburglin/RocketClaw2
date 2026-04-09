@@ -32,6 +32,7 @@ import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
 import { formatRalphLoopResult } from './loops/ralph-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
+import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
@@ -42,6 +43,11 @@ import { getSessionStats } from './sessions/stats.js';
 import { runChatSession } from './commands/chat.js';
 
 const program = new Command();
+
+program
+  .option('--llm-base-url <url>', 'override LLM base URL for this CLI session only')
+  .option('--llm-api-key <key>', 'override LLM API key for this CLI session only')
+  .option('--llm-model <model>', 'override LLM model for this CLI session only');
 
 program
   .name('rocketclaw2')
@@ -198,8 +204,14 @@ program
   .command('system-summary')
   .description('Show a unified operator view of runtime posture and configuration')
   .option('--json', 'output raw JSON')
-  .action(async (options) => {
-    const config = await loadAppConfig();
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
     const summary = buildSystemSummary(config);
     console.log(options.json ? JSON.stringify(summary, null, 2) : formatSystemSummary(summary));
   });

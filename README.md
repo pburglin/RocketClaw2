@@ -496,3 +496,12 @@ RocketClaw2 now includes a compact dashboard-like command for overall runtime st
 
 - `rocketclaw2 workspace-status`
 - `rocketclaw2 workspace-status --json`
+
+
+## Session-scoped LLM overrides
+
+RocketClaw2 now supports passing LLM connection details on the CLI for the current session only. These overrides take precedence over persisted config for that command run, without changing the saved config.
+
+Examples:
+- `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" doctor`
+- `rocketclaw2 --llm-model "custom-model" system-summary`

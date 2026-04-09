@@ -163,3 +163,8 @@ Approval list and summary views now surface recommended next steps directly in t
 
 - `rocketclaw2 workspace-status`
 - `rocketclaw2 workspace-status --json`
+
+## Session-scoped LLM overrides
+
+- `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" doctor`
+- `rocketclaw2 --llm-model "custom-model" system-summary`

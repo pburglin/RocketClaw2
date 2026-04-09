@@ -98,3 +98,7 @@ rocketclaw2 doctor
 ```
 
 This checks whether the current runtime posture is ready for use and highlights potential configuration issues.
+
+## Temporary LLM overrides
+
+For one-off sessions, you can override persisted LLM settings from the CLI without changing saved config.

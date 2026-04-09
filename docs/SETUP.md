@@ -13,11 +13,11 @@ npm test
 
 ## First local run
 ```bash
-node dist/cli.js doctor
-node dist/cli.js init --profile default
-node dist/cli.js recall-profile
-node dist/cli.js session-create --title "First Session"
-node dist/cli.js session-list
+node dist/src/cli.js doctor
+node dist/src/cli.js init --profile default
+node dist/src/cli.js recall-profile
+node dist/src/cli.js session-create --title "First Session"
+node dist/src/cli.js session-list
 ```
 
 ## Recall scoring config
@@ -25,17 +25,30 @@ node dist/cli.js session-list
 
 You can inspect and tune the active profile with:
 ```bash
-node dist/cli.js recall-profile
-node dist/cli.js recall-explain
-node dist/cli.js recall-set --path sessionSalienceMultiplier --value 4
-node dist/cli.js doctor
-node dist/cli.js config-show
+node dist/src/cli.js recall-profile
+node dist/src/cli.js recall-explain
+node dist/src/cli.js recall-set --path sessionSalienceMultiplier --value 4
+node dist/src/cli.js doctor
+node dist/src/cli.js config-show
 ```
 
 This is the current tuning surface for:
 - session salience weighting
 - duplicate semantic-memory preference
 - diversity penalty
+
+## Local CLI install
+To make `rocketclaw2` available as a shell command from this checkout:
+```bash
+npm install
+npm run build
+npm link
+```
+
+If you do not want to link globally, run commands with:
+```bash
+node dist/src/cli.js doctor
+```
 - session recency decay
 - semantic recency decay
 

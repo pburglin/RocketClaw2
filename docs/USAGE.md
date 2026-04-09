@@ -54,15 +54,15 @@ rocketclaw2 memory-list --json
 ```bash
 npm run build
 npm test
-node dist/cli.js session-create --title "Demo"
-node dist/cli.js session-list
-node dist/cli.js session-append --id <session-id> --role user --text "Pedro prefers WhatsApp"
-node dist/cli.js recall-profile
-node dist/cli.js search --query WhatsApp
-node dist/cli.js dream
-node dist/cli.js remember
-node dist/cli.js recall --query WhatsApp
-node dist/cli.js chat --session-id <session-id>
+node dist/src/cli.js session-create --title "Demo"
+node dist/src/cli.js session-list
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers WhatsApp"
+node dist/src/cli.js recall-profile
+node dist/src/cli.js search --query WhatsApp
+node dist/src/cli.js dream
+node dist/src/cli.js remember
+node dist/src/cli.js recall --query WhatsApp
+node dist/src/cli.js chat --session-id <session-id>
 ```
 
 ## Current limitations

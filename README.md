@@ -80,8 +80,8 @@ flowchart TD
 npm install
 npm run build
 npm test
-node dist/cli.js doctor
-node dist/cli.js run --profile default
+node dist/src/cli.js doctor
+node dist/src/cli.js run --profile default
 ```
 
 ## Current implementation

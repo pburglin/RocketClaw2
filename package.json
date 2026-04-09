@@ -5,12 +5,12 @@
   "type": "module",
   "description": "Node.js and TypeScript reimplementation of RocketClaw",
   "bin": {
-    "rocketclaw2": "dist/cli.js"
+    "rocketclaw2": "dist/src/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
-    "start": "node dist/cli.js",
+    "start": "node dist/src/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc -p tsconfig.json --noEmit"

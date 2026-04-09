@@ -488,3 +488,11 @@ RocketClaw2 now includes an operator guidance command that recommends what to do
 
 - `rocketclaw2 next-actions`
 - `rocketclaw2 next-actions --json`
+
+
+## Workspace status
+
+RocketClaw2 now includes a compact dashboard-like command for overall runtime state.
+
+- `rocketclaw2 workspace-status`
+- `rocketclaw2 workspace-status --json`

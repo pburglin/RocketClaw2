@@ -26,6 +26,7 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 recall --query "alpha"`
 - `rocketclaw2 recall-profile`
 - `rocketclaw2 recall-explain`
+- `rocketclaw2 recall-set --path sessionSalienceMultiplier --value 4`
 - `rocketclaw2 dream`
 - `rocketclaw2 remember`
 - `rocketclaw2 memory-list`
@@ -157,3 +158,8 @@ Approval list and summary views now surface recommended next steps directly in t
 
 - `rocketclaw2 next-actions`
 - `rocketclaw2 next-actions --json`
+
+## Workspace status
+
+- `rocketclaw2 workspace-status`
+- `rocketclaw2 workspace-status --json`

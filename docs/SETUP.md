@@ -23,10 +23,11 @@ node dist/cli.js session-list
 ## Recall scoring config
 `init` now writes default recall scoring weights into `config.yaml`.
 
-You can inspect the active profile with:
+You can inspect and tune the active profile with:
 ```bash
 node dist/cli.js recall-profile
 node dist/cli.js recall-explain
+node dist/cli.js recall-set --path sessionSalienceMultiplier --value 4
 node dist/cli.js doctor
 node dist/cli.js config-show
 ```

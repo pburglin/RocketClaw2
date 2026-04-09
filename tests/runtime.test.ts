@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import YAML from 'yaml';
 import { getRuntimeSummary } from '../src/core/runtime.js';
-import { loadConfig, loadConfigFromDisk } from '../src/config/load-config.js';
+import { loadConfig, loadConfigFromDisk, setRecallScoringValue } from '../src/config/load-config.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -116,5 +116,37 @@ describe('getRuntimeSummary', () => {
     expect(summary.recallScoring?.diversityPenaltyPerBucketHit).toBe(7);
 
     await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('can persist a recall scoring update by dot path', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-set-recall-${Date.now()}`);
+    await fs.mkdir(root, { recursive: true });
+    const updated = await setRecallScoringValue('sessionRecency.older', -30, root);
+    expect(updated.recallScoring.sessionRecency.older).toBe(-30);
+
+    const reloaded = await loadConfigFromDisk(root);
+    expect(reloaded.recallScoring.sessionRecency.older).toBe(-30);
+
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('updates recall scoring from the CLI', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-set-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(path.join(appRoot, 'config.yaml'), YAML.stringify({}));
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-set', '--path', 'semanticRecency.older', '--value', '-9'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    const parsed = JSON.parse(stdout);
+    expect(parsed.semanticRecency.older).toBe(-9);
+
+    const reloaded = await loadConfigFromDisk(appRoot);
+    expect(reloaded.recallScoring.semanticRecency.older).toBe(-9);
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
   });
 });

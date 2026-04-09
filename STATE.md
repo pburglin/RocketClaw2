@@ -50,6 +50,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - `doctor` runtime diagnostics now include the active recall-scoring profile, and setup docs include a concrete `config.yaml` tuning example.
 - The CLI now includes `config-show` so operators can inspect the full resolved persisted app config, not just recall-specific diagnostics.
 - The CLI now includes `recall-explain` for human-readable explanations of recall scoring fields and their effect on ranking behavior.
+- The CLI now includes `recall-set` so operators can tune persisted recall scoring values by dot path without manually editing YAML.
 
 - Interactive chat now consults unified recall and can surface remembered context in replies.
 - Interactive chat now treats explicit memory questions differently from normal chat, returning memory-focused answers instead of pure echo output.
@@ -107,3 +108,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 doctor now reports readiness across config, messaging, approvals, and governance posture.
 
 - RocketClaw2 now includes a command for recommending operator next steps from current runtime posture.
+
+- RocketClaw2 now includes `workspace-status` for a compact dashboard-like operator view.

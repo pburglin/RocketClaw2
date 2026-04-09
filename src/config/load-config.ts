@@ -50,3 +50,39 @@ export async function loadConfigFromDisk(root = getDefaultProjectRoot()): Promis
     return loadConfig({});
   }
 }
+
+export async function saveConfigToDisk(config: AppConfig, root = getDefaultProjectRoot()): Promise<void> {
+  await fs.mkdir(root, { recursive: true });
+  await fs.writeFile(getConfigPath(root), YAML.stringify(config));
+}
+
+export async function setRecallScoringValue(
+  path: string,
+  value: number,
+  root = getDefaultProjectRoot(),
+): Promise<AppConfig> {
+  const config = await loadConfigFromDisk(root);
+  const next = structuredClone(config) as AppConfig;
+  const segments = path.split('.').filter(Boolean);
+  if (segments.length === 0) throw new Error('Recall scoring path is required');
+
+  let cursor: Record<string, unknown> = next.recallScoring as unknown as Record<string, unknown>;
+  for (let i = 0; i < segments.length - 1; i += 1) {
+    const key = segments[i]!;
+    const child = cursor[key];
+    if (!child || typeof child !== 'object' || Array.isArray(child)) {
+      throw new Error(`Unknown recall scoring path: ${path}`);
+    }
+    cursor = child as Record<string, unknown>;
+  }
+
+  const leaf = segments[segments.length - 1]!;
+  if (!(leaf in cursor)) {
+    throw new Error(`Unknown recall scoring path: ${path}`);
+  }
+  cursor[leaf] = value;
+
+  const parsed = loadConfig(next);
+  await saveConfigToDisk(parsed, root);
+  return parsed;
+}

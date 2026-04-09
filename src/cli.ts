@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 import { getRuntimeSummary } from './core/runtime.js';
 import { formatDoctorReport, runDoctorChecks } from './core/doctor.js';
-import { loadConfig, loadConfigFromDisk } from './config/load-config.js';
+import { loadConfig, loadConfigFromDisk, setRecallScoringValue } from './config/load-config.js';
 import { CORE_TOOL_CATALOG, ToolAccessLevelSchema } from './tools/catalog.js';
 import { describeToolRiskPosture } from './tools/policy.js';
 import { formatToolPolicies, formatToolPolicySummary } from './tools/formatters.js';
@@ -34,6 +34,7 @@ import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
+import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
@@ -156,8 +157,25 @@ program
     console.log(formatRecallScoringExplanation(config.recallScoring));
   });
 
+program
+  .command('recall-set')
+  .description('Set a persisted recall scoring value by dot path')
+  .requiredOption('--path <path>', 'e.g. sessionSalienceMultiplier or sessionRecency.older')
+  .requiredOption('--value <number>', 'numeric value')
+  .action(async (options) => {
+    const next = await setRecallScoringValue(options.path, Number(options.value));
+    console.log(JSON.stringify(next.recallScoring, null, 2));
+  });
 
 
+program
+  .command('workspace-status')
+  .description('Show a compact dashboard-like view of current runtime state')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const status = await buildWorkspaceStatus();
+    console.log(options.json ? JSON.stringify(status, null, 2) : formatWorkspaceStatus(status));
+  });
 
 program
   .command('next-actions')

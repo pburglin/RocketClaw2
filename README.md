@@ -480,3 +480,11 @@ RocketClaw2 now includes a richer doctor command for runtime readiness checks.
 
 - `rocketclaw2 doctor`
 - `rocketclaw2 doctor --json`
+
+
+## Recommended next actions
+
+RocketClaw2 now includes an operator guidance command that recommends what to do next based on current runtime posture.
+
+- `rocketclaw2 next-actions`
+- `rocketclaw2 next-actions --json`

@@ -152,3 +152,8 @@ Approval list and summary views now surface recommended next steps directly in t
 
 - `rocketclaw2 doctor`
 - `rocketclaw2 doctor --json`
+
+## Recommended next actions
+
+- `rocketclaw2 next-actions`
+- `rocketclaw2 next-actions --json`

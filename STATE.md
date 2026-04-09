@@ -105,3 +105,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a guided setup helper for onboarding and operator next steps.
 
 - RocketClaw2 doctor now reports readiness across config, messaging, approvals, and governance posture.
+
+- RocketClaw2 now includes a command for recommending operator next steps from current runtime posture.

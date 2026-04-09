@@ -33,6 +33,7 @@ import { formatRalphLoopResult } from './loops/ralph-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
 import { runSetupWizard } from './setup/wizard.js';
+import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
@@ -156,6 +157,16 @@ program
   });
 
 
+
+
+program
+  .command('next-actions')
+  .description('Show recommended next operator actions based on current runtime posture')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const actions = await getRecommendedNextActions();
+    console.log(options.json ? JSON.stringify(actions, null, 2) : formatRecommendedNextActions(actions));
+  });
 
 program
   .command('setup-wizard')

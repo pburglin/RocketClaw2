@@ -421,7 +421,7 @@ RocketClaw2 now includes a Ralph loop command for repeating work until a success
 ### Current command
 - `rocketclaw2 ralph-loop --preset validate --max-iterations 5`
 - `rocketclaw2 ralph-loop --preset build --max-iterations 5`
-- `rocketclaw2 ralph-loop --command "node script.js" --until stdout-includes --match-text "DONE" --max-iterations 10`
+- `rocketclaw2 ralph-loop --command "printf DONE" --until stdout-includes --match-text "DONE" --max-iterations 2`
 
 ### Intended use
 - keep working until validation passes

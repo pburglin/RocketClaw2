@@ -119,7 +119,7 @@ node dist/src/cli.js chat --session-id <session-id>
 ## Ralph loop
 
 - `rocketclaw2 ralph-loop --command "npm test" --until exit-0 --max-iterations 5`
-- `rocketclaw2 ralph-loop --command "node script.js" --until stdout-includes --match-text "DONE" --max-iterations 10`
+- `rocketclaw2 ralph-loop --command "printf DONE" --until stdout-includes --match-text "DONE" --max-iterations 2`
 
 ## Ralph loop presets
 

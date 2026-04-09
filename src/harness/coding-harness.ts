@@ -53,6 +53,26 @@ async function applyEdits(workspace: string, edits: FileEdit[]): Promise<void> {
   }
 }
 
+
+async function scanWorkspace(workspace: string): Promise<string> {
+  try {
+    const files = await fs.readdir(workspace, { recursive: true });
+    const context: string[] = [];
+    for (const f of files) {
+      const relativePath = String(f);
+      const filePath = path.join(workspace, relativePath);
+      const stats = await fs.stat(filePath);
+      if (stats.isFile() && !relativePath.includes('node_modules') && !relativePath.includes('.git')) {
+        const text = await fs.readFile(filePath, 'utf8');
+        context.push(`--- FILE: ${relativePath} ---\n${text}`);
+      }
+    }
+    return context.join('\n\n');
+  } catch {
+    return 'Workspace is empty or inaccessible.';
+  }
+}
+
 async function initWorkspace(workspace: string): Promise<void> {
   await fs.mkdir(workspace, { recursive: true });
   const pkg = path.join(workspace, 'package.json');
@@ -142,7 +162,7 @@ export async function runCodingHarness(
     lastGuidance = await runLlmQuery(
       config,
       [
-        'You are an autonomous coding harness. Your job is to implement the requested task.',
+        'REPLACE_ME_TARGET',
         `Workspace: ${input.workspace}`,
         `Task: ${input.task}`,
         '',

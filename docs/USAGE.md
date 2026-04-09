@@ -248,3 +248,13 @@ The `harness-run` command implements a full coding loop:
 4. Repeats on failure until validation passes or max iterations is reached
 
 Code block format: ```filename.ext followed by file content, ending with ```
+
+
+## Advanced harness behavior
+
+`harness-run` now:
+- reads existing workspace files before each iteration
+- includes workspace context in the LLM prompt
+- supports partial file edits using `PATCH:filename` fenced blocks
+
+`harness-show --id <run-id> --full` prints the complete saved artifact, including the full last LLM guidance.

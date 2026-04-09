@@ -484,18 +484,25 @@ program
   .command('harness-show')
   .description('Show a persisted autonomous harness run artifact')
   .requiredOption('--id <id>', 'harness run id')
+  .option('--full', 'show full artifact including guidance')
   .action(async (options) => {
     const run = await loadHarnessRun(options.id);
     if (!run) {
       throw new Error(`Harness run not found: ${options.id}`);
     }
-    console.log(JSON.stringify(run, null, 2));
+    if (options.full) {
+      console.log(JSON.stringify(run, null, 2));
+    } else {
+      const { lastGuidance, ...summary } = run as any;
+      console.log(JSON.stringify(summary, null, 2));
+    }
   });
 
 program
   .command('harness-validate')
   .description('Re-apply code blocks from a harness run artifact and re-run its validation command')
   .requiredOption('--id <id>', 'harness run id')
+  .option('--full', 'show full artifact including guidance')
   .option('--json', 'output raw JSON')
   .action(async (options) => {
     const result = await replayHarnessValidation(options.id);

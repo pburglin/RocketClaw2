@@ -622,3 +622,10 @@ The `harness-run` command parses LLM responses for fenced code blocks with a fil
 console.log("hello");
 ```
 ```
+
+
+### Workspace-aware autonomous coding
+
+The harness now reads the current workspace before each LLM iteration and includes existing file contents in the prompt. It also supports partial edits using `PATCH:filename` fenced blocks with SEARCH/REPLACE sections, so the harness can evolve existing files instead of only overwriting entire files.
+
+Use `rocketclaw2 harness-show --id <run-id> --full` to inspect full stored guidance for a run.

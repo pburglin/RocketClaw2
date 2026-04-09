@@ -127,3 +127,6 @@
 
 - Add list/show commands for persisted autonomous harness runs.
 - Add `recall-reset` so operators can restore recall scoring fields to defaults without manual YAML editing.
+
+- Add workspace-aware prompting and partial patch support for autonomous harness runs.
+- Add full artifact inspection mode for persisted harness runs.

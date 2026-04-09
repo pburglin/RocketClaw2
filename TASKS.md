@@ -82,3 +82,5 @@
 - Auto-create approval requests from governed runtime flows when approval is required but not supplied.
 
 - Improve approval queue inspection with filters and aggregate summaries.
+
+- Add approval-aware execution helpers so operators can move from approval to rerun more smoothly.

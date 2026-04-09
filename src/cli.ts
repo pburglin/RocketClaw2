@@ -26,6 +26,7 @@ import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
 import { createApprovalRequest, loadApprovals, resolveApprovalRequest } from './approval/store.js';
 import { formatApprovals, formatApprovalSummary } from './approval/formatters.js';
+import { approveAndDescribeNextStep } from './approval/runtime.js';
 import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
 import { formatRalphLoopResult } from './loops/ralph-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
@@ -445,6 +446,16 @@ program
       return;
     }
     console.log(options.summary ? formatApprovalSummary(items) : formatApprovals(items));
+  });
+
+
+program
+  .command('approval-approve-run')
+  .description('Approve a request and print the recommended next execution step')
+  .requiredOption('--id <id>', 'approval request id')
+  .action(async (options) => {
+    const result = await approveAndDescribeNextStep(options.id);
+    console.log(JSON.stringify(result, null, 2));
   });
 
 program

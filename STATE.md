@@ -95,3 +95,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Governed tool and messaging flows can now auto-create approval requests when approval is missing.
 
 - Approval inspection now supports filtering by kind and summary output for operator workflows.
+
+- Approval workflow now includes a helper that approves a request and returns the recommended next execution step.

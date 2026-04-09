@@ -136,3 +136,5 @@ Note: approval requests may now be created automatically when governed execution
 
 - `rocketclaw2 approval-list --status pending --kind message-send`
 - `rocketclaw2 approval-list --summary`
+
+- `rocketclaw2 approval-approve-run --id <approval-id>`

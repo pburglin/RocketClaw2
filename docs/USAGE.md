@@ -212,3 +212,6 @@ LLM query errors now explain likely causes such as wrong API key, wrong provider
 
 
 Chat now uses the configured LLM when available, instead of only echoing or listing memory snippets.
+
+
+In chat mode, press Ctrl+C or type `/exit` to leave cleanly.

@@ -565,3 +565,6 @@ RocketClaw2 now includes a compact LLM status command for inspecting current rea
 
 
 Chat now uses the configured LLM when an API key is available, with recalled memory injected into the prompt. The old memory-listing response is now only a fallback when no LLM is configured.
+
+
+Chat now exits cleanly on Ctrl+C instead of dumping a raw AbortError stack trace.

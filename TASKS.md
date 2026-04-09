@@ -116,3 +116,5 @@
 - Add a compact LLM status command that shows readiness and session override state.
 
 - Make chat use the configured LLM with recalled memory context, with fallback behavior only when no LLM is configured.
+
+- Polish chat UX so Ctrl+C exits cleanly without a raw stack trace.

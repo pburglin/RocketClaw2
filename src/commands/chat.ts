@@ -64,7 +64,17 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
 
   try {
     while (true) {
-      const line = (await rl.question('you> ')).trim();
+      let line = '';
+      try {
+        line = (await rl.question('you> ')).trim();
+      } catch (error) {
+        const err = error as { code?: string };
+        if (err?.code === 'ABORT_ERR') {
+          console.log('\nExiting chat.');
+          break;
+        }
+        throw error;
+      }
       if (!line) continue;
       if (line === '/exit') break;
 

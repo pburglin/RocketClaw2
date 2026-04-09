@@ -17,7 +17,7 @@ export async function approveAndDescribeNextStep(id: string, root = getDefaultPr
     nextStep = `Re-run the governed messaging action for ${item.target} with explicit approval semantics.`;
   }
   if (item.kind === 'harness-plan') {
-    nextStep = `Run harness-approve --id ${item.target} or execute the approved plan via harness-run --id ${item.target} --require-approved-plan.`;
+    nextStep = `Run: rocketclaw2 harness-run --id ${item.target} --require-approved-plan`;
   }
 
   return {

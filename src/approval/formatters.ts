@@ -1,6 +1,11 @@
 import type { ApprovalRequest } from './store.js';
 
 export function describeApprovalNextStep(item: ApprovalRequest): string {
+  if (item.kind === 'harness-plan') {
+    if (item.status === 'pending') return `Resolve approval, then run: rocketclaw2 harness-run --id ${item.target} --require-approved-plan`;
+    if (item.status === 'approved') return `Run: rocketclaw2 harness-run --id ${item.target} --require-approved-plan`;
+    return 'No further runtime action is recommended unless the harness plan approval is recreated.';
+  }
   if (item.status === 'pending') return `Resolve approval, then rerun the governed ${item.kind} action.`;
   if (item.status === 'approved') return `Re-run the governed ${item.kind} action for ${item.target}.`;
   return 'No further runtime action is recommended unless the request is recreated.';

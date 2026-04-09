@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import YAML from 'yaml';
 import { z } from 'zod';
 import { getConfigPath, getDefaultProjectRoot } from './app-paths.js';
+import { writeConfigFile } from './write-config.js';
 import { ToolPolicySchema, buildDefaultToolPolicies } from '../tools/policy.js';
 import { MessagingConfigSchema } from '../messaging/config.js';
 import { YoloConfigSchema } from './yolo.js';
@@ -54,30 +55,44 @@ export async function loadConfigFromDisk(root = getDefaultProjectRoot()): Promis
 }
 
 export async function saveConfigToDisk(config: AppConfig, root = getDefaultProjectRoot()): Promise<void> {
-  await fs.mkdir(root, { recursive: true });
-  await fs.writeFile(getConfigPath(root), YAML.stringify(config));
+  await writeConfigFile(config, root);
 }
 
+const RECALL_SCORING_RANGE_RULES: Record<string, { min: number; max: number }> = {
+  sessionSalienceMultiplier: { min: 0, max: 10 },
+  duplicateSemanticPriorityBonus: { min: 0, max: 500 },
+  diversityPenaltyPerBucketHit: { min: 0, max: 100 },
+  'sessionRecency.within1Day': { min: -100, max: 100 },
+  'sessionRecency.within7Days': { min: -100, max: 100 },
+  'sessionRecency.within30Days': { min: -100, max: 100 },
+  'sessionRecency.within90Days': { min: -100, max: 100 },
+  'sessionRecency.older': { min: -100, max: 100 },
+  'semanticRecency.within1Day': { min: -100, max: 100 },
+  'semanticRecency.within7Days': { min: -100, max: 100 },
+  'semanticRecency.within30Days': { min: -100, max: 100 },
+  'semanticRecency.within180Days': { min: -100, max: 100 },
+  'semanticRecency.older': { min: -100, max: 100 },
+};
+
 export function listRecallScoringPaths(): string[] {
-  return [
-    'sessionSalienceMultiplier',
-    'duplicateSemanticPriorityBonus',
-    'diversityPenaltyPerBucketHit',
-    'sessionRecency.within1Day',
-    'sessionRecency.within7Days',
-    'sessionRecency.within30Days',
-    'sessionRecency.within90Days',
-    'sessionRecency.older',
-    'semanticRecency.within1Day',
-    'semanticRecency.within7Days',
-    'semanticRecency.within30Days',
-    'semanticRecency.within180Days',
-    'semanticRecency.older',
-  ];
+  return Object.keys(RECALL_SCORING_RANGE_RULES);
 }
 
 function buildUnknownRecallPathError(path: string): Error {
   return new Error(`Unknown recall scoring path: ${path}. Valid paths: ${listRecallScoringPaths().join(', ')}`);
+}
+
+function validateRecallScoringValue(path: string, value: number): void {
+  if (!Number.isFinite(value)) {
+    throw new Error(`Recall scoring value must be a finite number for path: ${path}`);
+  }
+  const rule = RECALL_SCORING_RANGE_RULES[path];
+  if (!rule) {
+    throw buildUnknownRecallPathError(path);
+  }
+  if (value < rule.min || value > rule.max) {
+    throw new Error(`Recall scoring value out of allowed range for ${path}: ${value}. Allowed range: ${rule.min} to ${rule.max}`);
+  }
 }
 
 export async function setRecallScoringValue(
@@ -85,6 +100,7 @@ export async function setRecallScoringValue(
   value: number,
   root = getDefaultProjectRoot(),
 ): Promise<AppConfig> {
+  validateRecallScoringValue(path, value);
   const config = await loadConfigFromDisk(root);
   const next = structuredClone(config) as AppConfig;
   const segments = path.split('.').filter(Boolean);

@@ -104,3 +104,5 @@
 - Improve skill inspection with source-aware filtering and aggregate summaries.
 
 - Improve skill update reporting with metadata like last action and update count.
+
+- Improve setup wizard with interactive questions for LLM and messaging access details.

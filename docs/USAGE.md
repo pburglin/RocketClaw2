@@ -28,6 +28,8 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 recall-explain`
 - `rocketclaw2 recall-paths`
 - `rocketclaw2 recall-set --path sessionSalienceMultiplier --value 4`
+
+`recall-set` now validates values against lightweight safety ranges so extreme tuning mistakes are rejected early.
 - `rocketclaw2 dream`
 - `rocketclaw2 remember`
 - `rocketclaw2 memory-list`
@@ -186,3 +188,7 @@ Approval list and summary views now surface recommended next steps directly in t
 
 
 Imported skill listings now show update-related metadata such as last action and update count.
+
+## Interactive setup
+
+- `rocketclaw2 setup-wizard --interactive`

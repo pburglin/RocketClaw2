@@ -266,8 +266,9 @@ program
 program
   .command('setup-wizard')
   .description('Show guided setup and next-step recommendations')
-  .action(async () => {
-    const text = await runSetupWizard();
+  .option('--interactive', 'ask setup questions and persist answers')
+  .action(async (options) => {
+    const text = await runSetupWizard(Boolean(options.interactive));
     console.log(text);
   });
 

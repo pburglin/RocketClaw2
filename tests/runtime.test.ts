@@ -142,6 +142,13 @@ describe('getRuntimeSummary', () => {
     await fs.rm(root, { recursive: true, force: true });
   });
 
+  it('rejects out-of-range recall scoring values with a clear error', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-set-recall-range-${Date.now()}`);
+    await fs.mkdir(root, { recursive: true });
+    await expect(setRecallScoringValue('sessionSalienceMultiplier', 999, root)).rejects.toThrow('Allowed range:');
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
   it('updates recall scoring from the CLI', async () => {
     const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-set-home-${Date.now()}`);
     const appRoot = path.join(homeRoot, '.rocketclaw2');
@@ -170,5 +177,14 @@ describe('getRuntimeSummary', () => {
 
     const parsed = JSON.parse(stdout);
     expect(parsed.validPaths).toContain('sessionRecency.older');
+  });
+
+  it('fails from the CLI when a recall scoring value is out of range', async () => {
+    await expect(
+      execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-set', '--path', 'sessionSalienceMultiplier', '--value', '999'], {
+        cwd: process.cwd(),
+        env: { ...process.env },
+      }),
+    ).rejects.toThrow('Allowed range:');
   });
 });

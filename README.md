@@ -529,3 +529,10 @@ Skill inspection now supports source-aware filtering and aggregate summary views
 
 
 Skill update tracking now includes metadata such as update count and last action, so operators can see which imported skills have actually been refreshed.
+
+
+### Interactive setup
+
+RocketClaw2 setup can now ask questions interactively, including LLM base URL, model, API key, and default WhatsApp recipient.
+
+- `rocketclaw2 setup-wizard --interactive`

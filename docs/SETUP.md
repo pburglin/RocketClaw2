@@ -119,3 +119,25 @@ For one-off sessions, you can override persisted LLM settings from the CLI witho
 ## Importing skills
 
 Skills can be imported later from source URLs and tracked locally by RocketClaw2.
+
+## LLM API key setup
+
+RocketClaw2 now makes LLM setup more explicit. You can:
+
+1. Persist values in `config.yaml`, including:
+```yaml
+llm:
+  baseUrl: https://api.openai.com/v1
+  model: gpt-4o-mini
+  apiKey: YOUR_API_KEY_HERE
+```
+
+2. Or use session-only CLI overrides:
+```bash
+rocketclaw2 --llm-base-url "https://api.openai.com/v1" --llm-api-key "$API_KEY" doctor
+```
+
+3. Or let the wizard ask you interactively:
+```bash
+rocketclaw2 setup-wizard --interactive
+```

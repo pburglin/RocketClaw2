@@ -52,6 +52,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - The CLI now includes `recall-explain` for human-readable explanations of recall scoring fields and their effect on ranking behavior.
 - The CLI now includes `recall-set` so operators can tune persisted recall scoring values by dot path without manually editing YAML.
 - Recall tuning now exposes valid dot paths and returns clearer invalid-path errors, reducing guesswork when editing scoring values.
+- Recall tuning now rejects obviously extreme values with lightweight numeric range guardrails before they can distort ranking behavior.
 
 - Interactive chat now consults unified recall and can surface remembered context in replies.
 - Interactive chat now treats explicit memory questions differently from normal chat, returning memory-focused answers instead of pure echo output.
@@ -119,3 +120,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Skill inspection now supports source-aware filtering and aggregate summary output.
 
 - Skill registry now tracks update count and last action for imported skills.
+
+- Setup wizard now supports interactive questions for LLM and messaging access details, and config writing now explains where to place llm.apiKey.

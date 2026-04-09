@@ -1,0 +1,333 @@
+# RocketClaw2
+
+RocketClaw2 is a Node.js and TypeScript reimplementation of RocketClaw, designed as a modern modular personal AI runtime.
+
+## Status
+Scaffolding and architecture planning are underway.
+
+## Goals
+- reimplement RocketClaw in Node.js with TypeScript
+- use modern, production-friendly libraries
+- ship strong docs, diagrams, demos, and screenshots
+- keep the runtime modular and testable
+
+## Planned stack
+- Node.js 22+
+- TypeScript
+- Commander or CAC for CLI
+- Zod for config validation
+- Undici for HTTP
+- Pino for logging
+- Vitest for tests
+
+## Component architecture
+```mermaid
+flowchart LR
+  CLI[CLI / future TUI] --> Runtime[Runtime core]
+  Runtime --> Config[Config + policy loader]
+  Runtime --> Sessions[Persistent session store]
+  Runtime --> Memory[Memory system\nepisodic + semantic + recall]
+  Runtime --> Tools[Tool governance + execution]
+  Runtime --> Messaging[Channel registry + messaging plugins]
+  Runtime --> Validation[Quality gates + diagnostics]
+
+  Memory --> Semantic[Semantic memory store]
+  Memory --> Consolidation[Dreaming / consolidation planner]
+  Messaging --> WhatsApp[WhatsApp integration]
+  Messaging --> FutureChannels[Future channels\nSlack / Discord / iMessage]
+  Tools --> MCP[MCP / external tool integrations]
+```
+
+## Integration points
+```mermaid
+flowchart TD
+  User[User / operator] --> CLI[rocketclaw2 CLI]
+  CLI --> ConfigCmds[Config + policy commands]
+  CLI --> SessionCmds[Session commands]
+  CLI --> MemoryCmds[Search / recall / dream / remember]
+  CLI --> MessageCmds[channels / send / whatsapp-config]
+
+  ConfigCmds --> AppConfig[App config.yaml]
+  SessionCmds --> SessionFiles[Local session JSON files]
+  MemoryCmds --> SemanticMemory[semantic-memory.json]
+  MessageCmds --> ChannelRegistry[Channel registry]
+  ChannelRegistry --> WhatsAppPlugin[WhatsApp plugin]
+  WhatsAppPlugin --> MockMode[Mock mode]
+  WhatsAppPlugin --> WebhookMode[Webhook bridge mode]
+
+  AppConfig --> Governance[Tool + channel governance]
+  Governance --> MessageCmds
+  Governance --> MCPTools[MCP and future tool execution]
+```
+
+## Documentation map
+- `AGENTS.md` - project working rules
+- `TASKS.md` - active backlog and milestones
+- `STATE.md` - current status and decisions
+- `docs/ARCHITECTURE.md` - technical design
+- `docs/SETUP.md` - setup instructions
+- `docs/USAGE.md` - CLI usage
+- `docs/DEMOS.md` - demo scenarios
+
+## Next steps
+- audit legacy RocketClaw behavior in more detail
+- bootstrap the TypeScript project
+- implement the initial CLI/runtime shell
+- add setup, usage, demos, diagrams, and screenshots
+
+## Bootstrap commands
+```bash
+npm install
+npm run build
+npm test
+node dist/cli.js doctor
+node dist/cli.js run --profile default
+```
+
+## Current implementation
+- TypeScript project bootstrap
+- minimal CLI with `doctor` and `run` commands
+- basic config loader
+- initial runtime summary + test
+
+## Validation
+- `npm run build` ✅
+- `npm test` ✅
+
+
+## Memory roadmap
+
+RocketClaw2 will use a tiered memory design with a dreaming-inspired optimization loop.
+
+### Persistent memory tiers
+- **Working memory** for active tasks and short-lived context
+- **Episodic memory** for recent logs, sessions, and event trails
+- **Semantic memory** for curated durable facts, preferences, decisions, and distilled insights
+
+### Dreaming-inspired memory optimization
+```mermaid
+flowchart LR
+  Episodes[Recent episodic memory] --> Cluster[Cluster repeated patterns]
+  Cluster --> Summarize[Summarize and compress]
+  Summarize --> Promote[Promote durable insights]
+  Promote --> Semantic[Semantic memory]
+  Summarize --> Prune[Prune stale low-value detail]
+  Prune --> Refresh[Refresh retrieval index]
+  Semantic --> Refresh
+```
+
+### Planned strategy
+- keep raw recent memory separate from curated long-term memory
+- run background consolidation on a schedule
+- promote only durable and retrieval-worthy information
+- compress or prune stale low-salience details
+- maintain salience scores and retrieval indexes over time
+
+
+## Messaging plugin architecture
+
+RocketClaw2 is being designed with a plugin-based messaging interface so channels can be added without rewiring the core runtime.
+
+```mermaid
+flowchart LR
+  CLI[CLI or TUI] --> Runtime[Runtime core]
+  Runtime --> Registry[Channel registry]
+  Registry --> WA[WhatsApp plugin]
+  Registry --> Future[Future plugins
+Slack / Discord / iMessage / others]
+```
+
+### Current channel plan
+- **WhatsApp** is the first implemented channel plugin.
+- Future channels may include **iMessage**, **Slack**, and **Discord** if there is real user demand.
+- The runtime will talk to a stable plugin contract instead of hardcoding channel-specific logic.
+
+
+## Smart CLI and terminal UI roadmap
+- smart CLI commands for setup, diagnosis, messaging, and memory workflows
+- interactive TUI for sessions, memory inspection, and channel operations
+- plugin-aware message composer and send flows
+- setup wizard and diagnostics for local or hosted environments
+- operator-friendly terminal UX with clear progress and recovery messaging
+
+
+## Session model
+
+RocketClaw2 now includes a persistent file-backed session layer.
+
+```mermaid
+flowchart LR
+  CLI[CLI / future TUI] --> SessionCmds[Session commands]
+  SessionCmds --> SessionStore[Session store]
+  SessionStore --> Files[Local JSON session files]
+  SessionStore --> Memory[Future retrieval and memory layers]
+```
+
+### Current session commands
+- `rocketclaw2 session-create --title "My Session"`
+- `rocketclaw2 session-list`
+- `rocketclaw2 session-show --id <session-id>`
+- `rocketclaw2 session-append --id <session-id> --role user --text "hello"`
+
+
+## Interactive runtime shell
+
+RocketClaw2 now includes a simple interactive chat shell on top of persistent sessions.
+
+### Current command
+- `rocketclaw2 chat --title "My Session"`
+- `rocketclaw2 chat --session-id <existing-session-id>`
+
+This is intentionally minimal right now and acts as the base layer for the future smart terminal UI.
+
+
+## Retrieval and recall layer
+
+RocketClaw2 now includes retrieval over persisted sessions and unified recall across both sessions and curated semantic memory.
+
+### Current commands
+- `rocketclaw2 search --query "alpha"`
+- `rocketclaw2 recall --query "alpha"`
+
+`search` focuses on persisted session messages. `recall` searches both episodic session memory and curated semantic memory together.
+
+
+## Dreaming progress
+
+RocketClaw2 now includes a first-pass salience scorer and consolidation planner.
+
+### Current command
+- `rocketclaw2 dream`
+
+This does not rewrite memory yet, but it identifies candidate session messages for promotion or summarization as the first executable step toward a dreaming loop.
+
+
+## Curated semantic memory
+
+RocketClaw2 now has a first semantic memory store for promoted durable insights.
+
+### Current commands
+- `rocketclaw2 memory-list`
+- `rocketclaw2 remember`
+
+The current `remember` flow promotes the strongest available consolidation candidate into curated semantic memory. This is the first real write path for the dreaming-inspired memory system.
+
+
+## Memory-aware chat behavior
+
+The interactive chat shell now consults unified recall before generating a reply.
+
+### Current behavior
+- if relevant semantic or session memory exists, the assistant reply includes a small memory context section
+- if nothing relevant is recalled, the shell falls back to a minimal echo response
+
+This is still intentionally simple, but it closes the loop between memory storage and runtime usage.
+
+
+## Smart operator CLI
+
+RocketClaw2 now includes more human-readable operator views for sessions and semantic memory.
+
+### Current examples
+- `rocketclaw2 session-list`
+- `rocketclaw2 session-list --title-contains "demo"`
+- `rocketclaw2 session-show --id <session-id>`
+- `rocketclaw2 session-stats`
+- `rocketclaw2 memory-list`
+- add `--json` when raw structured output is preferred
+
+This is the first step toward a richer terminal operator experience before a full TUI is introduced.
+
+
+The operator CLI now supports lightweight filtering and aggregate stats so you can inspect runtime state faster from a terminal.
+
+
+## Configurable tool access model
+
+RocketClaw2 is being designed so users can configure tool access instead of hardcoding a single policy forever.
+
+### Core tool categories
+- File Management System
+- Database Connectors
+- API Connector & Workflow Automation
+- MCP Servers
+- Email Client
+- Calendar & Scheduling Manager
+- Data Extraction / Web Scraper
+- Human-in-the-Loop Approval
+
+### Access levels
+- `disabled`
+- `read-only`
+- `guarded-write`
+- `full-access`
+
+### Safety model
+- tools start from **safe default access policies**
+- RocketClaw2 should explain:
+  - tool purpose
+  - risk level
+  - recommended access
+  - stricter default access where appropriate
+- users should be able to **override** the default posture after reviewing risks and recommendations
+- high-stakes write actions should remain gated behind **human approval** unless the user intentionally changes policy
+
+### Current commands
+- `rocketclaw2 tools`
+- `rocketclaw2 tool-risk`
+- `rocketclaw2 tool-policy`
+- `rocketclaw2 tool-policy --access guarded-write`
+- `rocketclaw2 tool-policy --overridden`
+- `rocketclaw2 tool-policy-summary`
+- `rocketclaw2 tool-set --tool file-management --access guarded-write --reason "report generation" --ack-risk`
+
+
+## Future design concepts
+
+RocketClaw2 roadmap now explicitly includes:
+- psychology-grounded memory design with episodic and semantic layers
+- memory decay and salience adjustment over time
+- vector-based contextual retrieval in a future phase
+- context reset and handoff artifacts for long-running work
+- parent/child task orchestration with isolated sub-agent briefs
+- closed-loop validation with quality gates and self-reflection
+- terminal-first plus message-based operation models
+
+
+Tool access is now configurable in RocketClaw2 config, with explicit risk acknowledgement required before enabling riskier write-capable access levels.
+
+
+## WhatsApp integration
+
+RocketClaw2 now includes explicit WhatsApp integration configuration as the first concrete message channel path.
+
+### Current capabilities
+- WhatsApp channel plugin registration
+- mock mode for local development
+- webhook mode for external delivery bridges
+- configurable default recipient
+
+### Current commands
+- `rocketclaw2 whatsapp-config`
+- `rocketclaw2 whatsapp-config --mode webhook --webhook-url "https://example.com/hook" --default-recipient "+15551234567"`
+- `rocketclaw2 send --channel whatsapp --to "+15551234567" --text "hello"`
+
+### Design direction
+- WhatsApp is the first real channel integration
+- future channels such as iMessage, Slack, and Discord should reuse the same plugin contract
+- user demand should determine which additional channels get implemented next
+
+
+## Governed execution
+
+RocketClaw2 now begins enforcing configured governance at runtime instead of treating policy as metadata only.
+
+### Current behavior
+- WhatsApp sends respect whether WhatsApp integration is enabled
+- runtime tool access can be blocked based on configured tool policy
+- risky write-capable tools can be gated behind stricter policy and explicit override posture
+
+This is still early-stage enforcement, but it is the first direct connection between configuration and runtime behavior.
+
+
+Governance inspection is now easier from the terminal: operators can filter policy views and inspect an aggregate access summary without reading raw JSON.

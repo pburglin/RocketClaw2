@@ -1,0 +1,331 @@
+#!/usr/bin/env node
+import { Command } from 'commander';
+import { getRuntimeSummary } from './core/runtime.js';
+import { loadConfig, loadConfigFromDisk } from './config/load-config.js';
+import { CORE_TOOL_CATALOG, ToolAccessLevelSchema } from './tools/catalog.js';
+import { describeToolRiskPosture } from './tools/policy.js';
+import { formatToolPolicies, formatToolPolicySummary } from './tools/formatters.js';
+import { loadAppConfig, setToolPolicy } from './tools/config-store.js';
+import { assertToolAccess } from './tools/enforcement.js';
+import { describeOverrideWarning } from './tools/override.js';
+import { runInit } from './commands/init.js';
+import { getMemoryStrategy } from './memory/strategy.js';
+import { searchSessionMemory } from './memory/retrieval.js';
+import { recallMemory } from './memory/recall.js';
+import { buildConsolidationPlan } from './memory/consolidation.js';
+import { rememberCandidate } from './memory/remember.js';
+import { loadSemanticMemory } from './memory/semantic-store.js';
+import { createDefaultChannelRegistry } from './messaging/index.js';
+import { configureWhatsApp } from './messaging/whatsapp-config.js';
+import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
+import { getCliTuiRoadmap } from './tui/roadmap.js';
+import { formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
+import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
+import { getSessionStats } from './sessions/stats.js';
+import { runChatSession } from './commands/chat.js';
+
+const program = new Command();
+
+program
+  .name('rocketclaw2')
+  .description('RocketClaw2, a Node.js and TypeScript reimplementation of RocketClaw')
+  .version('0.1.0');
+
+
+program
+  .command('init')
+  .description('Initialize RocketClaw2 local config, state, and memory directories')
+  .option('--profile <name>', 'config profile', 'default')
+  .action(async (options) => {
+    await runInit(options.profile);
+  });
+
+
+
+
+
+program
+  .command('recall')
+  .description('Search across session memory and curated semantic memory')
+  .requiredOption('--query <text>', 'text to recall')
+  .action(async (options) => {
+    const hits = await recallMemory(options.query);
+    console.log(JSON.stringify(hits, null, 2));
+  });
+
+program
+  .command('memory-list')
+  .description('List curated semantic memory entries')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const entries = await loadSemanticMemory();
+    console.log(options.json ? JSON.stringify(entries, null, 2) : formatSemanticMemory(entries));
+  });
+
+program
+  .command('remember')
+  .description('Promote the top dream candidate into semantic memory')
+  .action(async () => {
+    const plan = await buildConsolidationPlan();
+    const candidate = plan.find((item) => item.suggestedAction === 'promote') ?? plan[0];
+    if (!candidate) {
+      console.log('No consolidation candidates available.');
+      return;
+    }
+    await rememberCandidate(candidate);
+    console.log(JSON.stringify(candidate, null, 2));
+  });
+
+program
+  .command('dream')
+  .description('Build a first-pass memory consolidation plan from persisted sessions')
+  .action(async () => {
+    const plan = await buildConsolidationPlan();
+    console.log(JSON.stringify(plan, null, 2));
+  });
+
+program
+  .command('search')
+  .description('Search persisted session memory')
+  .requiredOption('--query <text>', 'text to search for')
+  .action(async (options) => {
+    const hits = await searchSessionMemory(options.query);
+    console.log(JSON.stringify(hits, null, 2));
+  });
+
+program
+  .command('memory-plan')
+  .description('Print the current memory and dreaming strategy')
+  .action(() => {
+    console.log(JSON.stringify(getMemoryStrategy(), null, 2));
+  });
+
+program
+  .command('recall-profile')
+  .description('Print the active recall scoring profile from persisted config')
+  .action(async () => {
+    const config = await loadConfigFromDisk();
+    console.log(JSON.stringify(config.recallScoring, null, 2));
+  });
+
+program
+  .command('chat')
+  .description('Start or resume a simple interactive chat session')
+  .option('--title <title>', 'title for a new session')
+  .option('--session-id <id>', 'resume an existing session')
+  .action(async (options) => {
+    await runChatSession({ title: options.title, sessionId: options.sessionId });
+  });
+
+program
+  .command('session-create')
+  .description('Create a persistent session')
+  .requiredOption('--title <title>', 'session title')
+  .action(async (options) => {
+    const session = await createSession(options.title);
+    console.log(JSON.stringify(session, null, 2));
+  });
+
+
+program
+  .command('session-stats')
+  .description('Show aggregate session statistics')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const stats = await getSessionStats();
+    console.log(options.json ? JSON.stringify(stats, null, 2) : formatSessionStats(stats));
+  });
+
+program
+  .command('session-list')
+  .description('List persistent sessions')
+  .option('--json', 'output raw JSON')
+  .option('--title-contains <text>', 'filter sessions by title substring')
+  .action(async (options) => {
+    let sessions = await listSessions();
+    if (options.titleContains) {
+      const q = String(options.titleContains).toLowerCase();
+      sessions = sessions.filter((session) => session.title.toLowerCase().includes(q));
+    }
+    console.log(options.json ? JSON.stringify(sessions, null, 2) : formatSessionSummary(sessions));
+  });
+
+program
+  .command('session-show')
+  .description('Show a persistent session')
+  .requiredOption('--id <id>', 'session id')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const session = await loadSession(options.id);
+    if (!session) {
+      console.error(`Session not found: ${options.id}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(options.json ? JSON.stringify(session, null, 2) : formatSessionDetail(session));
+  });
+
+program
+  .command('session-append')
+  .description('Append a message to a persistent session')
+  .requiredOption('--id <id>', 'session id')
+  .requiredOption('--role <role>', 'message role: system|user|assistant')
+  .requiredOption('--text <text>', 'message content')
+  .action(async (options) => {
+    const session = await appendMessage(options.id, options.role, options.text);
+    console.log(JSON.stringify(session, null, 2));
+  });
+
+
+program
+  .command('whatsapp-config')
+  .description('Inspect or update WhatsApp integration settings')
+  .option('--enabled <value>', 'true|false')
+  .option('--mode <mode>', 'mock|webhook')
+  .option('--webhook-url <url>', 'webhook URL for WhatsApp delivery bridge')
+  .option('--default-recipient <id>', 'default WhatsApp recipient or chat id')
+  .action(async (options) => {
+    if (!options.enabled && !options.mode && !options.webhookUrl && !options.defaultRecipient) {
+      const config = await loadAppConfig();
+      console.log(JSON.stringify(config.messaging.whatsapp, null, 2));
+      return;
+    }
+
+    const next = await configureWhatsApp({
+      ...(options.enabled ? { enabled: options.enabled === 'true' } : {}),
+      ...(options.mode ? { mode: options.mode } : {}),
+      ...(options.webhookUrl ? { webhookUrl: options.webhookUrl } : {}),
+      ...(options.defaultRecipient ? { defaultRecipient: options.defaultRecipient } : {}),
+    });
+    console.log(JSON.stringify(next, null, 2));
+  });
+
+program
+  .command('channels')
+  .description('List available message channel plugins')
+  .action(async () => {
+    const config = await loadAppConfig();
+    const registry = createDefaultChannelRegistry(config.messaging);
+    console.log(JSON.stringify(registry.list(), null, 2));
+  });
+
+program
+  .command('send')
+  .description('Send a message through a configured channel plugin')
+  .requiredOption('--channel <id>', 'channel plugin id')
+  .requiredOption('--to <target>', 'destination')
+  .requiredOption('--text <message>', 'message text')
+  .action(async (options) => {
+    const config = await loadAppConfig();
+    if (options.channel === 'whatsapp') {
+      assertWhatsAppSendAllowed(config);
+      assertToolAccess(config, 'human-approval', 'read');
+    }
+    const registry = createDefaultChannelRegistry(config.messaging);
+    const plugin = registry.get(options.channel);
+    if (!plugin) {
+      console.error(`Unknown channel: ${options.channel}`);
+      process.exitCode = 1;
+      return;
+    }
+    const result = await plugin.send({ to: options.to, text: options.text });
+    console.log(JSON.stringify(result, null, 2));
+  });
+
+
+
+
+program
+  .command('tool-policy-summary')
+  .description('Show aggregate summary of current tool access posture')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const config = await loadAppConfig();
+    const summaryText = formatToolPolicySummary(config.tools);
+    if (options.json) {
+      console.log(JSON.stringify({ tools: config.tools }, null, 2));
+      return;
+    }
+    console.log(summaryText);
+  });
+
+program
+  .command('tool-policy')
+  .description('Show current configured tool policies')
+  .option('--json', 'output raw JSON')
+  .option('--access <level>', 'filter by access level')
+  .option('--overridden', 'show only policies with approved overrides')
+  .action(async (options) => {
+    const config = await loadAppConfig();
+    let tools = config.tools;
+    if (options.access) {
+      tools = tools.filter((tool) => tool.access === options.access);
+    }
+    if (options.overridden) {
+      tools = tools.filter((tool) => tool.approvedOverride);
+    }
+    console.log(options.json ? JSON.stringify(tools, null, 2) : formatToolPolicies(tools));
+  });
+
+program
+  .command('tool-set')
+  .description('Set a tool access level with explicit override acknowledgement for risky changes')
+  .requiredOption('--tool <id>', 'tool id')
+  .requiredOption('--access <level>', 'disabled|read-only|guarded-write|full-access')
+  .option('--reason <text>', 'why this override is needed')
+  .option('--ack-risk', 'acknowledge the risk and recommendation output')
+  .action(async (options) => {
+    const access = ToolAccessLevelSchema.parse(options.access);
+    console.log(describeOverrideWarning(options.tool, access));
+    if ((access === 'guarded-write' || access === 'full-access') && !options.ackRisk) {
+      console.error('Refusing risky override without --ack-risk');
+      process.exitCode = 1;
+      return;
+    }
+    const config = await setToolPolicy(options.tool, {
+      access,
+      approvedOverride: Boolean(options.ackRisk),
+      overrideReason: options.reason,
+    });
+    console.log(JSON.stringify(config.tools, null, 2));
+  });
+
+program
+  .command('tools')
+  .description('List core tools and current safe default recommendations')
+  .action(() => {
+    console.log(JSON.stringify(CORE_TOOL_CATALOG, null, 2));
+  });
+
+program
+  .command('tool-risk')
+  .description('Describe tool access recommendations, risks, and override posture')
+  .action(() => {
+    console.log(JSON.stringify(describeToolRiskPosture(), null, 2));
+  });
+
+program
+  .command('roadmap')
+  .description('Print smart CLI and TUI roadmap items')
+  .action(() => {
+    console.log(JSON.stringify(getCliTuiRoadmap(), null, 2));
+  });
+
+program
+  .command('doctor')
+  .description('Print basic runtime diagnostics')
+  .action(async () => {
+    const summary = await getRuntimeSummary();
+    console.log(JSON.stringify(summary, null, 2));
+  });
+
+program
+  .command('run')
+  .description('Run the minimal runtime shell')
+  .option('--profile <name>', 'config profile', 'default')
+  .action((options) => {
+    const config = loadConfig({ profile: options.profile });
+    console.log(`RocketClaw2 runtime starting with profile: ${config.profile}`);
+  });
+
+program.parse();

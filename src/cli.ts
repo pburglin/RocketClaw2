@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { getRuntimeSummary } from './core/runtime.js';
+import { formatDoctorReport, runDoctorChecks } from './core/doctor.js';
 import { loadConfig, loadConfigFromDisk } from './config/load-config.js';
 import { CORE_TOOL_CATALOG, ToolAccessLevelSchema } from './tools/catalog.js';
 import { describeToolRiskPosture } from './tools/policy.js';

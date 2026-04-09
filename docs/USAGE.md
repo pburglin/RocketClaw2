@@ -147,3 +147,8 @@ Approval list and summary views now surface recommended next steps directly in t
 ## Setup wizard
 
 - `rocketclaw2 setup-wizard`
+
+## Doctor
+
+- `rocketclaw2 doctor`
+- `rocketclaw2 doctor --json`

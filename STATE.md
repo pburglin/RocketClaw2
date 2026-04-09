@@ -103,3 +103,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Approval workflow now includes a pending-only actionable queue view.
 
 - RocketClaw2 now includes a guided setup helper for onboarding and operator next steps.
+
+- RocketClaw2 doctor now reports readiness across config, messaging, approvals, and governance posture.

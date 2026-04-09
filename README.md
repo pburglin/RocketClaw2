@@ -472,3 +472,11 @@ The pending approval view is optimized for actionability and shows only items th
 RocketClaw2 now includes a guided setup helper.
 
 - `rocketclaw2 setup-wizard`
+
+
+## Readiness diagnostics
+
+RocketClaw2 now includes a richer doctor command for runtime readiness checks.
+
+- `rocketclaw2 doctor`
+- `rocketclaw2 doctor --json`

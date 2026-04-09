@@ -90,3 +90,5 @@
 - Add an actionable pending-approval view for faster operator review.
 
 - Add a guided setup helper to improve first-run and operator onboarding.
+
+- Expand doctor into a more useful readiness diagnostic for config, messaging, approvals, and governance posture.

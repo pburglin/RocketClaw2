@@ -88,3 +88,12 @@ rocketclaw2 setup-wizard
 ```
 
 This prints the current runtime posture and recommended next configuration actions.
+
+## Readiness check
+
+After setup, run:
+```bash
+rocketclaw2 doctor
+```
+
+This checks whether the current runtime posture is ready for use and highlights potential configuration issues.

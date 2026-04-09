@@ -149,3 +149,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 
 - Autonomous harness runs are now workspace-aware: they read existing files before each iteration and support partial patch-style edits via stored LLM guidance.
 - `harness-show` now supports `--full` for full artifact inspection.
+
+- Per-iteration harness artifacts now track created/modified files, validation output, and LLM guidance for every loop iteration.

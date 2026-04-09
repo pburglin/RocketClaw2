@@ -130,3 +130,5 @@
 
 - Add workspace-aware prompting and partial patch support for autonomous harness runs.
 - Add full artifact inspection mode for persisted harness runs.
+
+- Add per-iteration artifacts for full autonomous harness auditing.

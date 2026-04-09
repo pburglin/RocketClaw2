@@ -258,3 +258,13 @@ Code block format: ```filename.ext followed by file content, ending with ```
 - supports partial file edits using `PATCH:filename` fenced blocks
 
 `harness-show --id <run-id> --full` prints the complete saved artifact, including the full last LLM guidance.
+
+
+## Per-iteration artifacts
+
+Each iteration now produces a JSON entry under `harness-runs/<run-id>/iteration-NNN.json` with:
+- files created and modified
+- validation stdout/stderr
+- full LLM guidance for that iteration
+
+This makes every run fully inspectable after the fact.

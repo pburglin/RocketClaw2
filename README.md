@@ -629,3 +629,8 @@ console.log("hello");
 The harness now reads the current workspace before each LLM iteration and includes existing file contents in the prompt. It also supports partial edits using `PATCH:filename` fenced blocks with SEARCH/REPLACE sections, so the harness can evolve existing files instead of only overwriting entire files.
 
 Use `rocketclaw2 harness-show --id <run-id> --full` to inspect full stored guidance for a run.
+
+
+### Per-iteration run artifacts
+
+Each `harness-run` now records every iteration as a separate JSON entry under `harness-runs/<run-id>/iteration-NNN.json`, tracking which files were created or modified, validation output, and the full LLM guidance. This makes the autonomous loop fully auditable and resumable.

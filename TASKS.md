@@ -72,3 +72,5 @@
 - Improve semantic memory inspection with filters and summary views.
 
 - Add governed messaging execution flow so channel sends can follow explicit approval semantics.
+
+- Add Ralph loop support so RocketClaw2 can repeat work until validation or a user-provided condition succeeds.

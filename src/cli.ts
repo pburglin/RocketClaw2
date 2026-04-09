@@ -24,6 +24,7 @@ import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
+import { runRalphLoop } from './loops/ralph.js';
 import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
@@ -278,6 +279,25 @@ program
     console.log(JSON.stringify(registry.list(), null, 2));
   });
 
+
+
+program
+  .command('ralph-loop')
+  .description('Repeat a command until a user-provided success condition is met')
+  .requiredOption('--command <cmd>', 'shell command to execute')
+  .requiredOption('--until <condition>', 'exit-0|stdout-includes')
+  .option('--match-text <text>', 'required when using stdout-includes')
+  .option('--max-iterations <n>', 'maximum loop iterations', '5')
+  .action(async (options) => {
+    const result = await runRalphLoop({
+      command: options.command,
+      until: options.until,
+      matchText: options.matchText,
+      maxIterations: Number(options.maxIterations),
+    });
+    console.log(JSON.stringify(result, null, 2));
+    if (!result.ok) process.exitCode = 1;
+  });
 
 program
   .command('message-run')

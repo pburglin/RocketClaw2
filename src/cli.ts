@@ -36,8 +36,8 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
-import { harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
-import { formatCodingHarnessResult, formatValidationResult } from './harness/formatters.js';
+import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
+import { formatCodingHarnessResult, formatHarnessPlan, formatValidationResult } from './harness/formatters.js';
 import { loadHarnessRun, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
@@ -508,6 +508,31 @@ program
     const result = await replayHarnessValidation(options.id);
     console.log(options.json ? JSON.stringify(result, null, 2) : formatValidationResult(result));
     if (!result.passed) process.exitCode = 1;
+  });
+
+program
+  .command('harness-plan')
+  .description('Generate a reviewable implementation plan for a harness task without writing files')
+  .requiredOption('--workspace <path>', 'target workspace path')
+  .requiredOption('--task <text>', 'task description')
+  .requiredOption('--validate <cmd>', 'validation command that would be used during execution')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    const result = await buildHarnessPlan(config, {
+      workspace: options.workspace,
+      task: options.task,
+      validateCommand: options.validate,
+    });
+    const artifact = await saveHarnessRun(result);
+    const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path };
+    console.log(options.json ? JSON.stringify(enriched, null, 2) : formatHarnessPlan(enriched));
   });
 
 program

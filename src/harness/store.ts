@@ -2,10 +2,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { getDefaultProjectRoot, getHarnessRunsDir } from '../config/app-paths.js';
-import type { CodingHarnessResult } from './coding-harness.js';
+import type { CodingHarnessResult, HarnessPlan } from './coding-harness.js';
 
 export async function saveHarnessRun(
-  result: CodingHarnessResult,
+  result: CodingHarnessResult | HarnessPlan,
   root = getDefaultProjectRoot(),
   explicitRunId?: string,
 ): Promise<{ runId: string; path: string }> {

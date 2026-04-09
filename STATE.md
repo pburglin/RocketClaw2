@@ -153,3 +153,4 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Per-iteration harness artifacts now track created/modified files, validation output, and LLM guidance for every loop iteration.
 
 - Autonomous harness runs now include critic/self-reflection after validation failures, feeding root-cause hints into subsequent iterations.
+- RocketClaw2 now includes `harness-plan`, a pre-execution review gate that saves a plan artifact without writing files.

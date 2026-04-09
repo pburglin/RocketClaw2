@@ -1,4 +1,4 @@
-import type { CodingHarnessResult, ValidationResult } from './coding-harness.js';
+import type { CodingHarnessResult, HarnessPlan, ValidationResult } from './coding-harness.js';
 
 export function formatValidationResult(r: ValidationResult): string {
   const status = r.passed ? 'PASSED' : 'FAILED';
@@ -14,6 +14,19 @@ export function formatValidationResult(r: ValidationResult): string {
     lines.push(`stderr: ${r.stderr || '(empty)'}`);
   }
   return lines.join('\n');
+}
+
+export function formatHarnessPlan(plan: HarnessPlan): string {
+  return [
+    'Harness Plan | READY FOR REVIEW',
+    `Workspace: ${plan.workspace}`,
+    `Task: ${plan.task}`,
+    `Validate command: ${plan.validateCommand}`,
+    `Run ID: ${plan.runId || 'n/a'}`,
+    `Artifact: ${plan.artifactPath || 'n/a'}`,
+    '',
+    plan.planText || 'n/a',
+  ].join('\n');
 }
 
 export function formatCodingHarnessResult(result: CodingHarnessResult): string {

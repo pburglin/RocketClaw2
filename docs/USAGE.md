@@ -226,6 +226,7 @@ In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
 
 ## Autonomous coding harness
 
+- `rocketclaw2 --llm-api-key "$API_KEY" harness-plan --workspace /path/to/repo --task "Make tests pass" --validate "npm test"`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
 
@@ -236,7 +237,9 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-show --id <run-id>`
+- `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>"` — generate a reviewable plan without writing files
 - `rocketclaw2 harness-validate --id <run-id>` — re-apply saved code blocks and re-run the validate command
+- `rocketclaw2 harness-resume --id <run-id>` — resume a failed run with one fresh iteration
 
 ## Autonomous coding harness
 

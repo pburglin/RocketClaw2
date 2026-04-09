@@ -105,6 +105,17 @@ export type ValidationResult = {
   error?: string;
 };
 
+export type HarnessPlan = {
+  kind: 'plan';
+  ok: true;
+  workspace: string;
+  task: string;
+  validateCommand: string;
+  planText: string;
+  runId?: string;
+  artifactPath?: string;
+};
+
 async function buildCriticInsight(
   config: AppConfig,
   input: { task: string; workspace: string; validateCommand: string; stdout: string; stderr: string },
@@ -127,6 +138,35 @@ async function buildCriticInsight(
   } catch {
     return '';
   }
+}
+
+export async function buildHarnessPlan(
+  config: AppConfig,
+  input: { workspace: string; task: string; validateCommand: string },
+): Promise<HarnessPlan> {
+  await initWorkspace(input.workspace);
+  const workspaceContext = await scanWorkspace(input.workspace);
+  const planText = await runLlmQuery(
+    config,
+    [
+      'You are planning an autonomous coding harness task.',
+      'Do not write code. Produce a concise implementation plan only.',
+      'Include these sections exactly: Summary, Files to touch, Validation, Risks.',
+      `Workspace: ${input.workspace}`,
+      workspaceContext ? `Existing workspace files:\n${workspaceContext}` : '',
+      `Task: ${input.task}`,
+      `Validation command: ${input.validateCommand}`,
+    ].filter(Boolean).join('\n'),
+  );
+
+  return {
+    kind: 'plan',
+    ok: true,
+    workspace: input.workspace,
+    task: input.task,
+    validateCommand: input.validateCommand,
+    planText: planText.trim(),
+  };
 }
 
 export async function replayHarnessValidation(

@@ -38,6 +38,7 @@ import { formatRecommendedNextActions, getRecommendedNextActions } from './core/
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
+import { buildLlmStatus, formatLlmStatus } from './llm/status.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
 import { loadImportedSkills } from './skills/store.js';
@@ -664,6 +665,24 @@ program
   });
 
 
+
+
+program
+  .command('llm-status')
+  .description('Show current LLM configuration and readiness state')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const hasOverrides = Boolean(globalOpts.llmBaseUrl || globalOpts.llmApiKey || globalOpts.llmModel);
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    const status = buildLlmStatus(config, hasOverrides);
+    console.log(options.json ? JSON.stringify(status, null, 2) : formatLlmStatus(status));
+  });
 
 program
   .command('llm-test')

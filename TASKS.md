@@ -112,3 +112,5 @@
 - Improve llm-query failure diagnostics for auth, endpoint, and model mismatch cases.
 
 - Add a lightweight LLM connectivity/auth test command separate from full prompt execution.
+
+- Add a compact LLM status command that shows readiness and session override state.

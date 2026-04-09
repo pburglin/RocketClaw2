@@ -204,3 +204,8 @@ LLM query errors now explain likely causes such as wrong API key, wrong provider
 ## LLM connectivity test
 
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-test`
+
+## LLM status
+
+- `rocketclaw2 llm-status`
+- `rocketclaw2 --llm-api-key "$API_KEY" llm-status`

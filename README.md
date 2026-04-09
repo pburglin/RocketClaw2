@@ -554,3 +554,11 @@ LLM query failures now produce friendlier diagnostics for common provider/auth/c
 RocketClaw2 now includes a lightweight LLM connectivity/auth test command.
 
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-test`
+
+
+## LLM status
+
+RocketClaw2 now includes a compact LLM status command for inspecting current readiness and session override state.
+
+- `rocketclaw2 llm-status`
+- `rocketclaw2 --llm-api-key "$API_KEY" llm-status`

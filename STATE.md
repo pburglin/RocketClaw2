@@ -71,3 +71,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Governance CLI now includes filtered tool-policy views and aggregate access summaries for operator inspection.
 
 - Messaging governance/operator UX now includes a readable messaging summary command.
+
+- RocketClaw2 now includes a governed tool execution flow (`tool-run`) that enforces policy and approval requirements.

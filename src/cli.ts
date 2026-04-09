@@ -7,6 +7,7 @@ import { describeToolRiskPosture } from './tools/policy.js';
 import { formatToolPolicies, formatToolPolicySummary } from './tools/formatters.js';
 import { loadAppConfig, setToolPolicy } from './tools/config-store.js';
 import { assertToolAccess } from './tools/enforcement.js';
+import { runToolWithPolicy } from './tools/runtime.js';
 import { describeOverrideWarning } from './tools/override.js';
 import { runInit } from './commands/init.js';
 import { getMemoryStrategy } from './memory/strategy.js';
@@ -292,6 +293,23 @@ program
       tools = tools.filter((tool) => tool.approvedOverride);
     }
     console.log(options.json ? JSON.stringify(tools, null, 2) : formatToolPolicies(tools));
+  });
+
+
+program
+  .command('tool-run')
+  .description('Run a governed tool execution simulation')
+  .requiredOption('--tool <id>', 'tool id')
+  .requiredOption('--action <action>', 'read|write')
+  .option('--approve', 'approve a guarded write execution')
+  .action(async (options) => {
+    const config = await loadAppConfig();
+    const result = runToolWithPolicy(config, {
+      toolId: options.tool,
+      action: options.action,
+      approved: Boolean(options.approve),
+    });
+    console.log(JSON.stringify(result, null, 2));
   });
 
 program

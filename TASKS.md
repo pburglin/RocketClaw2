@@ -58,3 +58,5 @@
 - Add a config inspection command so operators can view the resolved persisted runtime configuration.
 
 - Add messaging integration summaries for operator inspection.
+
+- Add governed tool execution flow so runtime actions are checked against policy and approval requirements.

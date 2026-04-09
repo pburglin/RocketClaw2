@@ -342,3 +342,14 @@ RocketClaw2 now includes a CLI command to inspect the fully resolved persisted c
 - `rocketclaw2 config-show`
 
 This helps operators verify the active runtime profile, recall settings, messaging configuration, and tool governance state from the terminal.
+
+
+## Governed tool execution
+
+RocketClaw2 now includes an operator-visible governed tool execution path.
+
+### Current command
+- `rocketclaw2 tool-run --tool file-management --action read`
+- `rocketclaw2 tool-run --tool file-management --action write --approve`
+
+This currently simulates execution, but it already enforces configured policy and approval requirements before allowing the action.

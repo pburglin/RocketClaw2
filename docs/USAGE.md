@@ -74,3 +74,8 @@ node dist/cli.js chat --session-id <session-id>
 
 - `rocketclaw2 messaging-summary`
 - `rocketclaw2 whatsapp-config`
+
+## Governed tool execution
+
+- `rocketclaw2 tool-run --tool file-management --action read`
+- `rocketclaw2 tool-run --tool file-management --action write --approve`

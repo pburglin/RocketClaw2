@@ -70,3 +70,5 @@
 - Add default WhatsApp recipient fallback and cleaner send-result operator UX.
 
 - Improve semantic memory inspection with filters and summary views.
+
+- Add governed messaging execution flow so channel sends can follow explicit approval semantics.

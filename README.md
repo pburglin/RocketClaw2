@@ -402,3 +402,13 @@ If a default WhatsApp recipient is configured, the operator no longer has to rep
 
 
 Semantic memory inspection now supports filtering by tag, filtering by salience threshold, and aggregate summary output.
+
+
+## Governed messaging execution
+
+RocketClaw2 now includes a governed messaging execution path in addition to the simpler send utility flow.
+
+### Current command
+- `rocketclaw2 message-run --channel whatsapp --text "hello" --approve`
+
+This path models approval-aware messaging behavior explicitly and respects yolo mode when enabled.

@@ -107,3 +107,7 @@ node dist/cli.js chat --session-id <session-id>
 - `rocketclaw2 memory-list`
 - `rocketclaw2 memory-list --tag preference`
 - `rocketclaw2 memory-list --min-salience 40 --summary`
+
+## Governed messaging execution
+
+- `rocketclaw2 message-run --channel whatsapp --text "hello" --approve`

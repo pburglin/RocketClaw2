@@ -23,6 +23,7 @@ import { configureWhatsApp } from './messaging/whatsapp-config.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
+import { runGovernedMessageSend } from './messaging/runtime.js';
 import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
@@ -275,6 +276,26 @@ program
     const config = await loadAppConfig();
     const registry = createDefaultChannelRegistry(config.messaging);
     console.log(JSON.stringify(registry.list(), null, 2));
+  });
+
+
+program
+  .command('message-run')
+  .description('Run a governed messaging send flow with approval semantics')
+  .requiredOption('--channel <id>', 'channel plugin id')
+  .option('--to <target>', 'destination')
+  .requiredOption('--text <message>', 'message text')
+  .option('--approve', 'approve the governed send')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const config = await loadAppConfig();
+    const result = await runGovernedMessageSend(config, {
+      channel: options.channel,
+      to: options.to,
+      text: options.text,
+      approved: Boolean(options.approve),
+    });
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatSendResult(result));
   });
 
 program

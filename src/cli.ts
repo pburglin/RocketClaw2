@@ -37,7 +37,7 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
-import { formatImportedSkills } from './skills/formatters.js';
+import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
 import { loadImportedSkills } from './skills/store.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
@@ -194,13 +194,32 @@ program
     console.log(JSON.stringify(skill, null, 2));
   });
 
+
+program
+  .command('skill-summary')
+  .description('Show an aggregate summary of imported skills')
+  .action(async () => {
+    const skills = await loadImportedSkills();
+    console.log(formatSkillSummary(skills));
+  });
+
 program
   .command('skill-list')
   .description('List imported skills')
   .option('--json', 'output raw JSON')
+  .option('--source-contains <text>', 'filter skills by source URL substring')
+  .option('--summary', 'show aggregate summary')
   .action(async (options) => {
-    const skills = await loadImportedSkills();
-    console.log(options.json ? JSON.stringify(skills, null, 2) : formatImportedSkills(skills));
+    let skills = await loadImportedSkills();
+    if (options.sourceContains) {
+      const q = String(options.sourceContains).toLowerCase();
+      skills = skills.filter((skill) => skill.sourceUrl.toLowerCase().includes(q));
+    }
+    if (options.json) {
+      console.log(JSON.stringify(skills, null, 2));
+      return;
+    }
+    console.log(options.summary ? formatSkillSummary(skills) : formatImportedSkills(skills));
   });
 
 program

@@ -115,3 +115,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now supports session-scoped LLM URL/API key/model overrides from CLI parameters.
 
 - RocketClaw2 now includes local skill management commands with persisted source URL metadata for imported skills.
+
+- Skill inspection now supports source-aware filtering and aggregate summary output.

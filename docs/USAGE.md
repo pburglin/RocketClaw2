@@ -177,3 +177,9 @@ Approval list and summary views now surface recommended next steps directly in t
 - `rocketclaw2 skill-update --id demo-skill`
 - `rocketclaw2 skill-update`
 - `rocketclaw2 skill-remove --id demo-skill`
+
+## Skill inspection
+
+- `rocketclaw2 skill-list --source-contains github.com`
+- `rocketclaw2 skill-list --summary`
+- `rocketclaw2 skill-summary`

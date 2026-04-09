@@ -6,3 +6,12 @@ export function formatImportedSkills(skills: ImportedSkill[]): string {
     .map((skill) => `${skill.id} | ${skill.name} | ${skill.sourceUrl} | updated=${skill.updatedAt}`)
     .join('\n');
 }
+
+export function formatSkillSummary(skills: ImportedSkill[]): string {
+  const total = skills.length;
+  const sources = skills.map((skill) => skill.sourceUrl).slice(0, 5).join(', ');
+  return [
+    `Imported skills: ${total}`,
+    `Sources: ${sources || 'n/a'}`,
+  ].join('\n');
+}

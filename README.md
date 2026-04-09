@@ -519,3 +519,10 @@ RocketClaw2 now includes local skill management commands so operators can manage
 - `rocketclaw2 skill-remove --id demo-skill`
 
 Imported skills persist their original source URL metadata so later updates know where the skill came from.
+
+
+Skill inspection now supports source-aware filtering and aggregate summary views.
+
+- `rocketclaw2 skill-list --source-contains github.com`
+- `rocketclaw2 skill-list --summary`
+- `rocketclaw2 skill-summary`

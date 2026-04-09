@@ -579,3 +579,14 @@ Examples:
 - `rocketclaw2 --llm-api-key "$API_KEY" task-loop --task "Fix lint errors" --validate "npm run build" --max-iterations 5`
 
 This is the built-in version of the LLM + validation + retry pattern that Ralph loop previously only demonstrated indirectly.
+
+
+## Autonomous coding harness
+
+RocketClaw2 now includes an initial autonomous coding harness command.
+
+Examples:
+- `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
+
+This first milestone provides the full outer loop: workspace selection, task description, LLM-guided iteration, validation, and result reporting.

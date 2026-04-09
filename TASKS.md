@@ -120,3 +120,5 @@
 - Polish chat UX so Ctrl+C exits cleanly without a raw stack trace.
 
 - Add a first-class iterative task loop for LLM-guided development with validation retries.
+
+- Add an autonomous coding harness command with workspace selection, LLM guidance, validation, and result reporting.

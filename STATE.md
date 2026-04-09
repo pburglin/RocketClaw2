@@ -136,3 +136,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Chat now handles Ctrl+C gracefully and exits with a clean message.
 
 - RocketClaw2 now includes a first-class iterative task loop for LLM-guided development with validation retries.
+
+- RocketClaw2 now includes an initial autonomous coding harness command with workspace/task/validation flow.

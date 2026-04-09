@@ -36,6 +36,8 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
+import { runCodingHarness } from './harness/coding-harness.js';
+import { formatCodingHarnessResult } from './harness/formatters.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
 import { runTaskLoop } from './loops/task-loop.js';
@@ -421,6 +423,33 @@ program
 
 
 
+
+
+program
+  .command('harness-run')
+  .description('Run an autonomous coding harness loop for a workspace task until validation passes or iterations are exhausted')
+  .requiredOption('--workspace <path>', 'target workspace path')
+  .requiredOption('--task <text>', 'task description')
+  .requiredOption('--validate <cmd>', 'validation command to run in the workspace')
+  .option('--max-iterations <n>', 'maximum iterations', '5')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    const result = await runCodingHarness(config, {
+      workspace: options.workspace,
+      task: options.task,
+      validateCommand: options.validate,
+      maxIterations: Number(options.maxIterations),
+    });
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatCodingHarnessResult(result));
+    if (!result.ok) process.exitCode = 1;
+  });
 
 program
   .command('task-loop')

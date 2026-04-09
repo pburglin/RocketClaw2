@@ -547,3 +547,10 @@ RocketClaw2 now includes a real LLM query command.
 
 
 LLM query failures now produce friendlier diagnostics for common provider/auth/config mistakes instead of only raw error text.
+
+
+## LLM connectivity test
+
+RocketClaw2 now includes a lightweight LLM connectivity/auth test command.
+
+- `rocketclaw2 --llm-api-key "$API_KEY" llm-test`

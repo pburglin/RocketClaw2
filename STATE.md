@@ -126,3 +126,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a real LLM query command that uses configured or session-overridden LLM settings.
 
 - llm-query now returns friendlier diagnostics for common auth/provider/config failures.
+
+- RocketClaw2 now includes a lightweight LLM connectivity/auth test command (`llm-test`).

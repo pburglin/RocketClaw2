@@ -200,3 +200,7 @@ Imported skill listings now show update-related metadata such as last action and
 
 
 LLM query errors now explain likely causes such as wrong API key, wrong provider URL, or model mismatch, and suggest an explicit retry command.
+
+## LLM connectivity test
+
+- `rocketclaw2 --llm-api-key "$API_KEY" llm-test`

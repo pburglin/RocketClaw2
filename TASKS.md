@@ -110,3 +110,5 @@
 - Add a real LLM query command using configured or session-overridden LLM access details.
 
 - Improve llm-query failure diagnostics for auth, endpoint, and model mismatch cases.
+
+- Add a lightweight LLM connectivity/auth test command separate from full prompt execution.

@@ -37,6 +37,7 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { runLlmQuery } from './llm/client.js';
+import { runLlmTest } from './llm/test.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
 import { loadImportedSkills } from './skills/store.js';
@@ -662,6 +663,27 @@ program
     console.log(JSON.stringify(getCliTuiRoadmap(), null, 2));
   });
 
+
+
+program
+  .command('llm-test')
+  .description('Run a quick connectivity and auth test against the configured LLM')
+  .action(async (_options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    try {
+      const result = await runLlmTest(config);
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    }
+  });
 
 program
   .command('llm-query')

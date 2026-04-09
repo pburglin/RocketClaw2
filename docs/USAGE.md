@@ -11,7 +11,7 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 channels`
 - `rocketclaw2 send`
 
-`doctor` now includes the active recall-scoring profile from persisted config, so runtime diagnostics reflect the current memory-ranking behavior. Use `config-show` when you want the full resolved app config instead of just diagnostics.
+`doctor` now includes the active recall-scoring profile from persisted config, so runtime diagnostics reflect the current memory-ranking behavior. Use `config-show` when you want the full resolved app config instead of just diagnostics, and `recall-explain` when you want plain-English guidance for what the recall weights do.
 
 ## Session commands
 - `rocketclaw2 session-create --title "Demo Session"`
@@ -25,6 +25,7 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 search --query "alpha"`
 - `rocketclaw2 recall --query "alpha"`
 - `rocketclaw2 recall-profile`
+- `rocketclaw2 recall-explain`
 - `rocketclaw2 dream`
 - `rocketclaw2 remember`
 - `rocketclaw2 memory-list`
@@ -68,3 +69,8 @@ node dist/cli.js chat --session-id <session-id>
 - dreaming currently plans and promotes memory, but does not yet rewrite or prune episodic history
 - messaging is plugin-based, with WhatsApp as the first concrete target in the roadmap
 - the richer TUI is still future work, but the formatter layer now supports more usable terminal inspection flows
+
+## Messaging inspection
+
+- `rocketclaw2 messaging-summary`
+- `rocketclaw2 whatsapp-config`

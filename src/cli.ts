@@ -17,9 +17,10 @@ import { rememberCandidate } from './memory/remember.js';
 import { loadSemanticMemory } from './memory/semantic-store.js';
 import { createDefaultChannelRegistry } from './messaging/index.js';
 import { configureWhatsApp } from './messaging/whatsapp-config.js';
+import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
-import { formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
+import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
 import { getSessionStats } from './sessions/stats.js';
 import { runChatSession } from './commands/chat.js';
@@ -109,6 +110,14 @@ program
   });
 
 program
+  .command('recall-explain')
+  .description('Explain the active recall scoring profile in human-readable terms')
+  .action(async () => {
+    const config = await loadConfigFromDisk();
+    console.log(formatRecallScoringExplanation(config.recallScoring));
+  });
+
+program
   .command('config-show')
   .description('Print the active persisted app config')
   .action(async () => {
@@ -184,6 +193,16 @@ program
     console.log(JSON.stringify(session, null, 2));
   });
 
+
+
+program
+  .command('messaging-summary')
+  .description('Show configured messaging integration summary')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const config = await loadAppConfig();
+    console.log(options.json ? JSON.stringify(config.messaging, null, 2) : formatMessagingSummary(config.messaging));
+  });
 
 program
   .command('whatsapp-config')

@@ -83,6 +83,27 @@ describe('getRuntimeSummary', () => {
     await fs.rm(homeRoot, { recursive: true, force: true });
   });
 
+  it('explains the active recall profile in human-readable text', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-explain-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ recallScoring: { sessionSalienceMultiplier: 9 } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'recall-explain'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('Recall scoring profile');
+    expect(stdout).toContain('Session salience multiplier: 9');
+    expect(stdout).toContain('higher means important session messages outrank shallow lexical matches more often');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
   it('includes persisted recall scoring in doctor/runtime diagnostics', async () => {
     const root = path.join(os.tmpdir(), `rocketclaw2-doctor-${Date.now()}`);
     await fs.mkdir(root, { recursive: true });

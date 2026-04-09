@@ -26,6 +26,7 @@ node dist/cli.js session-list
 You can inspect the active profile with:
 ```bash
 node dist/cli.js recall-profile
+node dist/cli.js recall-explain
 node dist/cli.js doctor
 node dist/cli.js config-show
 ```

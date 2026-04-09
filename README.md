@@ -308,6 +308,7 @@ RocketClaw2 now includes explicit WhatsApp integration configuration as the firs
 - configurable default recipient
 
 ### Current commands
+- `rocketclaw2 messaging-summary`
 - `rocketclaw2 whatsapp-config`
 - `rocketclaw2 whatsapp-config --mode webhook --webhook-url "https://example.com/hook" --default-recipient "+15551234567"`
 - `rocketclaw2 send --channel whatsapp --to "+15551234567" --text "hello"`

@@ -284,3 +284,13 @@ This makes every run fully inspectable after the fact.
 ## Critic/self-reflection
 
 `harness-run` now performs a critic step after failed validation. The critic summarizes the most likely root cause and suggested corrective direction, and that insight is included in the next prompt iteration.
+
+
+## Full run inspection
+
+Use `rocketclaw2 harness-show --id <run-id> --full` to inspect:
+- saved run metadata
+- latest guidance
+- per-iteration file changes
+- critic insights
+- per-iteration validation results

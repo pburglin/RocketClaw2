@@ -134,3 +134,5 @@
 - Add per-iteration artifacts for full autonomous harness auditing.
 
 - Add critic/self-reflection support so autonomous harness iterations can react to validation failures more intelligently.
+
+- Improve harness inspection so a single run view includes per-iteration details.

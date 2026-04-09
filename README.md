@@ -649,3 +649,8 @@ Each `harness-run` now records every iteration as a separate JSON entry under `h
 ### Critic-driven autonomous loop
 
 The harness now includes a critic/self-reflection step after validation failures. When a run fails validation, RocketClaw2 asks the LLM for a concise root-cause analysis and corrective direction, then feeds that critic insight into the next implementation iteration.
+
+
+### Full run inspection
+
+`harness-show --id <run-id> --full` now returns the saved run artifact together with embedded per-iteration details, so one command can explain the entire autonomous loop end to end.

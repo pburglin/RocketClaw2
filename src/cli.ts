@@ -39,6 +39,7 @@ import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-st
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
+import { loadIterationEntries } from './harness/iteration-store.js';
 import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
@@ -524,7 +525,8 @@ program
       return;
     }
     if (options.full) {
-      console.log(JSON.stringify(run, null, 2));
+      const iterations = await loadIterationEntries(options.id);
+      console.log(JSON.stringify({ ...run, iterationsDetail: iterations }, null, 2));
     } else {
       const { lastGuidance, planText, ...summary } = run as any;
       console.log(JSON.stringify(summary, null, 2));

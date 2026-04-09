@@ -114,3 +114,5 @@
 - Add a lightweight LLM connectivity/auth test command separate from full prompt execution.
 
 - Add a compact LLM status command that shows readiness and session override state.
+
+- Make chat use the configured LLM with recalled memory context, with fallback behavior only when no LLM is configured.

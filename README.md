@@ -562,3 +562,6 @@ RocketClaw2 now includes a compact LLM status command for inspecting current rea
 
 - `rocketclaw2 llm-status`
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
+
+
+Chat now uses the configured LLM when an API key is available, with recalled memory injected into the prompt. The old memory-listing response is now only a fallback when no LLM is configured.

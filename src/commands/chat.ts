@@ -1,39 +1,53 @@
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { appendMessage, createSession, loadSession } from '../sessions/store.js';
-import { recallMemory, type RecallHit } from '../memory/recall.js';
+import { recallMemory } from '../memory/recall.js';
+import type { AppConfig } from '../config/load-config.js';
+import { runLlmQuery } from '../llm/client.js';
 
-function formatRecallHit(hit: RecallHit): string {
-  if (hit.kind === 'semantic') {
-    return hit.text;
-  }
-  return `${hit.text} (from session "${hit.sessionTitle}")`;
-}
-
-function looksLikeMemoryQuestion(userText: string): boolean {
-  const q = userText.trim().toLowerCase();
-  return q.includes('remember') || q.includes('recall') || q.includes('what do you know');
-}
-
-export function buildAssistantReply(userText: string, recalled: RecallHit[]): string {
-  const trimmed = userText.trim();
+function buildFallbackReply(userText: string, recalled: Awaited<ReturnType<typeof recallMemory>>): string {
   if (recalled.length === 0) {
-    if (looksLikeMemoryQuestion(trimmed)) {
-      return "I couldn't find anything relevant in memory yet.";
+    return `Echo: ${userText}`;
+  }
+
+  const top = recalled.slice(0, 2).map((hit) => {
+    if (hit.kind === 'semantic') {
+      return `semantic memory: ${hit.text}`;
     }
-    return `I heard: ${trimmed}`;
-  }
+    return `${hit.text} (from session "${hit.sessionTitle}")`;
+  });
 
-  const top = recalled.slice(0, 2).map(formatRecallHit);
-
-  if (looksLikeMemoryQuestion(trimmed)) {
-    return [`Here's what I found in memory:`, ...top.map((item) => `- ${item}`)].join('\n');
-  }
-
-  return [`I heard: ${trimmed}`, 'Relevant memory:', ...top.map((item) => `- ${item}`)].join('\n');
+  return [`I heard: ${userText}`, 'Relevant memory:', ...top.map((item) => `- ${item}`)].join('\n');
 }
 
-export async function runChatSession(options: { title?: string; sessionId?: string }): Promise<void> {
+async function buildAssistantReply(config: AppConfig, userText: string, recalled: Awaited<ReturnType<typeof recallMemory>>): Promise<string> {
+  if (!config.llm.apiKey) {
+    return buildFallbackReply(userText, recalled);
+  }
+
+  const memoryBlock = recalled.length
+    ? recalled
+        .slice(0, 6)
+        .map((hit) => (hit.kind === 'semantic' ? `Semantic memory: ${hit.text}` : `Session memory (${hit.sessionTitle}): ${hit.text}`))
+        .join('\n')
+    : 'No relevant memory found.';
+
+  const prompt = [
+    'You are RocketClaw2 chat.',
+    'Answer the current user message helpfully using the provided memory context when relevant.',
+    'If memory is relevant, use it naturally in the answer instead of just listing it back.',
+    '',
+    'Memory context:',
+    memoryBlock,
+    '',
+    'User message:',
+    userText,
+  ].join('\n');
+
+  return runLlmQuery(config, prompt);
+}
+
+export async function runChatSession(options: { title?: string; sessionId?: string; config: AppConfig }): Promise<void> {
   const session = options.sessionId
     ? await loadSession(options.sessionId)
     : await createSession(options.title ?? 'Interactive Session');
@@ -56,7 +70,7 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
 
       await appendMessage(session.id, 'user', line);
       const recalled = await recallMemory(line);
-      const reply = buildAssistantReply(line, recalled);
+      const reply = await buildAssistantReply(options.config, line, recalled);
       await appendMessage(session.id, 'assistant', reply);
       console.log(`assistant> ${reply}`);
     }

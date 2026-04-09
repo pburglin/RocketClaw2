@@ -130,3 +130,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a lightweight LLM connectivity/auth test command (`llm-test`).
 
 - RocketClaw2 now includes a compact LLM status command for readiness and override inspection.
+
+- Chat now uses the configured LLM with recalled memory context when LLM access is available, and falls back only when no LLM is configured.

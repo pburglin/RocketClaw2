@@ -209,3 +209,6 @@ LLM query errors now explain likely causes such as wrong API key, wrong provider
 
 - `rocketclaw2 llm-status`
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
+
+
+Chat now uses the configured LLM when available, instead of only echoing or listing memory snippets.

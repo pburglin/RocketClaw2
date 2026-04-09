@@ -304,8 +304,15 @@ program
   .description('Start or resume a simple interactive chat session')
   .option('--title <title>', 'title for a new session')
   .option('--session-id <id>', 'resume an existing session')
-  .action(async (options) => {
-    await runChatSession({ title: options.title, sessionId: options.sessionId });
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    await runChatSession({ title: options.title, sessionId: options.sessionId, config });
   });
 
 program

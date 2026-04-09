@@ -443,3 +443,6 @@ RocketClaw2 now includes a persistent approval request workflow.
 - `rocketclaw2 approval-resolve --id <approval-id> --status approved`
 
 This creates the foundation for richer human-in-the-loop workflows across tool execution and messaging.
+
+
+Approval requests can now be created automatically by governed tool or messaging execution when an action needs approval and none was supplied.

@@ -2,6 +2,7 @@ import type { AppConfig } from '../config/load-config.js';
 import { assertWhatsAppSendAllowed } from './enforcement.js';
 import { createDefaultChannelRegistry } from './index.js';
 import type { MessageSendResult } from './types.js';
+import { createApprovalRequest } from '../approval/store.js';
 
 export async function runGovernedMessageSend(
   config: AppConfig,
@@ -10,7 +11,12 @@ export async function runGovernedMessageSend(
   if (input.channel === 'whatsapp') {
     assertWhatsAppSendAllowed(config);
     if (!input.approved && !config.yolo.enabled) {
-      throw new Error('Governed messaging send requires explicit approval unless yolo mode is enabled');
+      const approval = await createApprovalRequest({
+        kind: 'message-send',
+        target: input.channel,
+        detail: `Approval required for governed ${input.channel} send`,
+      });
+      throw new Error(`Governed messaging send requires explicit approval unless yolo mode is enabled. Approval request created: ${approval.id}`);
     }
     if (!input.approved && config.yolo.enabled && config.yolo.warn) {
       console.warn('[YOLO WARNING] Auto-approving governed WhatsApp send.');

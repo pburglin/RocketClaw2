@@ -91,3 +91,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Ralph loop now supports validation-oriented presets and human-readable result summaries.
 
 - RocketClaw2 now includes a persistent approval request workflow with list and resolve operations.
+
+- Governed tool and messaging flows can now auto-create approval requests when approval is missing.

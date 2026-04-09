@@ -458,7 +458,7 @@ program
   .option('--approve', 'approve a guarded write execution')
   .action(async (options) => {
     const config = await loadAppConfig();
-    const result = runToolWithPolicy(config, {
+    const result = await runToolWithPolicy(config, {
       toolId: options.tool,
       action: options.action,
       approved: Boolean(options.approve),

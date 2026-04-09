@@ -30,6 +30,35 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
   ].join('\n');
 }
 
+export function formatHarnessGuidanceView(item: Record<string, unknown>): string {
+  return [
+    `Run ID: ${String(item.runId ?? 'n/a')}`,
+    'Guidance:',
+    String(item.lastGuidance ?? 'n/a'),
+  ].join('\n');
+}
+
+export function formatHarnessValidationView(item: Record<string, unknown>): string {
+  return [
+    `Run ID: ${String(item.runId ?? 'n/a')}`,
+    `Validation stdout: ${String(item.lastValidationStdout ?? 'n/a')}`,
+    `Validation stderr: ${String(item.lastValidationStderr ?? 'n/a')}`,
+    `Validate command: ${String(item.validateCommand ?? 'n/a')}`,
+    `Iterations: ${String(item.iterations ?? 'n/a')}`,
+    `Status: ${String(item.ok ?? 'n/a')}`,
+  ].join('\n');
+}
+
+export function formatHarnessPlanView(item: Record<string, unknown>): string {
+  return [
+    `Run ID: ${String(item.runId ?? 'n/a')}`,
+    `Approval: ${String(item.approvalStatus ?? 'n/a')}`,
+    `Validate command: ${String(item.validateCommand ?? 'n/a')}`,
+    '',
+    String(item.planText ?? 'n/a'),
+  ].join('\n');
+}
+
 export function formatCodingHarnessResult(result: CodingHarnessResult): string {
   return [
     `Status: ${result.ok ? 'ok' : 'failed'}`,

@@ -240,6 +240,9 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 - `rocketclaw2 harness-list --kind run --ok false`
 - `rocketclaw2 harness-list --summary`
 - `rocketclaw2 harness-show --id <run-id>`
+- `rocketclaw2 harness-show --id <run-id> --guidance`
+- `rocketclaw2 harness-show --id <run-id> --validation`
+- `rocketclaw2 harness-show --id <run-id> --plan`
 - `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>" --request-approval` — generate a reviewable plan and optionally enqueue approval
 - `rocketclaw2 harness-approve --id <plan-id>` — mark a saved plan as approved
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan` — execute a reviewed and approved plan artifact

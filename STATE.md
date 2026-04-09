@@ -158,3 +158,4 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Harness plans now carry explicit approval state (`draft` or `approved`), and operators can enforce approval before execution.
 - Harness plan approvals can now be linked into the shared approval queue for unified operator review.
 - Harness artifact inspection now supports filtering by artifact kind, approval state, and success/failure posture, plus compact summaries.
+- `harness-show` now supports focused plan, guidance, and validation views instead of only raw artifact JSON.

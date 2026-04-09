@@ -37,7 +37,7 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
-import { formatCodingHarnessResult, formatHarnessPlan, formatValidationResult } from './harness/formatters.js';
+import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
@@ -502,16 +502,31 @@ program
   .command('harness-show')
   .description('Show a persisted autonomous harness run artifact')
   .requiredOption('--id <id>', 'harness run id')
+  .option('--plan', 'show only plan-specific view')
+  .option('--guidance', 'show only latest guidance text')
+  .option('--validation', 'show only latest validation fields')
   .option('--full', 'show full artifact including guidance')
   .action(async (options) => {
     const run = await loadHarnessRun(options.id);
     if (!run) {
       throw new Error(`Harness run not found: ${options.id}`);
     }
+    if (options.plan) {
+      console.log(formatHarnessPlanView(run));
+      return;
+    }
+    if (options.guidance) {
+      console.log(formatHarnessGuidanceView(run));
+      return;
+    }
+    if (options.validation) {
+      console.log(formatHarnessValidationView(run));
+      return;
+    }
     if (options.full) {
       console.log(JSON.stringify(run, null, 2));
     } else {
-      const { lastGuidance, ...summary } = run as any;
+      const { lastGuidance, planText, ...summary } = run as any;
       console.log(JSON.stringify(summary, null, 2));
     }
   });

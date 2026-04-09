@@ -25,7 +25,7 @@ import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
 import { createApprovalRequest, loadApprovals, resolveApprovalRequest } from './approval/store.js';
-import { formatApprovals, formatApprovalSummary } from './approval/formatters.js';
+import { formatApprovals, formatApprovalSummary, formatPendingApprovalActions } from './approval/formatters.js';
 import { approveAndDescribeNextStep } from './approval/runtime.js';
 import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
 import { formatRalphLoopResult } from './loops/ralph-formatters.js';
@@ -428,6 +428,15 @@ program
   .action(async (options) => {
     const item = await createApprovalRequest({ kind: options.kind, target: options.target, detail: options.detail });
     console.log(JSON.stringify(item, null, 2));
+  });
+
+
+program
+  .command('approval-pending')
+  .description('Show only actionable pending approvals with next-step hints')
+  .action(async () => {
+    const items = await loadApprovals();
+    console.log(formatPendingApprovalActions(items));
   });
 
 program

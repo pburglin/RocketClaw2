@@ -461,3 +461,7 @@ RocketClaw2 now includes a helper command for approving a request and immediatel
 
 
 Approval queue views now include next-step hints so operators can see what to do next without leaving the list view.
+
+- `rocketclaw2 approval-pending`
+
+The pending approval view is optimized for actionability and shows only items that still need operator attention.

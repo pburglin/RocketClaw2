@@ -27,3 +27,11 @@ export function formatApprovalSummary(items: ApprovalRequest[]): string {
     pendingHints ? `Pending next steps:\n${pendingHints}` : 'Pending next steps: n/a',
   ].join('\n');
 }
+
+export function formatPendingApprovalActions(items: ApprovalRequest[]): string {
+  const pending = items.filter((item) => item.status === 'pending');
+  if (pending.length === 0) return 'No pending approvals.';
+  return pending
+    .map((item) => `- ${item.id} | ${item.kind} | ${item.target} | ${describeApprovalNextStep(item)}`)
+    .join('\n');
+}

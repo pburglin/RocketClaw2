@@ -430,3 +430,16 @@ RocketClaw2 now includes a Ralph loop command for repeating work until a success
 
 
 Ralph loop now includes validation-oriented presets and a readable summary view, which makes it more useful for day-to-day development loops.
+
+
+## Approval workflow
+
+RocketClaw2 now includes a persistent approval request workflow.
+
+### Current commands
+- `rocketclaw2 approval-create --kind message-send --target whatsapp --detail "Send daily report"`
+- `rocketclaw2 approval-list`
+- `rocketclaw2 approval-list --status pending`
+- `rocketclaw2 approval-resolve --id <approval-id> --status approved`
+
+This creates the foundation for richer human-in-the-loop workflows across tool execution and messaging.

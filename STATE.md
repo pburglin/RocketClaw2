@@ -89,3 +89,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Ralph loop support now exists for repeating a command until an explicit success condition is met.
 
 - Ralph loop now supports validation-oriented presets and human-readable result summaries.
+
+- RocketClaw2 now includes a persistent approval request workflow with list and resolve operations.

@@ -76,3 +76,5 @@
 - Add Ralph loop support so RocketClaw2 can repeat work until validation or a user-provided condition succeeds.
 
 - Add validation-oriented Ralph loop presets and better loop result summaries.
+
+- Add a persistent approval request workflow for richer human-in-the-loop execution paths.

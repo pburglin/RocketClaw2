@@ -121,3 +121,10 @@ node dist/cli.js chat --session-id <session-id>
 
 - `rocketclaw2 ralph-loop --preset validate --max-iterations 5`
 - `rocketclaw2 ralph-loop --preset build --max-iterations 5`
+
+## Approval workflow
+
+- `rocketclaw2 approval-create --kind message-send --target whatsapp --detail "Send daily report"`
+- `rocketclaw2 approval-list`
+- `rocketclaw2 approval-list --status pending`
+- `rocketclaw2 approval-resolve --id <approval-id> --status approved`

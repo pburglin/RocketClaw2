@@ -24,6 +24,8 @@ import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
+import { createApprovalRequest, loadApprovals, resolveApprovalRequest } from './approval/store.js';
+import { formatApprovals } from './approval/formatters.js';
 import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
 import { formatRalphLoopResult } from './loops/ralph-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
@@ -413,6 +415,39 @@ program
       console.warn('[YOLO WARNING] Yolo mode is enabled. RocketClaw2 will auto-approve guarded actions that normally require confirmation.');
     }
     console.log(JSON.stringify(next, null, 2));
+  });
+
+
+program
+  .command('approval-create')
+  .description('Create a persistent approval request')
+  .requiredOption('--kind <kind>', 'tool-write|message-send')
+  .requiredOption('--target <target>', 'target tool or channel')
+  .requiredOption('--detail <detail>', 'approval detail')
+  .action(async (options) => {
+    const item = await createApprovalRequest({ kind: options.kind, target: options.target, detail: options.detail });
+    console.log(JSON.stringify(item, null, 2));
+  });
+
+program
+  .command('approval-list')
+  .description('List approval requests')
+  .option('--status <status>', 'pending|approved|rejected')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    let items = await loadApprovals();
+    if (options.status) items = items.filter((item) => item.status === options.status);
+    console.log(options.json ? JSON.stringify(items, null, 2) : formatApprovals(items));
+  });
+
+program
+  .command('approval-resolve')
+  .description('Resolve an approval request')
+  .requiredOption('--id <id>', 'approval request id')
+  .requiredOption('--status <status>', 'approved|rejected')
+  .action(async (options) => {
+    const item = await resolveApprovalRequest(options.id, options.status);
+    console.log(JSON.stringify(item, null, 2));
   });
 
 program

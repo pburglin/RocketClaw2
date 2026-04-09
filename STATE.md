@@ -87,3 +87,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a governed messaging execution flow (`message-run`) with approval-aware behavior.
 
 - Ralph loop support now exists for repeating a command until an explicit success condition is met.
+
+- Ralph loop now supports validation-oriented presets and human-readable result summaries.

@@ -419,10 +419,14 @@ This path models approval-aware messaging behavior explicitly and respects yolo 
 RocketClaw2 now includes a Ralph loop command for repeating work until a success condition is met.
 
 ### Current command
-- `rocketclaw2 ralph-loop --command "npm test" --until exit-0 --max-iterations 5`
+- `rocketclaw2 ralph-loop --preset validate --max-iterations 5`
+- `rocketclaw2 ralph-loop --preset build --max-iterations 5`
 - `rocketclaw2 ralph-loop --command "node script.js" --until stdout-includes --match-text "DONE" --max-iterations 10`
 
 ### Intended use
 - keep working until validation passes
 - keep retrying a task until output indicates success
 - support user-provided stop conditions for iterative development loops
+
+
+Ralph loop now includes validation-oriented presets and a readable summary view, which makes it more useful for day-to-day development loops.

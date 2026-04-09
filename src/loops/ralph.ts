@@ -1,3 +1,10 @@
+export function resolveRalphPreset(preset: string | undefined): { command?: string; until?: 'exit-0' | 'stdout-includes'; matchText?: string } {
+  if (!preset) return {};
+  if (preset === 'validate') return { command: 'npm test', until: 'exit-0' };
+  if (preset === 'build') return { command: 'npm run build', until: 'exit-0' };
+  return {};
+}
+
 import { exec as execCb } from 'node:child_process';
 import { promisify } from 'node:util';
 

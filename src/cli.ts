@@ -24,7 +24,8 @@ import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
-import { runRalphLoop } from './loops/ralph.js';
+import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
+import { formatRalphLoopResult } from './loops/ralph-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
 import { buildSystemSummary, formatSystemSummary } from './config/system-summary.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
@@ -284,18 +285,27 @@ program
 program
   .command('ralph-loop')
   .description('Repeat a command until a user-provided success condition is met')
-  .requiredOption('--command <cmd>', 'shell command to execute')
-  .requiredOption('--until <condition>', 'exit-0|stdout-includes')
+  .option('--preset <name>', 'validate|build')
+  .option('--command <cmd>', 'shell command to execute')
+  .option('--until <condition>', 'exit-0|stdout-includes')
   .option('--match-text <text>', 'required when using stdout-includes')
   .option('--max-iterations <n>', 'maximum loop iterations', '5')
+  .option('--json', 'output raw JSON')
   .action(async (options) => {
+    const preset = resolveRalphPreset(options.preset);
+    const command = options.command || preset.command;
+    const until = options.until || preset.until;
+    const matchText = options.matchText || preset.matchText;
+    if (!command || !until) {
+      throw new Error('Provide either a preset or both --command and --until');
+    }
     const result = await runRalphLoop({
-      command: options.command,
-      until: options.until,
-      matchText: options.matchText,
+      command,
+      until,
+      matchText,
       maxIterations: Number(options.maxIterations),
     });
-    console.log(JSON.stringify(result, null, 2));
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatRalphLoopResult(result));
     if (!result.ok) process.exitCode = 1;
   });
 

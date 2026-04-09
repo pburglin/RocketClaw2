@@ -131,3 +131,8 @@ node dist/cli.js chat --session-id <session-id>
 
 
 Note: approval requests may now be created automatically when governed execution is attempted without required approval.
+
+## Approval inspection
+
+- `rocketclaw2 approval-list --status pending --kind message-send`
+- `rocketclaw2 approval-list --summary`

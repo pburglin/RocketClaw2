@@ -6,3 +6,15 @@ export function formatApprovals(items: ApprovalRequest[]): string {
     .map((item) => `${item.id} | ${item.kind} | ${item.target} | ${item.status} | ${item.detail}`)
     .join('\n');
 }
+
+export function formatApprovalSummary(items: ApprovalRequest[]): string {
+  const pending = items.filter((item) => item.status === 'pending').length;
+  const approved = items.filter((item) => item.status === 'approved').length;
+  const rejected = items.filter((item) => item.status === 'rejected').length;
+  return [
+    `Total approvals: ${items.length}`,
+    `Pending: ${pending}`,
+    `Approved: ${approved}`,
+    `Rejected: ${rejected}`,
+  ].join('\n');
+}

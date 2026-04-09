@@ -93,3 +93,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a persistent approval request workflow with list and resolve operations.
 
 - Governed tool and messaging flows can now auto-create approval requests when approval is missing.
+
+- Approval inspection now supports filtering by kind and summary output for operator workflows.

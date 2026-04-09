@@ -80,3 +80,5 @@
 - Add a persistent approval request workflow for richer human-in-the-loop execution paths.
 
 - Auto-create approval requests from governed runtime flows when approval is required but not supplied.
+
+- Improve approval queue inspection with filters and aggregate summaries.

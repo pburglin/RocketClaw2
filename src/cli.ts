@@ -25,7 +25,7 @@ import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
 import { createApprovalRequest, loadApprovals, resolveApprovalRequest } from './approval/store.js';
-import { formatApprovals } from './approval/formatters.js';
+import { formatApprovals, formatApprovalSummary } from './approval/formatters.js';
 import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
 import { formatRalphLoopResult } from './loops/ralph-formatters.js';
 import { configureYolo } from './config/yolo-config.js';
@@ -433,11 +433,18 @@ program
   .command('approval-list')
   .description('List approval requests')
   .option('--status <status>', 'pending|approved|rejected')
+  .option('--kind <kind>', 'tool-write|message-send')
   .option('--json', 'output raw JSON')
+  .option('--summary', 'show aggregate summary')
   .action(async (options) => {
     let items = await loadApprovals();
     if (options.status) items = items.filter((item) => item.status === options.status);
-    console.log(options.json ? JSON.stringify(items, null, 2) : formatApprovals(items));
+    if (options.kind) items = items.filter((item) => item.kind === options.kind);
+    if (options.json) {
+      console.log(JSON.stringify(items, null, 2));
+      return;
+    }
+    console.log(options.summary ? formatApprovalSummary(items) : formatApprovals(items));
   });
 
 program

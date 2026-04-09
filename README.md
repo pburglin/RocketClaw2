@@ -440,9 +440,14 @@ RocketClaw2 now includes a persistent approval request workflow.
 - `rocketclaw2 approval-create --kind message-send --target whatsapp --detail "Send daily report"`
 - `rocketclaw2 approval-list`
 - `rocketclaw2 approval-list --status pending`
+- `rocketclaw2 approval-list --status pending --kind message-send`
+- `rocketclaw2 approval-list --summary`
 - `rocketclaw2 approval-resolve --id <approval-id> --status approved`
 
 This creates the foundation for richer human-in-the-loop workflows across tool execution and messaging.
 
 
 Approval requests can now be created automatically by governed tool or messaging execution when an action needs approval and none was supplied.
+
+
+Approval inspection now supports filtering by kind and aggregate summaries for faster human-in-the-loop review.

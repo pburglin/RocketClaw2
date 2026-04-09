@@ -21,6 +21,7 @@ import { createDefaultChannelRegistry } from './messaging/index.js';
 import { configureWhatsApp } from './messaging/whatsapp-config.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
+import { configureYolo } from './config/yolo-config.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
@@ -306,6 +307,28 @@ program
     console.log(options.json ? JSON.stringify(tools, null, 2) : formatToolPolicies(tools));
   });
 
+
+
+program
+  .command('yolo-config')
+  .description('Inspect or update yolo mode configuration')
+  .option('--enabled <value>', 'true|false')
+  .option('--warn <value>', 'true|false')
+  .action(async (options) => {
+    if (!options.enabled && !options.warn) {
+      const config = await loadAppConfig();
+      console.log(JSON.stringify(config.yolo, null, 2));
+      return;
+    }
+    const next = await configureYolo({
+      ...(options.enabled ? { enabled: options.enabled === 'true' } : {}),
+      ...(options.warn ? { warn: options.warn === 'true' } : {}),
+    });
+    if (next.enabled) {
+      console.warn('[YOLO WARNING] Yolo mode is enabled. RocketClaw2 will auto-approve guarded actions that normally require confirmation.');
+    }
+    console.log(JSON.stringify(next, null, 2));
+  });
 
 program
   .command('tool-run')

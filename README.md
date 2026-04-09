@@ -358,3 +358,17 @@ This currently simulates execution, but it already enforces configured policy an
 
 
 Recall inspection now supports filtered and summarized operator views in addition to raw JSON.
+
+
+## Yolo mode
+
+RocketClaw2 now supports an explicit **yolo mode** that auto-approves actions which would normally require approval.
+
+### Current command
+- `rocketclaw2 yolo-config`
+- `rocketclaw2 yolo-config --enabled true --warn true`
+
+### Safety notes
+- yolo mode is intentionally risky
+- RocketClaw2 logs warnings when yolo mode is enabled or used to bypass approval
+- this mode should only be enabled by a user who understands and accepts the risks

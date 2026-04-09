@@ -85,3 +85,8 @@ node dist/cli.js chat --session-id <session-id>
 - `rocketclaw2 recall --query "alpha"`
 - `rocketclaw2 recall --query "alpha" --kind semantic`
 - `rocketclaw2 recall --query "alpha" --summary`
+
+## Yolo mode
+
+- `rocketclaw2 yolo-config`
+- `rocketclaw2 yolo-config --enabled true --warn true`

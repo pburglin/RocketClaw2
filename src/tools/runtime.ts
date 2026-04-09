@@ -25,7 +25,13 @@ export function runToolWithPolicy(config: AppConfig, request: ToolExecutionReque
   const policy = getToolPolicy(config, request.toolId);
 
   if (request.action === 'write' && tool.requiresApprovalForWrite && !request.approved) {
-    throw new Error(`Tool ${request.toolId} requires explicit approval for write execution`);
+    if (config.yolo.enabled) {
+      if (config.yolo.warn) {
+        console.warn(`[YOLO WARNING] Auto-approving write execution for ${request.toolId}. This bypasses normal approval safeguards.`);
+      }
+    } else {
+      throw new Error(`Tool ${request.toolId} requires explicit approval for write execution`);
+    }
   }
 
   return {

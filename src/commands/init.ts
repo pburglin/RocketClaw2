@@ -27,6 +27,10 @@ export async function runInit(profile: string): Promise<void> {
         mode: 'mock',
       },
     },
+    yolo: {
+      enabled: false,
+      warn: true,
+    },
     tools: buildDefaultToolPolicies(),
     recallScoring: loadConfig({}).recallScoring,
   };

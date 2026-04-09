@@ -75,3 +75,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a governed tool execution flow (`tool-run`) that enforces policy and approval requirements.
 
 - Recall inspection now supports filtered and summarized operator views for terminal workflows.
+
+- Yolo mode now exists as an explicit risky override mode with warning logs and auto-approval behavior.

@@ -145,3 +145,4 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Autonomous harness runs now write persistent artifacts for later inspection.
 
 - RocketClaw2 now includes list/show commands for persisted autonomous harness runs.
+- `harness-validate` now re-applies code blocks from a saved artifact and re-runs validation for offline re-verification.

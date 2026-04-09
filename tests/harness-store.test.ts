@@ -15,6 +15,7 @@ describe('saveHarnessRun', () => {
       lastGuidance: 'do the thing',
       lastValidationStdout: 'ok',
       lastValidationStderr: '',
+      validateCommand: 'echo done',
     }, root);
     const raw = await fs.readFile(saved.path, 'utf8');
     expect(raw).toContain('demo task');

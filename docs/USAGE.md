@@ -236,7 +236,7 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-show --id <run-id>`
-
+- `rocketclaw2 harness-validate --id <run-id>` — re-apply saved code blocks and re-run the validate command
 
 ## Autonomous coding harness
 

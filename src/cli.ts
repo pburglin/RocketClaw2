@@ -36,8 +36,8 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
-import { runCodingHarness } from './harness/coding-harness.js';
-import { formatCodingHarnessResult } from './harness/formatters.js';
+import { replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
+import { formatCodingHarnessResult, formatValidationResult } from './harness/formatters.js';
 import { loadHarnessRun, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
@@ -490,6 +490,17 @@ program
       throw new Error(`Harness run not found: ${options.id}`);
     }
     console.log(JSON.stringify(run, null, 2));
+  });
+
+program
+  .command('harness-validate')
+  .description('Re-apply code blocks from a harness run artifact and re-run its validation command')
+  .requiredOption('--id <id>', 'harness run id')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const result = await replayHarnessValidation(options.id);
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatValidationResult(result));
+    if (!result.passed) process.exitCode = 1;
   });
 
 program

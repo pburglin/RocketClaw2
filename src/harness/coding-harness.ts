@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { AppConfig } from '../config/load-config.js';
 import { runLlmQuery } from '../llm/client.js';
+import { loadHarnessRun } from './store.js';
+import { getDefaultProjectRoot } from '../config/app-paths.js';
 
 const exec = promisify(execCb);
 
@@ -15,6 +17,7 @@ export type CodingHarnessResult = {
   lastGuidance: string;
   lastValidationStdout: string;
   lastValidationStderr: string;
+  validateCommand: string;
   runId?: string;
   artifactPath?: string;
 };
@@ -65,6 +68,66 @@ async function initWorkspace(workspace: string): Promise<void> {
   }
 }
 
+export type ValidationResult = {
+  runId: string;
+  workspace: string;
+  task: string;
+  passed: boolean;
+  stdout: string;
+  stderr: string;
+  codeBlocksApplied: number;
+  error?: string;
+};
+
+export async function replayHarnessValidation(
+  runId: string,
+  root = getDefaultProjectRoot(),
+): Promise<ValidationResult> {
+  const run = await loadHarnessRun(runId, root);
+  if (!run) {
+    return { runId, workspace: '', task: '', passed: false, stdout: '', stderr: '', codeBlocksApplied: 0, error: `Run not found: ${runId}` };
+  }
+
+  const r = run as Record<string, unknown>;
+  const workspace = String(r.workspace ?? '');
+  const task = String(r.task ?? '');
+
+  // Re-apply code blocks from the last guidance
+  const guidance = String(r.lastGuidance ?? '');
+  const edits = extractCodeBlocks(guidance);
+  for (const edit of edits) {
+    const filePath = path.isAbsolute(edit.filePath)
+      ? edit.filePath
+      : path.join(workspace, edit.filePath);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, edit.content, 'utf8');
+  }
+
+  // Re-run the last validation command (stored in artifact or reconstructed)
+  const lastValidateCmd = String(r.validateCommand ?? r._validateCommand ?? '');
+  let passed = false;
+  let stdout = '';
+  let stderr = '';
+
+  if (lastValidateCmd) {
+    try {
+      const result = await exec(lastValidateCmd, { cwd: workspace });
+      passed = true;
+      stdout = result.stdout.trim();
+      stderr = result.stderr.trim();
+    } catch (error) {
+      const err = error as { stdout?: string; stderr?: string; message?: string };
+      stdout = (err.stdout ?? '').trim();
+      stderr = (err.stderr ?? err.message ?? '').trim();
+    }
+  } else {
+    // Fallback: run the harness again with a single iteration to get fresh validation
+    stderr = 'No validateCommand stored in artifact; cannot re-validate without it.';
+  }
+
+  return { runId, workspace, task, passed, stdout, stderr, codeBlocksApplied: edits.length };
+}
+
 export async function runCodingHarness(
   config: AppConfig,
   input: { workspace: string; task: string; validateCommand: string; maxIterations: number },
@@ -113,6 +176,7 @@ export async function runCodingHarness(
         lastGuidance,
         lastValidationStdout,
         lastValidationStderr,
+        validateCommand: input.validateCommand,
       };
     } catch (error) {
       const err = error as { stdout?: string; stderr?: string; message?: string };
@@ -129,5 +193,6 @@ export async function runCodingHarness(
     lastGuidance,
     lastValidationStdout,
     lastValidationStderr,
+    validateCommand: input.validateCommand,
   };
 }

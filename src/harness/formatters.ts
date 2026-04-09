@@ -1,4 +1,20 @@
-import type { CodingHarnessResult } from './coding-harness.js';
+import type { CodingHarnessResult, ValidationResult } from './coding-harness.js';
+
+export function formatValidationResult(r: ValidationResult): string {
+  const status = r.passed ? 'PASSED' : 'FAILED';
+  const lines = [
+    `Harness Validate | ${status}`,
+    `Run:   ${r.runId}`,
+    `Files: ${r.codeBlocksApplied} code block(s) applied to ${r.workspace}`,
+  ];
+  if (r.error) {
+    lines.push(`Error: ${r.error}`);
+  } else {
+    lines.push(`stdout: ${r.stdout || '(empty)'}`);
+    lines.push(`stderr: ${r.stderr || '(empty)'}`);
+  }
+  return lines.join('\n');
+}
 
 export function formatCodingHarnessResult(result: CodingHarnessResult): string {
   return [
@@ -9,6 +25,7 @@ export function formatCodingHarnessResult(result: CodingHarnessResult): string {
     `Last guidance: ${result.lastGuidance || 'n/a'}`,
     `Last validation stdout: ${result.lastValidationStdout || 'n/a'}`,
     `Last validation stderr: ${result.lastValidationStderr || 'n/a'}`,
+    `Validate command: ${result.validateCommand || 'n/a'}`,
     `Run ID: ${result.runId || 'n/a'}`,
     `Artifact: ${result.artifactPath || 'n/a'}`,
   ].join('\n');

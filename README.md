@@ -544,3 +544,6 @@ RocketClaw2 now includes a real LLM query command.
 
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
 - `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "custom-model" llm-query --prompt "Say hello"`
+
+
+LLM query failures now produce friendlier diagnostics for common provider/auth/config mistakes instead of only raw error text.

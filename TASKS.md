@@ -108,3 +108,5 @@
 - Improve setup wizard with interactive questions for LLM and messaging access details.
 
 - Add a real LLM query command using configured or session-overridden LLM access details.
+
+- Improve llm-query failure diagnostics for auth, endpoint, and model mismatch cases.

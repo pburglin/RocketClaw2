@@ -124,3 +124,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Setup wizard now supports interactive questions for LLM and messaging access details, and config writing now explains where to place llm.apiKey.
 
 - RocketClaw2 now includes a real LLM query command that uses configured or session-overridden LLM settings.
+
+- llm-query now returns friendlier diagnostics for common auth/provider/config failures.

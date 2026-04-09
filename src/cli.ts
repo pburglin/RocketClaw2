@@ -675,8 +675,13 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
     });
-    const response = await runLlmQuery(config, options.prompt);
-    console.log(response);
+    try {
+      const response = await runLlmQuery(config, options.prompt);
+      console.log(response);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    }
   });
 
 program

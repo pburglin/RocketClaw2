@@ -1,4 +1,5 @@
 import type { AppConfig } from '../config/load-config.js';
+import { explainLlmError } from './errors.js';
 
 export async function runLlmQuery(config: AppConfig, prompt: string): Promise<string> {
   if (!config.llm.apiKey) {
@@ -20,7 +21,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string): Promise<st
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`LLM query failed: ${response.status} ${text}`);
+    throw new Error(explainLlmError(response.status, text));
   }
 
   const payload = (await response.json()) as {

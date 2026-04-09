@@ -38,7 +38,7 @@ import { formatRecommendedNextActions, getRecommendedNextActions } from './core/
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessPlan, formatValidationResult } from './harness/formatters.js';
-import { loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
+import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
@@ -536,9 +536,20 @@ program
   });
 
 program
+  .command('harness-approve')
+  .description('Approve a saved harness plan artifact for execution')
+  .requiredOption('--id <run-id>', 'saved plan id to approve')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const result = await approveHarnessPlan(options.id);
+    console.log(options.json ? JSON.stringify(result, null, 2) : `Approved harness plan: ${options.id}`);
+  });
+
+program
   .command('harness-run')
   .description('Run an autonomous coding harness loop for a workspace task until validation passes or iterations are exhausted')
   .option('--id <run-id>', 'saved plan id to execute')
+  .option('--require-approved-plan', 'when using --id, require the saved plan to be approved before execution')
   .option('--workspace <path>', 'target workspace path')
   .option('--task <text>', 'task description')
   .option('--validate <cmd>', 'validation command to run in the workspace')
@@ -557,6 +568,9 @@ program
       : null;
     if (options.id && !resolved) {
       throw new Error(`Runnable harness artifact not found or incomplete: ${options.id}`);
+    }
+    if (options.id && options.requireApprovedPlan && resolved?.approvalStatus !== 'approved') {
+      throw new Error(`Harness plan ${options.id} is not approved. Run harness-approve --id ${options.id} first.`);
     }
     const workspace = resolved?.workspace ?? options.workspace;
     const task = resolved?.task ?? options.task;

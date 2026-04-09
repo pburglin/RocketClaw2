@@ -10,6 +10,7 @@ describe('loadHarnessRunnableInput', () => {
     const saved = await saveHarnessRun({
       kind: 'plan',
       ok: true,
+      approvalStatus: 'draft',
       workspace: '/tmp/demo',
       task: 'ship feature',
       validateCommand: 'npm test',
@@ -17,7 +18,7 @@ describe('loadHarnessRunnableInput', () => {
     }, root);
 
     const result = await loadHarnessRunnableInput(saved.runId, root);
-    expect(result).toEqual({ workspace: '/tmp/demo', task: 'ship feature', validateCommand: 'npm test' });
+    expect(result).toEqual({ workspace: '/tmp/demo', task: 'ship feature', validateCommand: 'npm test', approvalStatus: 'draft' });
     await fs.rm(root, { recursive: true, force: true });
   });
 
@@ -26,6 +27,7 @@ describe('loadHarnessRunnableInput', () => {
     const saved = await saveHarnessRun({
       kind: 'plan',
       ok: true,
+      approvalStatus: 'draft',
       workspace: '',
       task: 'ship feature',
       validateCommand: 'npm test',

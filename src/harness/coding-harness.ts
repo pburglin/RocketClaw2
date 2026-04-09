@@ -108,6 +108,8 @@ export type ValidationResult = {
 export type HarnessPlan = {
   kind: 'plan';
   ok: true;
+  approvalStatus: 'draft' | 'approved';
+  approvedAt?: string;
   workspace: string;
   task: string;
   validateCommand: string;
@@ -162,6 +164,7 @@ export async function buildHarnessPlan(
   return {
     kind: 'plan',
     ok: true,
+    approvalStatus: 'draft',
     workspace: input.workspace,
     task: input.task,
     validateCommand: input.validateCommand,

@@ -21,6 +21,7 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
     'Harness Plan | READY FOR REVIEW',
     `Workspace: ${plan.workspace}`,
     `Task: ${plan.task}`,
+    `Approval: ${plan.approvalStatus}${plan.approvedAt ? ` (${plan.approvedAt})` : ''}`,
     `Validate command: ${plan.validateCommand}`,
     `Run ID: ${plan.runId || 'n/a'}`,
     `Artifact: ${plan.artifactPath || 'n/a'}`,

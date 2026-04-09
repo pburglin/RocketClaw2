@@ -10,6 +10,7 @@ describe('harness plan storage', () => {
     const saved = await saveHarnessRun({
       kind: 'plan',
       ok: true,
+      approvalStatus: 'draft',
       workspace: '/tmp/demo',
       task: 'review before write',
       validateCommand: 'npm test',
@@ -20,6 +21,7 @@ describe('harness plan storage', () => {
     expect(raw).toContain('"kind": "plan"');
     const loaded = await loadHarnessRun(saved.runId, root);
     expect(loaded?.kind).toBe('plan');
+    expect(loaded?.approvalStatus).toBe('draft');
     await fs.rm(root, { recursive: true, force: true });
   });
 });

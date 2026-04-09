@@ -45,12 +45,33 @@ export async function loadHarnessRun(runId: string, root = getDefaultProjectRoot
 export async function loadHarnessRunnableInput(
   runId: string,
   root = getDefaultProjectRoot(),
-): Promise<{ workspace: string; task: string; validateCommand: string } | null> {
+): Promise<{ workspace: string; task: string; validateCommand: string; approvalStatus?: string } | null> {
   const run = await loadHarnessRun(runId, root);
   if (!run) return null;
   const workspace = String(run.workspace ?? '');
   const task = String(run.task ?? '');
   const validateCommand = String(run.validateCommand ?? '');
+  const approvalStatus = typeof run.approvalStatus === 'string' ? run.approvalStatus : undefined;
   if (!workspace || !task || !validateCommand) return null;
-  return { workspace, task, validateCommand };
+  return { workspace, task, validateCommand, approvalStatus };
+}
+
+export async function approveHarnessPlan(
+  runId: string,
+  root = getDefaultProjectRoot(),
+): Promise<Record<string, unknown>> {
+  const run = await loadHarnessRun(runId, root);
+  if (!run) {
+    throw new Error(`Harness artifact not found: ${runId}`);
+  }
+  if (run.kind !== 'plan') {
+    throw new Error(`Harness artifact is not a plan: ${runId}`);
+  }
+  const updated = {
+    ...run,
+    approvalStatus: 'approved',
+    approvedAt: new Date().toISOString(),
+  };
+  await saveHarnessRun(updated as HarnessPlan, root, runId);
+  return updated;
 }

@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { getDefaultProjectRoot, getHarnessRunsDir } from '../config/app-paths.js';
 import type { CodingHarnessResult, HarnessPlan } from './coding-harness.js';
 import { resolveApprovalRequest } from '../approval/store.js';
+import { loadIterationEntries } from './iteration-store.js';
 
 export async function saveHarnessRun(
   result: CodingHarnessResult | HarnessPlan,
@@ -60,7 +61,7 @@ export async function loadHarnessRunnableInput(
 export async function buildHarnessChain(
   artifactId: string,
   root = getDefaultProjectRoot(),
-): Promise<{ root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[] }> {
+): Promise<{ root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string }> }> {
   const rootArtifact = await loadHarnessRun(artifactId, root);
   if (!rootArtifact) {
     throw new Error(`Harness artifact not found: ${artifactId}`);
@@ -85,7 +86,22 @@ export async function buildHarnessChain(
     }
   }
 
-  return { root: rootArtifact, plan, resumes };
+  const nodes = [rootArtifact, ...resumes];
+  const nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string }> = {};
+  for (const node of nodes) {
+    const runId = String(node.runId ?? '');
+    if (!runId) continue;
+    const entries = await loadIterationEntries(runId, root);
+    const latest = entries.length > 0 ? entries[entries.length - 1]! : null;
+    nodeSummaries[runId] = {
+      iterations: entries.length,
+      latestPassed: latest ? latest.validationPassed : null,
+      latestStdout: latest?.validationStdout ?? '',
+      latestStderr: latest?.validationStderr ?? '',
+    };
+  }
+
+  return { root: rootArtifact, plan, resumes, nodeSummaries };
 }
 
 export async function approveHarnessPlan(

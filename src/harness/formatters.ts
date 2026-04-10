@@ -53,16 +53,24 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
   ].join('\n');
 }
 
-export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[] }): string {
+export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string }> }): string {
   const root = chain.root;
+  const rootSummary = chain.nodeSummaries[String(root.runId ?? '')];
+  const resumeLines = chain.resumes.length > 0
+    ? chain.resumes.map((item) => {
+        const runId = String(item.runId);
+        const summary = chain.nodeSummaries[runId];
+        return `- ${runId}${item.resumedFrom ? ` <= ${String(item.resumedFrom)}` : ''} | iterations=${summary?.iterations ?? 0} | latestPassed=${summary?.latestPassed ?? 'n/a'}`;
+      }).join('\n')
+    : 'n/a';
   return [
     `Root: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
     `Task: ${String(root.task ?? 'n/a')}`,
     `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    `Root iterations: ${rootSummary?.iterations ?? 0}`,
+    `Root latest passed: ${rootSummary?.latestPassed ?? 'n/a'}`,
     `Resumes: ${chain.resumes.length}`,
-    chain.resumes.length > 0
-      ? `Resume ids: ${chain.resumes.map((item) => `${String(item.runId)}${item.resumedFrom ? `<=${String(item.resumedFrom)}` : ''}`).join(', ')}`
-      : 'Resume ids: n/a',
+    `Resume chain:\n${resumeLines}`,
     `Next: ${describeHarnessNextStep(root)}`,
   ].join('\n');
 }

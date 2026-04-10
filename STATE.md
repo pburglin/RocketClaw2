@@ -162,6 +162,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Operators can now inspect full step-by-step loop history with `harness-iterations --id <run-id>`.
 - Iteration inspection now supports latest-only, failed-only, and per-iteration filtering for long harness runs.
 - Iteration inspection can now optionally include stored guidance text, keeping default output compact while preserving detailed step context on demand.
+- Harness artifacts now expose recommended operator next steps directly in list and focused views, including approve, run, resume, and re-validate actions.
 
 - Full harness inspection now embeds per-iteration details directly in `harness-show --full` output.
 

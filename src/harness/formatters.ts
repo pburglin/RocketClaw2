@@ -1,6 +1,27 @@
 import type { CodingHarnessResult, HarnessPlan, ValidationResult } from './coding-harness.js';
 import type { IterationEntry } from './iteration-store.js';
 
+export function describeHarnessNextStep(item: Record<string, unknown>): string {
+  const runId = String(item.runId ?? '');
+  const kind = String(item.kind ?? 'run');
+  const approvalStatus = String(item.approvalStatus ?? 'n/a');
+  const ok = item.ok;
+
+  if (kind === 'plan') {
+    if (approvalStatus === 'draft') return `Approve plan: rocketclaw2 harness-approve --id ${runId}`;
+    if (approvalStatus === 'approved') return `Execute plan: rocketclaw2 harness-run --id ${runId} --require-approved-plan`;
+    return 'Review plan state before execution.';
+  }
+
+  if (ok === false) {
+    return `Inspect or resume: rocketclaw2 harness-iterations --id ${runId} && rocketclaw2 harness-resume --id ${runId}`;
+  }
+  if (ok === true) {
+    return `Re-validate if needed: rocketclaw2 harness-validate --id ${runId}`;
+  }
+  return 'Inspect artifact details to choose the next step.';
+}
+
 export function formatValidationResult(r: ValidationResult): string {
   const status = r.passed ? 'PASSED' : 'FAILED';
   const lines = [
@@ -26,6 +47,7 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
     `Validate command: ${plan.validateCommand}`,
     `Run ID: ${plan.runId || 'n/a'}`,
     `Artifact: ${plan.artifactPath || 'n/a'}`,
+    `Next: ${describeHarnessNextStep(plan as unknown as Record<string, unknown>)}`,
     '',
     plan.planText || 'n/a',
   ].join('\n');
@@ -47,6 +69,7 @@ export function formatHarnessValidationView(item: Record<string, unknown>): stri
     `Validate command: ${String(item.validateCommand ?? 'n/a')}`,
     `Iterations: ${String(item.iterations ?? 'n/a')}`,
     `Status: ${String(item.ok ?? 'n/a')}`,
+    `Next: ${describeHarnessNextStep(item)}`,
   ].join('\n');
 }
 
@@ -55,6 +78,7 @@ export function formatHarnessPlanView(item: Record<string, unknown>): string {
     `Run ID: ${String(item.runId ?? 'n/a')}`,
     `Approval: ${String(item.approvalStatus ?? 'n/a')}`,
     `Validate command: ${String(item.validateCommand ?? 'n/a')}`,
+    `Next: ${describeHarnessNextStep(item)}`,
     '',
     String(item.planText ?? 'n/a'),
   ].join('\n');
@@ -84,5 +108,6 @@ export function formatCodingHarnessResult(result: CodingHarnessResult): string {
     `Run ID: ${result.runId || 'n/a'}`,
     `Executed plan: ${result.executedPlanId || 'n/a'}`,
     `Artifact: ${result.artifactPath || 'n/a'}`,
+    `Next: ${describeHarnessNextStep(result as unknown as Record<string, unknown>)}`,
   ].join('\n');
 }

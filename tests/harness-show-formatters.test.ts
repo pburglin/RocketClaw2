@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatHarnessGuidanceView, formatHarnessPlanView, formatHarnessValidationView } from '../src/harness/formatters.js';
+import { describeHarnessNextStep, formatHarnessGuidanceView, formatHarnessPlanView, formatHarnessValidationView } from '../src/harness/formatters.js';
 
 describe('harness show formatters', () => {
   it('formats a guidance-only view', () => {
@@ -12,11 +12,18 @@ describe('harness show formatters', () => {
     const text = formatHarnessValidationView({ runId: 'run-2', lastValidationStdout: 'ok', lastValidationStderr: '', validateCommand: 'npm test', iterations: 2, ok: true });
     expect(text).toContain('Validation stdout: ok');
     expect(text).toContain('Validate command: npm test');
+    expect(text).toContain('Next: Re-validate if needed');
   });
 
   it('formats a plan-only view', () => {
-    const text = formatHarnessPlanView({ runId: 'plan-1', approvalStatus: 'draft', validateCommand: 'npm test', planText: 'Summary\n- do thing' });
+    const text = formatHarnessPlanView({ runId: 'plan-1', kind: 'plan', approvalStatus: 'draft', validateCommand: 'npm test', planText: 'Summary\n- do thing' });
     expect(text).toContain('Approval: draft');
+    expect(text).toContain('Next: Approve plan: rocketclaw2 harness-approve --id plan-1');
     expect(text).toContain('Summary');
+  });
+
+  it('describes next steps for failed runs and approved plans', () => {
+    expect(describeHarnessNextStep({ runId: 'run-1', ok: false })).toContain('harness-resume --id run-1');
+    expect(describeHarnessNextStep({ runId: 'plan-2', kind: 'plan', approvalStatus: 'approved' })).toContain('harness-run --id plan-2 --require-approved-plan');
   });
 });

@@ -605,6 +605,8 @@ RocketClaw2 now includes commands to inspect persisted autonomous harness runs.
 - `rocketclaw2 harness-list --kind plan --approval draft`
 - `rocketclaw2 harness-list --kind run --ok false`
 - `rocketclaw2 harness-list --summary`
+
+Harness list and show views now include a recommended **Next** action for draft plans, approved plans, successful runs, and failed runs.
 - `rocketclaw2 harness-show --id <run-id>`
 - `rocketclaw2 harness-show --id <run-id> --guidance`
 - `rocketclaw2 harness-show --id <run-id> --validation`

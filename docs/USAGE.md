@@ -388,3 +388,8 @@ This prevents long-running commands like `npm run dev` from hanging the CLI fore
 ## WhatsApp session profile
 
 Use `rocketclaw2 whatsapp-session` to inspect or manage the local persisted WhatsApp session profile used by RocketClaw2.
+
+
+## WhatsApp QR authorization
+
+RocketClaw2 includes `whatsapp-qr` for generating and authorizing a simple QR bootstrap token used for local session setup.

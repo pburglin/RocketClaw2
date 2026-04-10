@@ -79,6 +79,7 @@ flowchart TD
 ```bash
 npm install
 npm run build
+npm run verify:build
 npm test
 node dist/src/cli.js doctor
 node dist/src/cli.js run --profile default
@@ -728,3 +729,10 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 ### Simple local WhatsApp session profile
 
 RocketClaw2 now supports a persisted local WhatsApp session profile as a stepping stone toward fuller native integration. Use `whatsapp-session` to save, inspect, or clear a local token/session record.
+
+
+### WhatsApp QR bootstrap
+
+RocketClaw2 now includes a simple QR bootstrap flow for WhatsApp session authorization:
+- `rocketclaw2 whatsapp-qr` to generate a QR bootstrap token
+- `rocketclaw2 whatsapp-qr --authorize <token> --phone-number +15551234567` to persist the authorized session

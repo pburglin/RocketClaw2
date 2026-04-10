@@ -22,6 +22,7 @@ import { loadSemanticMemory } from './memory/semantic-store.js';
 import { createDefaultChannelRegistry } from './messaging/index.js';
 import { configureWhatsApp } from './messaging/whatsapp-config.js';
 import { clearWhatsAppSession, loadWhatsAppSession, saveWhatsAppSession } from './messaging/whatsapp-session.js';
+import { authorizeWhatsAppQrToken, createWhatsAppQrSession } from './messaging/whatsapp-qr.js';
 import { listWhatsAppInbound, startWhatsAppWebhookListener } from './messaging/whatsapp-listener.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
@@ -432,6 +433,22 @@ program
 
 
 
+
+
+program
+  .command('whatsapp-qr')
+  .description('Generate or authorize a simple WhatsApp QR bootstrap session')
+  .option('--authorize <token>', 'authorize a previously generated QR token')
+  .option('--phone-number <number>', 'phone number for the authorized WhatsApp session')
+  .action(async (options) => {
+    if (options.authorize) {
+      await authorizeWhatsAppQrToken({ qrToken: options.authorize, phoneNumber: options.phoneNumber });
+      console.log('Authorized WhatsApp QR session.');
+      return;
+    }
+    const qr = createWhatsAppQrSession();
+    console.log(JSON.stringify(qr, null, 2));
+  });
 
 program
   .command('whatsapp-session')

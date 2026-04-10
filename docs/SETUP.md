@@ -8,6 +8,7 @@
 ```bash
 npm install
 npm run build
+npm run verify:build
 npm test
 ```
 
@@ -78,6 +79,7 @@ recallScoring:
 npm run dev -- doctor
 npm run dev -- session-list
 npm run lint
+npm run verify:build
 npm test
 ```
 
@@ -154,3 +156,12 @@ RocketClaw2 now supports a persisted local WhatsApp session profile:
 - `rocketclaw2 whatsapp-session --clear`
 
 This is a simple bootstrap/session-storage step, not a full native WhatsApp protocol client yet.
+
+
+## WhatsApp QR bootstrap
+
+You can now use a simple QR bootstrap flow for WhatsApp session authorization:
+- Generate: `rocketclaw2 whatsapp-qr`
+- Authorize: `rocketclaw2 whatsapp-qr --authorize <token> --phone-number +15551234567`
+
+This is a lightweight bootstrap model that stores the authorized session locally.

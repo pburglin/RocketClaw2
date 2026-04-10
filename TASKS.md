@@ -158,3 +158,5 @@
 - Guard harness validation against long-running commands that would otherwise hang the CLI.
 
 - Add a simple persisted WhatsApp session/bootstrap model as a stepping stone toward fuller native integration.
+
+- Add QR-based WhatsApp authorization bootstrap for local session setup.

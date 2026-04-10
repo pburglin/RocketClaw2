@@ -193,3 +193,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Harness validation now uses a timeout by default, preventing long-running commands like dev servers from wedging the CLI indefinitely.
 
 - RocketClaw2 now includes a persisted local WhatsApp session profile model, allowing local token/session bootstrap storage as a stepping stone toward fuller native integration.
+- Build hygiene now clears `dist/` before TypeScript compilation so stale legacy CLI artifacts do not shadow the real `dist/src/cli.js` entrypoint, and demo docs now use the canonical built path.
+- Release verification now includes a dedicated `verify:build` script that checks the published bin target, confirms stale `dist/cli.js` is absent, and asserts the built CLI help still exposes key modern commands.
+
+- RocketClaw2 now includes a simple QR-based WhatsApp authorization bootstrap flow for local session setup.

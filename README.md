@@ -659,3 +659,8 @@ The harness now includes a critic/self-reflection step after validation failures
 ### Full run inspection
 
 `harness-show --id <run-id> --full` now returns the saved run artifact together with embedded per-iteration details, so one command can explain the entire autonomous loop end to end.
+
+
+### Iteration-focused inspection
+
+RocketClaw2 also supports iteration-specific inspection with `harness-iterations`, including latest-only, failed-only, single-iteration, and guidance-inclusive views. This makes debugging autonomous runs much faster.

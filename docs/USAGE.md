@@ -299,3 +299,12 @@ Use `rocketclaw2 harness-show --id <run-id> --full` to inspect:
 - per-iteration file changes
 - critic insights
 - per-iteration validation results
+
+
+## Iteration-focused inspection
+
+Use `rocketclaw2 harness-iterations --id <run-id>` to inspect run history at the iteration level. Helpful flags:
+- `--latest`
+- `--failed-only`
+- `--iteration <n>`
+- `--guidance`

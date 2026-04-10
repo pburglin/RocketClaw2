@@ -164,3 +164,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Iteration inspection can now optionally include stored guidance text, keeping default output compact while preserving detailed step context on demand.
 
 - Full harness inspection now embeds per-iteration details directly in `harness-show --full` output.
+
+- Harness inspection now includes first-class iteration-level views for latest-only, failed-only, specific-iteration, and guidance-inclusive inspection.

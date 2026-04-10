@@ -341,3 +341,11 @@ Start a local inbound webhook listener:
 Inspect received inbound events:
 - `rocketclaw2 whatsapp-inbox`
 - `rocketclaw2 whatsapp-inbox --json`
+
+
+## WhatsApp event-to-session bridge
+
+Inbound WhatsApp webhook events now:
+- persist to the WhatsApp inbox log
+- create or reuse a session titled `WhatsApp <sender>`
+- append the inbound text as a user message

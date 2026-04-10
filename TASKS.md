@@ -146,3 +146,5 @@
 - Add strict execution mode that enforces approved-plan execution for autonomous harness runs.
 
 - Add real inbound WhatsApp listener/runtime support instead of mock-only integration posture.
+
+- Bridge inbound WhatsApp events into persistent sessions so messages can drive runtime behavior.

@@ -692,3 +692,8 @@ RocketClaw2 now includes a local webhook listener path for inbound WhatsApp-styl
 - `rocketclaw2 whatsapp-inbox`
 
 This is the first real server-side runtime path for WhatsApp integration, replacing the previous purely outbound/mock-only posture.
+
+
+### WhatsApp event-to-session bridge
+
+Inbound WhatsApp webhook events now create or append to persistent RocketClaw2 sessions automatically. This means incoming messages become first-class runtime inputs instead of just sitting in a raw inbox log.

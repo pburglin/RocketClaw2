@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getDefaultProjectRoot } from '../config/app-paths.js';
+import { ingestWhatsAppInboundToSession } from './whatsapp-session-bridge.js';
 
 export type WhatsAppInboundEvent = {
   type: 'message';
@@ -56,9 +57,10 @@ export async function startWhatsAppWebhookListener(input?: { port?: number; root
         raw: payload,
       };
       await appendWhatsAppInbound(event, root);
+      const session = await ingestWhatsAppInboundToSession(event, root);
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
-      res.end(JSON.stringify({ ok: true }));
+      res.end(JSON.stringify({ ok: true, sessionId: session.sessionId, createdSession: session.created }));
     } catch (error) {
       res.statusCode = 400;
       res.setHeader('content-type', 'application/json');

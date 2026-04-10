@@ -177,3 +177,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - `harness-run` now supports a strict `--require-approved-plan` mode that forces the governed plan -> approval -> execution path.
 
 - RocketClaw2 now includes a local WhatsApp webhook listener and inbox persistence path for inbound events, not just outbound mock/webhook send configuration.
+
+- Inbound WhatsApp events now automatically bridge into persistent sessions, creating or reusing `WhatsApp <sender>` session records and appending user messages.

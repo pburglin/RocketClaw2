@@ -181,3 +181,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Inbound WhatsApp events now automatically bridge into persistent sessions, creating or reusing `WhatsApp <sender>` session records and appending user messages.
 
 - Inbound WhatsApp messages can now trigger a first safe action surface, including workspace status and next-actions dispatch.
+
+- Inbound WhatsApp commands now support an end-to-end action-response loop, including automatic outbound replies through the configured WhatsApp plugin.

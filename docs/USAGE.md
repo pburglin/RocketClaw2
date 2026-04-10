@@ -358,3 +358,12 @@ When sent through the inbound webhook listener, these message texts now trigger 
 - `workspace-status`
 - `next`
 - `next-actions`
+
+
+## WhatsApp action-response loop
+
+When an inbound WhatsApp message matches a supported dispatcher command, RocketClaw2 now:
+1. persists the event
+2. bridges it into a session
+3. dispatches a runtime action
+4. sends a WhatsApp reply back to the sender

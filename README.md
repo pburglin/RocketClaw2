@@ -706,3 +706,8 @@ Inbound WhatsApp messages can now trigger a small runtime action surface. Curren
 - `next` or `next-actions`
 
 The listener returns structured dispatch results, making inbound messages action-capable instead of passive.
+
+
+### WhatsApp action-response loop
+
+Inbound WhatsApp commands can now trigger runtime actions and automatically send a WhatsApp reply through the configured channel plugin. This closes the loop from inbound event to action to outbound response.

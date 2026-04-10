@@ -150,3 +150,5 @@
 - Bridge inbound WhatsApp events into persistent sessions so messages can drive runtime behavior.
 
 - Add inbound WhatsApp action dispatch so messages can trigger runtime actions/events.
+
+- Add outbound auto-reply for dispatched inbound WhatsApp actions.

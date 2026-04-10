@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getDefaultProjectRoot } from '../config/app-paths.js';
 import { ingestWhatsAppInboundToSession } from './whatsapp-session-bridge.js';
 import { dispatchWhatsAppInbound } from './whatsapp-dispatcher.js';
+import { sendWhatsAppAutoReply } from './whatsapp-auto-reply.js';
 
 export type WhatsAppInboundEvent = {
   type: 'message';
@@ -60,9 +61,10 @@ export async function startWhatsAppWebhookListener(input?: { port?: number; root
       await appendWhatsAppInbound(event, root);
       const session = await ingestWhatsAppInboundToSession(event, root);
       const dispatched = await dispatchWhatsAppInbound(event);
+      const reply = dispatched.matched && dispatched.replyText ? await sendWhatsAppAutoReply({ to: event.from, text: dispatched.replyText }, root) : null;
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
-      res.end(JSON.stringify({ ok: true, sessionId: session.sessionId, createdSession: session.created, dispatched }));
+      res.end(JSON.stringify({ ok: true, sessionId: session.sessionId, createdSession: session.created, dispatched, autoReply: reply }));
     } catch (error) {
       res.statusCode = 400;
       res.setHeader('content-type', 'application/json');

@@ -53,14 +53,19 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
   ].join('\n');
 }
 
-export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string }> }): string {
+export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> }): string {
   const root = chain.root;
   const rootSummary = chain.nodeSummaries[String(root.runId ?? '')];
   const resumeLines = chain.resumes.length > 0
     ? chain.resumes.map((item) => {
         const runId = String(item.runId);
         const summary = chain.nodeSummaries[runId];
-        return `- ${runId}${item.resumedFrom ? ` <= ${String(item.resumedFrom)}` : ''} | iterations=${summary?.iterations ?? 0} | latestPassed=${summary?.latestPassed ?? 'n/a'}`;
+        const detail = summary?.latestPassed === false
+          ? ` | stderr=${summary.latestStderr || '(empty)'}${summary.latestCriticInsight ? ` | critic=${summary.latestCriticInsight}` : ''}`
+          : summary?.latestPassed === true
+            ? ` | stdout=${summary.latestStdout || '(empty)'}`
+            : '';
+        return `- ${runId}${item.resumedFrom ? ` <= ${String(item.resumedFrom)}` : ''} | iterations=${summary?.iterations ?? 0} | latestPassed=${summary?.latestPassed ?? 'n/a'}${detail}`;
       }).join('\n')
     : 'n/a';
   return [
@@ -69,10 +74,13 @@ export function formatHarnessChain(chain: { root: Record<string, unknown>; plan:
     `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
     `Root iterations: ${rootSummary?.iterations ?? 0}`,
     `Root latest passed: ${rootSummary?.latestPassed ?? 'n/a'}`,
+    rootSummary?.latestPassed === false ? `Root latest stderr: ${rootSummary.latestStderr || '(empty)'}` : null,
+    rootSummary?.latestPassed === false && rootSummary?.latestCriticInsight ? `Root critic: ${rootSummary.latestCriticInsight}` : null,
+    rootSummary?.latestPassed === true ? `Root latest stdout: ${rootSummary.latestStdout || '(empty)'}` : null,
     `Resumes: ${chain.resumes.length}`,
     `Resume chain:\n${resumeLines}`,
     `Next: ${describeHarnessNextStep(root)}`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 export function formatHarnessLineageView(item: Record<string, unknown>): string {

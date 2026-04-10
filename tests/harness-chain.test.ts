@@ -68,6 +68,7 @@ describe('harness chain', () => {
       validationPassed: false,
       validationStdout: '',
       validationStderr: 'boom',
+      criticInsight: 'Check failing assertion',
     }, root);
     await saveIterationEntry('run-2', {
       iteration: 1,
@@ -94,13 +95,16 @@ describe('harness chain', () => {
     expect(chain.plan?.runId).toBe('plan-1');
     expect(chain.resumes).toHaveLength(2);
     expect(chain.nodeSummaries['run-1']?.latestPassed).toBe(false);
+    expect(chain.nodeSummaries['run-1']?.latestCriticInsight).toBe('Check failing assertion');
     expect(chain.nodeSummaries['run-3']?.latestPassed).toBe(true);
 
     const text = formatHarnessChain(chain);
     expect(text).toContain('Plan: plan-1');
     expect(text).toContain('Root iterations: 1');
-    expect(text).toContain('- run-2 <= run-1 | iterations=1 | latestPassed=false');
-    expect(text).toContain('- run-3 <= run-2 | iterations=1 | latestPassed=true');
+    expect(text).toContain('Root latest stderr: boom');
+    expect(text).toContain('Root critic: Check failing assertion');
+    expect(text).toContain('- run-2 <= run-1 | iterations=1 | latestPassed=false | stderr=boom again');
+    expect(text).toContain('- run-3 <= run-2 | iterations=1 | latestPassed=true | stdout=ok');
 
     await fs.rm(root, { recursive: true, force: true });
   });

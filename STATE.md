@@ -166,6 +166,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Harness inspection now exposes lineage between plans, executed runs, resumed runs, and approval requests.
 - `harness-chain` now provides a consolidated operator view of a root artifact, its related plan, and recursive resume descendants.
 - Chain views now include per-node iteration counts and latest pass/fail summaries for quicker health inspection.
+- `harness-chain` now surfaces latest stderr/stdout and critic hints per node, so failure cause is visible without a separate iteration inspection call.
 
 - Full harness inspection now embeds per-iteration details directly in `harness-show --full` output.
 

@@ -61,7 +61,7 @@ export async function loadHarnessRunnableInput(
 export async function buildHarnessChain(
   artifactId: string,
   root = getDefaultProjectRoot(),
-): Promise<{ root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string }> }> {
+): Promise<{ root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> }> {
   const rootArtifact = await loadHarnessRun(artifactId, root);
   if (!rootArtifact) {
     throw new Error(`Harness artifact not found: ${artifactId}`);
@@ -87,7 +87,7 @@ export async function buildHarnessChain(
   }
 
   const nodes = [rootArtifact, ...resumes];
-  const nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string }> = {};
+  const nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> = {};
   for (const node of nodes) {
     const runId = String(node.runId ?? '');
     if (!runId) continue;
@@ -98,6 +98,7 @@ export async function buildHarnessChain(
       latestPassed: latest ? latest.validationPassed : null,
       latestStdout: latest?.validationStdout ?? '',
       latestStderr: latest?.validationStderr ?? '',
+      latestCriticInsight: latest?.criticInsight ?? '',
     };
   }
 

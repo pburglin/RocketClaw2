@@ -53,6 +53,18 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
   ].join('\n');
 }
 
+export function formatHarnessLineageView(item: Record<string, unknown>): string {
+  return [
+    `Run ID: ${String(item.runId ?? 'n/a')}`,
+    `Kind: ${String(item.kind ?? 'run')}`,
+    `Executed plan: ${String(item.executedPlanId ?? 'n/a')}`,
+    `Resumed from: ${String(item.resumedFrom ?? 'n/a')}`,
+    `Approval request: ${String(item.approvalRequestId ?? 'n/a')}`,
+    `Approval status: ${String(item.approvalStatus ?? 'n/a')}`,
+    `Next: ${describeHarnessNextStep(item)}`,
+  ].join('\n');
+}
+
 export function formatHarnessGuidanceView(item: Record<string, unknown>): string {
   return [
     `Run ID: ${String(item.runId ?? 'n/a')}`,

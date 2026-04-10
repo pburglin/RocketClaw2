@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeHarnessNextStep, formatHarnessGuidanceView, formatHarnessPlanView, formatHarnessValidationView } from '../src/harness/formatters.js';
+import { describeHarnessNextStep, formatHarnessGuidanceView, formatHarnessLineageView, formatHarnessPlanView, formatHarnessValidationView } from '../src/harness/formatters.js';
 
 describe('harness show formatters', () => {
   it('formats a guidance-only view', () => {
@@ -25,5 +25,12 @@ describe('harness show formatters', () => {
   it('describes next steps for failed runs and approved plans', () => {
     expect(describeHarnessNextStep({ runId: 'run-1', ok: false })).toContain('harness-resume --id run-1');
     expect(describeHarnessNextStep({ runId: 'plan-2', kind: 'plan', approvalStatus: 'approved' })).toContain('harness-run --id plan-2 --require-approved-plan');
+  });
+
+  it('formats a lineage view', () => {
+    const text = formatHarnessLineageView({ runId: 'run-3', executedPlanId: 'plan-9', resumedFrom: 'run-2', approvalRequestId: 'apr-1', ok: false });
+    expect(text).toContain('Executed plan: plan-9');
+    expect(text).toContain('Resumed from: run-2');
+    expect(text).toContain('Approval request: apr-1');
   });
 });

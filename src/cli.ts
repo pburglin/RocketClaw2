@@ -38,7 +38,7 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness, runCodingHarnessFromPlan } from './harness/coding-harness.js';
-import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
+import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessLineageView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { loadIterationEntries } from './harness/iteration-store.js';
 import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
@@ -531,6 +531,7 @@ program
   .option('--plan', 'show only plan-specific view')
   .option('--guidance', 'show only latest guidance text')
   .option('--validation', 'show only latest validation fields')
+  .option('--lineage', 'show artifact lineage and related references')
   .option('--full', 'show full artifact including guidance')
   .action(async (options) => {
     const run = await loadHarnessRun(options.id);
@@ -547,6 +548,10 @@ program
     }
     if (options.validation) {
       console.log(formatHarnessValidationView(run));
+      return;
+    }
+    if (options.lineage) {
+      console.log(formatHarnessLineageView(run));
       return;
     }
     if (options.full) {

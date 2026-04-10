@@ -3,7 +3,7 @@ import { describeHarnessNextStep } from './formatters.js';
 export function formatHarnessRuns(items: Array<Record<string, unknown>>): string {
   if (items.length === 0) return 'No harness runs found.';
   return items
-    .map((item) => `${item.runId} | kind=${item.kind ?? 'run'} | ok=${item.ok} | approval=${item.approvalStatus ?? 'n/a'} | workspace=${item.workspace} | task=${item.task} | next=${describeHarnessNextStep(item)}`)
+    .map((item) => `${item.runId} | kind=${item.kind ?? 'run'} | ok=${item.ok} | approval=${item.approvalStatus ?? 'n/a'} | plan=${item.executedPlanId ?? 'n/a'} | resumedFrom=${item.resumedFrom ?? 'n/a'} | workspace=${item.workspace} | task=${item.task} | next=${describeHarnessNextStep(item)}`)
     .join('\n');
 }
 

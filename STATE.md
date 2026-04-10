@@ -163,6 +163,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Iteration inspection now supports latest-only, failed-only, and per-iteration filtering for long harness runs.
 - Iteration inspection can now optionally include stored guidance text, keeping default output compact while preserving detailed step context on demand.
 - Harness artifacts now expose recommended operator next steps directly in list and focused views, including approve, run, resume, and re-validate actions.
+- Harness inspection now exposes lineage between plans, executed runs, resumed runs, and approval requests.
 
 - Full harness inspection now embeds per-iteration details directly in `harness-show --full` output.
 

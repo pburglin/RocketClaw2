@@ -6,6 +6,8 @@ describe('formatHarnessRuns', () => {
     const text = formatHarnessRuns([{ runId: 'abc', ok: true, workspace: '/tmp/demo', task: 'demo task' }]);
     expect(text).toContain('abc');
     expect(text).toContain('demo task');
+    expect(text).toContain('plan=n/a');
+    expect(text).toContain('resumedFrom=n/a');
     expect(text).toContain('next=Re-validate if needed');
   });
 

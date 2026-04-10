@@ -58,8 +58,8 @@ export function formatHarnessChainSummary(chain: { root: Record<string, unknown>
   const rootId = String(root.runId ?? 'n/a');
   const rootSummary = chain.nodeSummaries[rootId];
   return [
-    `Root: ${rootId} (${String(root.kind ?? 'run')})`,
-    `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    `ROOT RUN: ${rootId} (${String(root.kind ?? 'run')})`,
+    `PLAN: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
     `Resumes: ${chain.resumes.length}`,
     `Root latest passed: ${rootSummary?.latestPassed ?? 'n/a'}`,
     `Inspect root: rocketclaw2 harness-show --id ${rootId}`,
@@ -72,7 +72,7 @@ export function formatHarnessChain(chain: { root: Record<string, unknown>; plan:
   const root = chain.root;
   const rootSummary = chain.nodeSummaries[String(root.runId ?? '')];
   const resumeLines = chain.resumes.length > 0
-    ? chain.resumes.map((item) => {
+    ? chain.resumes.map((item, index) => {
         const runId = String(item.runId);
         const summary = chain.nodeSummaries[runId];
         const detail = summary?.latestPassed === false
@@ -80,13 +80,13 @@ export function formatHarnessChain(chain: { root: Record<string, unknown>; plan:
           : summary?.latestPassed === true
             ? ` | stdout=${summary.latestStdout || '(empty)'}`
             : '';
-        return `- ${runId}${item.resumedFrom ? ` <= ${String(item.resumedFrom)}` : ''} | iterations=${summary?.iterations ?? 0} | latestPassed=${summary?.latestPassed ?? 'n/a'}${detail} | inspect=rocketclaw2 harness-show --id ${runId}`;
+        return `- RESUME #${index + 1}: ${runId}${item.resumedFrom ? ` <= ${String(item.resumedFrom)}` : ''} | iterations=${summary?.iterations ?? 0} | latestPassed=${summary?.latestPassed ?? 'n/a'}${detail} | inspect=rocketclaw2 harness-show --id ${runId}`;
       }).join('\n')
     : 'n/a';
   return [
-    `Root: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
+    `ROOT RUN: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
     `Task: ${String(root.task ?? 'n/a')}`,
-    `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    `PLAN: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
     chain.plan ? `Inspect plan: rocketclaw2 harness-show --id ${String(chain.plan.runId)} --plan` : null,
     `Root iterations: ${rootSummary?.iterations ?? 0}`,
     `Inspect root: rocketclaw2 harness-show --id ${String(root.runId ?? 'n/a')}`,

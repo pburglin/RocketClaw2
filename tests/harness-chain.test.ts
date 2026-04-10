@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { buildHarnessChain, saveHarnessRun } from '../src/harness/store.js';
-import { formatHarnessChain } from '../src/harness/formatters.js';
+import { formatHarnessChain, formatHarnessChainSummary } from '../src/harness/formatters.js';
 import { saveIterationEntry } from '../src/harness/iteration-store.js';
 
 describe('harness chain', () => {
@@ -105,6 +105,12 @@ describe('harness chain', () => {
     expect(text).toContain('Root critic: Check failing assertion');
     expect(text).toContain('- run-2 <= run-1 | iterations=1 | latestPassed=false | stderr=boom again');
     expect(text).toContain('- run-3 <= run-2 | iterations=1 | latestPassed=true | stdout=ok');
+
+    const summary = formatHarnessChainSummary(chain);
+    expect(summary).toContain('Root: run-1 (run)');
+    expect(summary).toContain('Plan: plan-1');
+    expect(summary).toContain('Resumes: 2');
+    expect(summary).toContain('Root latest passed: false');
 
     await fs.rm(root, { recursive: true, force: true });
   });

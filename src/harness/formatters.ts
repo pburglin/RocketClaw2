@@ -53,6 +53,18 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
   ].join('\n');
 }
 
+export function formatHarnessChainSummary(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> }): string {
+  const root = chain.root;
+  const rootSummary = chain.nodeSummaries[String(root.runId ?? '')];
+  return [
+    `Root: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
+    `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    `Resumes: ${chain.resumes.length}`,
+    `Root latest passed: ${rootSummary?.latestPassed ?? 'n/a'}`,
+    `Next: ${describeHarnessNextStep(root)}`,
+  ].join('\n');
+}
+
 export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> }): string {
   const root = chain.root;
   const rootSummary = chain.nodeSummaries[String(root.runId ?? '')];

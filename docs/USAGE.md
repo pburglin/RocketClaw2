@@ -245,6 +245,7 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 - `rocketclaw2 harness-show --id <run-id> --plan`
 - `rocketclaw2 harness-show --id <run-id> --lineage`
 - `rocketclaw2 harness-chain --id <run-id>`
+- `rocketclaw2 harness-chain --id <run-id> --summary`
 - `rocketclaw2 harness-iterations --id <run-id>`
 - `rocketclaw2 harness-iterations --id <run-id> --latest`
 - `rocketclaw2 harness-iterations --id <run-id> --failed-only`

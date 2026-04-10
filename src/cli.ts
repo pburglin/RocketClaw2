@@ -21,6 +21,7 @@ import { rememberCandidate } from './memory/remember.js';
 import { loadSemanticMemory } from './memory/semantic-store.js';
 import { createDefaultChannelRegistry } from './messaging/index.js';
 import { configureWhatsApp } from './messaging/whatsapp-config.js';
+import { listWhatsAppInbound, startWhatsAppWebhookListener } from './messaging/whatsapp-listener.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
@@ -428,6 +429,27 @@ program
   });
 
 
+
+
+program
+  .command('whatsapp-listen')
+  .description('Start a local WhatsApp webhook listener for inbound events')
+  .option('--port <n>', 'listener port', '8787')
+  .action(async (options) => {
+    const port = Number(options.port);
+    await startWhatsAppWebhookListener({ port });
+    console.log(`WhatsApp webhook listener running on http://127.0.0.1:${port}/whatsapp/webhook`);
+  });
+
+program
+  .command('whatsapp-inbox')
+  .description('Show persisted inbound WhatsApp webhook events')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const items = await listWhatsAppInbound();
+    const text = items.map((item) => `${item.receivedAt} | ${item.from} | ${item.text}`).join('\n');
+    console.log(options.json ? JSON.stringify(items, null, 2) : text || 'No inbound WhatsApp events.');
+  });
 
 program
   .command('messaging-summary')

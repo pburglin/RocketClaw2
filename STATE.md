@@ -173,3 +173,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Executed harness runs now carry explicit source-plan lineage, so inspection can show which approved plan drove a given autonomous run.
 
 - `harness-run` now supports a strict `--require-approved-plan` mode that forces the governed plan -> approval -> execution path.
+
+- RocketClaw2 now includes a local WhatsApp webhook listener and inbox persistence path for inbound events, not just outbound mock/webhook send configuration.

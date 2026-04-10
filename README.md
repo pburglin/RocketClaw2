@@ -681,3 +681,12 @@ Runs launched from approved plans now carry explicit `executedPlanId` lineage so
 ### Strict execution control
 
 `harness-run` now supports `--require-approved-plan`, which refuses direct execution and forces the governed path: plan, approve, then run the approved plan with `harness-run-plan`.
+
+
+### Live WhatsApp listener path
+
+RocketClaw2 now includes a local webhook listener path for inbound WhatsApp-style events:
+- `rocketclaw2 whatsapp-listen --port 8787`
+- `rocketclaw2 whatsapp-inbox`
+
+This is the first real server-side runtime path for WhatsApp integration, replacing the previous purely outbound/mock-only posture.

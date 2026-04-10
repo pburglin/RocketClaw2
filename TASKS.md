@@ -144,3 +144,5 @@
 - Preserve source-plan lineage in executed harness run artifacts and views.
 
 - Add strict execution mode that enforces approved-plan execution for autonomous harness runs.
+
+- Add real inbound WhatsApp listener/runtime support instead of mock-only integration posture.

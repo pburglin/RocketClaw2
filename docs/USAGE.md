@@ -329,3 +329,13 @@ This will fail fast and instruct the operator to use:
 1. `harness-plan`
 2. `harness-approve`
 3. `harness-run-plan`
+
+
+## Live WhatsApp listener
+
+Start a local inbound webhook listener:
+- `rocketclaw2 whatsapp-listen --port 8787`
+
+Inspect received inbound events:
+- `rocketclaw2 whatsapp-inbox`
+- `rocketclaw2 whatsapp-inbox --json`

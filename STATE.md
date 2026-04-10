@@ -166,3 +166,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Full harness inspection now embeds per-iteration details directly in `harness-show --full` output.
 
 - Harness inspection now includes first-class iteration-level views for latest-only, failed-only, specific-iteration, and guidance-inclusive inspection.
+
+- RocketClaw2 now supports plan-gated harness execution via `harness-run-plan`, so approved plans can directly drive autonomous runs.

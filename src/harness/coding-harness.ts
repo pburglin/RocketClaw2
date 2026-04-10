@@ -350,3 +350,23 @@ export async function harnessResume(
 
   return { ...result, resumedFrom: runId };
 }
+
+
+export async function runCodingHarnessFromPlan(
+  config: AppConfig,
+  runId: string,
+  root = getDefaultProjectRoot(),
+): Promise<CodingHarnessResult & { executedPlanId: string }> {
+  const planned = await loadHarnessRun(runId, root);
+  if (!planned) throw new Error(`Harness artifact not found: ${runId}`);
+  if (planned.kind !== 'plan') throw new Error(`Harness artifact is not a plan: ${runId}`);
+  if (planned.approvalStatus !== 'approved') throw new Error(`Harness plan is not approved: ${runId}`);
+
+  const result = await runCodingHarness(config, {
+    workspace: String(planned.workspace ?? ''),
+    task: String(planned.task ?? ''),
+    validateCommand: String(planned.validateCommand ?? ''),
+    maxIterations: 5,
+  });
+  return { ...result, executedPlanId: runId };
+}

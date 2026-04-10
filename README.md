@@ -664,3 +664,8 @@ The harness now includes a critic/self-reflection step after validation failures
 ### Iteration-focused inspection
 
 RocketClaw2 also supports iteration-specific inspection with `harness-iterations`, including latest-only, failed-only, single-iteration, and guidance-inclusive views. This makes debugging autonomous runs much faster.
+
+
+### Plan-gated autonomous execution
+
+RocketClaw2 now supports executing an approved harness plan artifact directly with `harness-run-plan`. This makes the autonomous coding flow more governed: plan first, approve, then execute that approved plan.

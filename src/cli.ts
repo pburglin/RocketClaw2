@@ -36,7 +36,7 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
-import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness } from './harness/coding-harness.js';
+import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness, runCodingHarnessFromPlan } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { loadIterationEntries } from './harness/iteration-store.js';
@@ -613,6 +613,25 @@ program
   .action(async (options) => {
     const result = await approveHarnessPlan(options.id);
     console.log(options.json ? JSON.stringify(result, null, 2) : `Approved harness plan: ${options.id}`);
+  });
+
+
+program
+  .command('harness-run-plan')
+  .description('Execute an approved harness plan artifact as the basis for an autonomous coding run')
+  .requiredOption('--id <id>', 'approved harness plan id')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    const result = await runCodingHarnessFromPlan(config, options.id);
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatCodingHarnessResult(result));
+    if (!result.ok) process.exitCode = 1;
   });
 
 program

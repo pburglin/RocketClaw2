@@ -308,3 +308,8 @@ Use `rocketclaw2 harness-iterations --id <run-id>` to inspect run history at the
 - `--failed-only`
 - `--iteration <n>`
 - `--guidance`
+
+
+## Plan-gated autonomous execution
+
+Use `rocketclaw2 harness-run-plan --id <approved-plan-id>` to execute a previously approved plan artifact as the basis for an autonomous coding run.

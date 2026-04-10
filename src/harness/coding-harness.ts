@@ -215,7 +215,7 @@ export async function replayHarnessValidation(
 
 export async function runCodingHarness(
   config: AppConfig,
-  input: { workspace: string; task: string; validateCommand: string; maxIterations: number },
+  input: { workspace: string; task: string; validateCommand: string; maxIterations: number; validateTimeoutMs?: number },
   onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
 ): Promise<CodingHarnessResult> {
   let lastGuidance = '';
@@ -263,15 +263,18 @@ export async function runCodingHarness(
     let ok = false;
     onProgress?.({ iteration: i, stage: 'validation-start', message: `Running validation: ${input.validateCommand}` });
     try {
-      const { stdout, stderr } = await exec(input.validateCommand, { cwd: input.workspace });
+      const { stdout, stderr } = await exec(input.validateCommand, { cwd: input.workspace, timeout: input.validateTimeoutMs ?? 15000 });
       lastValidationStdout = stdout.trim();
       lastValidationStderr = stderr.trim();
       ok = true;
       onProgress?.({ iteration: i, stage: 'validation-passed', message: 'Validation passed' });
     } catch (error) {
-      const err = error as { stdout?: string; stderr?: string; message?: string };
+      const err = error as { stdout?: string; stderr?: string; message?: string; killed?: boolean; signal?: string };
       lastValidationStdout = (err.stdout ?? '').trim();
       lastValidationStderr = (err.stderr ?? err.message ?? '').trim();
+      if (String(err.message ?? '').includes('timed out') || err.killed) {
+        lastValidationStderr = `Validation command timed out. Use a short-lived check such as npm test or set a larger timeout if you really need it. Original detail: ${lastValidationStderr}`.trim();
+      }
       onProgress?.({ iteration: i, stage: 'validation-failed', message: 'Validation failed, analyzing cause' });
       lastCriticInsight = await buildCriticInsight(config, {
         task: input.task,
@@ -376,6 +379,7 @@ export async function runCodingHarnessFromPlan(
     task: String(planned.task ?? ''),
     validateCommand: String(planned.validateCommand ?? ''),
     maxIterations: 5,
+    validateTimeoutMs: 15000,
   });
   return { ...result, executedPlanId: runId };
 }

@@ -681,6 +681,7 @@ program
   .option('--task <text>', 'task description')
   .option('--validate <cmd>', 'validation command to run in the workspace')
   .option('--max-iterations <n>', 'maximum iterations', '5')
+  .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds', '15000')
   .option('--require-approved-plan', 'refuse direct execution; require harness-plan, harness-approve, then harness-run-plan')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {

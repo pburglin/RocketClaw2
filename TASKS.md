@@ -154,3 +154,5 @@
 - Add outbound auto-reply for dispatched inbound WhatsApp actions.
 
 - Improve harness UX with live progress milestones during iterations.
+
+- Guard harness validation against long-running commands that would otherwise hang the CLI.

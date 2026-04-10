@@ -372,3 +372,13 @@ When an inbound WhatsApp message matches a supported dispatcher command, RocketC
 ## Interactive harness progress
 
 `harness-run` now emits concise progress points during each iteration so operators can see live execution progress instead of waiting only for the final report.
+
+
+## Safe validation commands
+
+Prefer short-lived validation commands such as `npm test` or `npm run build`.
+
+`harness-run` now applies a default validation timeout and supports:
+- `--validate-timeout-ms <n>`
+
+This prevents long-running commands like `npm run dev` from hanging the CLI forever.

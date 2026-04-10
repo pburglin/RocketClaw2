@@ -613,6 +613,7 @@ RocketClaw2 now includes commands to inspect persisted autonomous harness runs.
 - `rocketclaw2 harness-iterations --id <run-id> --latest`
 - `rocketclaw2 harness-iterations --id <run-id> --failed-only`
 - `rocketclaw2 harness-iterations --id <run-id> --iteration 2`
+- `rocketclaw2 harness-iterations --id <run-id> --latest --guidance`
 - `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>" --request-approval`
 - `rocketclaw2 harness-approve --id <plan-id>`
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan`

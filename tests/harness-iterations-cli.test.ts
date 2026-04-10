@@ -57,6 +57,12 @@ describe('harness-iterations CLI filters', () => {
     expect(specific.stdout).toContain('Iteration 2 | passed=true');
     expect(specific.stdout).not.toContain('Iteration 1 | passed=false');
 
+    const guidance = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'harness-iterations', '--id', runId, '--latest', '--guidance'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+    expect(guidance.stdout).toContain('guidance: second');
+
     await fs.rm(homeRoot, { recursive: true, force: true });
   }, 15000);
 });

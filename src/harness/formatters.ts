@@ -60,13 +60,14 @@ export function formatHarnessPlanView(item: Record<string, unknown>): string {
   ].join('\n');
 }
 
-export function formatHarnessIterations(entries: IterationEntry[]): string {
+export function formatHarnessIterations(entries: IterationEntry[], options?: { includeGuidance?: boolean }): string {
   if (entries.length === 0) return 'No iteration entries found.';
   return entries.map((entry) => [
     `Iteration ${entry.iteration} | passed=${entry.validationPassed} | created=${entry.filesCreated.length} | modified=${entry.filesModified.length}`,
     `stdout: ${entry.validationStdout || '(empty)'}`,
     `stderr: ${entry.validationStderr || '(empty)'}`,
     entry.criticInsight ? `critic: ${entry.criticInsight}` : null,
+    options?.includeGuidance ? `guidance: ${entry.guidance || '(empty)'}` : null,
   ].filter(Boolean).join('\n')).join('\n\n');
 }
 

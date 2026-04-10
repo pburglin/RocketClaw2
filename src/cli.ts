@@ -540,6 +540,7 @@ program
   .option('--latest', 'show only the latest iteration')
   .option('--failed-only', 'show only failed iterations')
   .option('--iteration <n>', 'show only a specific iteration number')
+  .option('--guidance', 'include guidance text for each returned iteration')
   .option('--json', 'output raw JSON')
   .action(async (options) => {
     let entries = await loadIterationEntries(options.id);
@@ -553,7 +554,7 @@ program
     if (options.latest && entries.length > 0) {
       entries = [entries[entries.length - 1]!];
     }
-    console.log(options.json ? JSON.stringify(entries, null, 2) : formatHarnessIterations(entries));
+    console.log(options.json ? JSON.stringify(entries, null, 2) : formatHarnessIterations(entries, { includeGuidance: Boolean(options.guidance) }));
   });
 
 program

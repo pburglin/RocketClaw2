@@ -30,5 +30,23 @@ describe('formatHarnessIterations', () => {
     expect(text).toContain('Iteration 1 | passed=false');
     expect(text).toContain('critic: Add a test runner');
     expect(text).toContain('Iteration 2 | passed=true');
+    expect(text).not.toContain('guidance:');
+  });
+
+  it('can include guidance text when requested', () => {
+    const text = formatHarnessIterations([
+      {
+        iteration: 1,
+        timestamp: 't1',
+        guidance: 'Create file',
+        filesCreated: ['index.js'],
+        filesModified: [],
+        validationPassed: false,
+        validationStdout: '',
+        validationStderr: 'missing test',
+      },
+    ], { includeGuidance: true });
+
+    expect(text).toContain('guidance: Create file');
   });
 });

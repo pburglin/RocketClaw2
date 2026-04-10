@@ -168,6 +168,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Chain views now include per-node iteration counts and latest pass/fail summaries for quicker health inspection.
 - `harness-chain` now surfaces latest stderr/stdout and critic hints per node, so failure cause is visible without a separate iteration inspection call.
 - `harness-chain --summary` now provides a compact overview for quick operator scanning.
+- Chain views now include direct drill-down commands for root, plan, and resume nodes so operators can jump straight into focused inspection.
 
 - Full harness inspection now embeds per-iteration details directly in `harness-show --full` output.
 

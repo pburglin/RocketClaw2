@@ -100,16 +100,20 @@ describe('harness chain', () => {
 
     const text = formatHarnessChain(chain);
     expect(text).toContain('Plan: plan-1');
+    expect(text).toContain('Inspect plan: rocketclaw2 harness-show --id plan-1 --plan');
     expect(text).toContain('Root iterations: 1');
+    expect(text).toContain('Inspect root: rocketclaw2 harness-show --id run-1');
     expect(text).toContain('Root latest stderr: boom');
     expect(text).toContain('Root critic: Check failing assertion');
-    expect(text).toContain('- run-2 <= run-1 | iterations=1 | latestPassed=false | stderr=boom again');
-    expect(text).toContain('- run-3 <= run-2 | iterations=1 | latestPassed=true | stdout=ok');
+    expect(text).toContain('- run-2 <= run-1 | iterations=1 | latestPassed=false | stderr=boom again | inspect=rocketclaw2 harness-show --id run-2');
+    expect(text).toContain('- run-3 <= run-2 | iterations=1 | latestPassed=true | stdout=ok | inspect=rocketclaw2 harness-show --id run-3');
 
     const summary = formatHarnessChainSummary(chain);
     expect(summary).toContain('Root: run-1 (run)');
     expect(summary).toContain('Plan: plan-1');
     expect(summary).toContain('Resumes: 2');
+    expect(summary).toContain('Inspect root: rocketclaw2 harness-show --id run-1');
+    expect(summary).toContain('Inspect plan: rocketclaw2 harness-show --id plan-1 --plan');
     expect(summary).toContain('Root latest passed: false');
 
     await fs.rm(root, { recursive: true, force: true });

@@ -55,14 +55,17 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
 
 export function formatHarnessChainSummary(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> }): string {
   const root = chain.root;
-  const rootSummary = chain.nodeSummaries[String(root.runId ?? '')];
+  const rootId = String(root.runId ?? 'n/a');
+  const rootSummary = chain.nodeSummaries[rootId];
   return [
-    `Root: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
+    `Root: ${rootId} (${String(root.kind ?? 'run')})`,
     `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
     `Resumes: ${chain.resumes.length}`,
     `Root latest passed: ${rootSummary?.latestPassed ?? 'n/a'}`,
+    `Inspect root: rocketclaw2 harness-show --id ${rootId}`,
+    chain.plan ? `Inspect plan: rocketclaw2 harness-show --id ${String(chain.plan.runId)} --plan` : null,
     `Next: ${describeHarnessNextStep(root)}`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> }): string {
@@ -77,14 +80,16 @@ export function formatHarnessChain(chain: { root: Record<string, unknown>; plan:
           : summary?.latestPassed === true
             ? ` | stdout=${summary.latestStdout || '(empty)'}`
             : '';
-        return `- ${runId}${item.resumedFrom ? ` <= ${String(item.resumedFrom)}` : ''} | iterations=${summary?.iterations ?? 0} | latestPassed=${summary?.latestPassed ?? 'n/a'}${detail}`;
+        return `- ${runId}${item.resumedFrom ? ` <= ${String(item.resumedFrom)}` : ''} | iterations=${summary?.iterations ?? 0} | latestPassed=${summary?.latestPassed ?? 'n/a'}${detail} | inspect=rocketclaw2 harness-show --id ${runId}`;
       }).join('\n')
     : 'n/a';
   return [
     `Root: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
     `Task: ${String(root.task ?? 'n/a')}`,
     `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    chain.plan ? `Inspect plan: rocketclaw2 harness-show --id ${String(chain.plan.runId)} --plan` : null,
     `Root iterations: ${rootSummary?.iterations ?? 0}`,
+    `Inspect root: rocketclaw2 harness-show --id ${String(root.runId ?? 'n/a')}`,
     `Root latest passed: ${rootSummary?.latestPassed ?? 'n/a'}`,
     rootSummary?.latestPassed === false ? `Root latest stderr: ${rootSummary.latestStderr || '(empty)'}` : null,
     rootSummary?.latestPassed === false && rootSummary?.latestCriticInsight ? `Root critic: ${rootSummary.latestCriticInsight}` : null,

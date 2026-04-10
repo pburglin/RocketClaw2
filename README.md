@@ -614,7 +614,7 @@ Harness list and show views now include a recommended **Next** action for draft 
 - `rocketclaw2 harness-show --id <run-id> --lineage`
 - `rocketclaw2 harness-chain --id <run-id>`
 - `rocketclaw2 harness-chain --id <run-id> --summary`
-  - follows related plan plus resume-of-resume lineage, with per-node iteration/pass-fail summaries and latest failure context
+  - follows related plan plus resume-of-resume lineage, with per-node iteration/pass-fail summaries, latest failure context, and direct drill-down commands
 - `rocketclaw2 harness-iterations --id <run-id>`
 - `rocketclaw2 harness-iterations --id <run-id> --latest`
 - `rocketclaw2 harness-iterations --id <run-id> --failed-only`

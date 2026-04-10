@@ -330,6 +330,9 @@ program
   .description('Show a unified operator view of runtime posture and configuration')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
+    if (options.requireApprovedPlan) {
+      throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
+    }
     const rootConfig = await loadAppConfig();
     const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
@@ -637,14 +640,16 @@ program
 program
   .command('harness-run')
   .description('Run an autonomous coding harness loop for a workspace task until validation passes or iterations are exhausted')
-  .option('--id <run-id>', 'saved plan id to execute')
-  .option('--require-approved-plan', 'when using --id, require the saved plan to be approved before execution')
   .option('--workspace <path>', 'target workspace path')
   .option('--task <text>', 'task description')
   .option('--validate <cmd>', 'validation command to run in the workspace')
   .option('--max-iterations <n>', 'maximum iterations', '5')
+  .option('--require-approved-plan', 'refuse direct execution; require harness-plan, harness-approve, then harness-run-plan')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
+    if (options.requireApprovedPlan) {
+      throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
+    }
     const rootConfig = await loadAppConfig();
     const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {

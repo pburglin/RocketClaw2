@@ -318,3 +318,14 @@ Use `rocketclaw2 harness-run-plan --id <approved-plan-id>` to execute a previous
 ## Plan lineage
 
 Runs created through `harness-run-plan` now retain source-plan lineage via `executedPlanId`, and normal run formatting surfaces that lineage during inspection.
+
+
+## Strict execution control
+
+If you want to forbid direct autonomous execution, use:
+`rocketclaw2 harness-run ... --require-approved-plan`
+
+This will fail fast and instruct the operator to use:
+1. `harness-plan`
+2. `harness-approve`
+3. `harness-run-plan`

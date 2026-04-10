@@ -171,3 +171,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now supports plan-gated harness execution via `harness-run-plan`, so approved plans can directly drive autonomous runs.
 
 - Executed harness runs now carry explicit source-plan lineage, so inspection can show which approved plan drove a given autonomous run.
+
+- `harness-run` now supports a strict `--require-approved-plan` mode that forces the governed plan -> approval -> execution path.

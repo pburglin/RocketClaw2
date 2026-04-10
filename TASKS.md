@@ -142,3 +142,5 @@
 - Add explicit plan-gated execution so approved plans can be run directly as autonomous coding runs.
 
 - Preserve source-plan lineage in executed harness run artifacts and views.
+
+- Add strict execution mode that enforces approved-plan execution for autonomous harness runs.

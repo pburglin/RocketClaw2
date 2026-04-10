@@ -676,3 +676,8 @@ RocketClaw2 now supports executing an approved harness plan artifact directly wi
 ### Plan lineage in run artifacts
 
 Runs launched from approved plans now carry explicit `executedPlanId` lineage so inspection clearly shows which reviewed plan drove each autonomous execution.
+
+
+### Strict execution control
+
+`harness-run` now supports `--require-approved-plan`, which refuses direct execution and forces the governed path: plan, approve, then run the approved plan with `harness-run-plan`.

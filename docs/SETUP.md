@@ -144,3 +144,13 @@ rocketclaw2 setup-wizard --interactive
 
 
 RocketClaw2 stores autonomous coding run artifacts under its local data directory in `harness-runs/`.
+
+
+## Simple WhatsApp session profile
+
+RocketClaw2 now supports a persisted local WhatsApp session profile:
+- `rocketclaw2 whatsapp-session --set-token <token> --phone-number +15551234567`
+- `rocketclaw2 whatsapp-session`
+- `rocketclaw2 whatsapp-session --clear`
+
+This is a simple bootstrap/session-storage step, not a full native WhatsApp protocol client yet.

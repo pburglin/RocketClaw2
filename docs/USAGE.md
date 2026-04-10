@@ -382,3 +382,8 @@ Prefer short-lived validation commands such as `npm test` or `npm run build`.
 - `--validate-timeout-ms <n>`
 
 This prevents long-running commands like `npm run dev` from hanging the CLI forever.
+
+
+## WhatsApp session profile
+
+Use `rocketclaw2 whatsapp-session` to inspect or manage the local persisted WhatsApp session profile used by RocketClaw2.

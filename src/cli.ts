@@ -21,6 +21,7 @@ import { rememberCandidate } from './memory/remember.js';
 import { loadSemanticMemory } from './memory/semantic-store.js';
 import { createDefaultChannelRegistry } from './messaging/index.js';
 import { configureWhatsApp } from './messaging/whatsapp-config.js';
+import { clearWhatsAppSession, loadWhatsAppSession, saveWhatsAppSession } from './messaging/whatsapp-session.js';
 import { listWhatsAppInbound, startWhatsAppWebhookListener } from './messaging/whatsapp-listener.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
@@ -430,6 +431,33 @@ program
 
 
 
+
+
+program
+  .command('whatsapp-session')
+  .description('Inspect or manage the persisted local WhatsApp session profile')
+  .option('--set-token <token>', 'persist a local WhatsApp session token')
+  .option('--phone-number <number>', 'associate a phone number with the local session')
+  .option('--clear', 'clear the persisted WhatsApp session profile')
+  .action(async (options) => {
+    if (options.clear) {
+      await clearWhatsAppSession();
+      console.log('Cleared WhatsApp session profile.');
+      return;
+    }
+    if (options.setToken) {
+      await saveWhatsAppSession({
+        mode: 'session',
+        token: options.setToken,
+        phoneNumber: options.phoneNumber,
+        createdAt: new Date().toISOString(),
+      });
+      console.log('Saved WhatsApp session profile.');
+      return;
+    }
+    const session = await loadWhatsAppSession();
+    console.log(JSON.stringify(session, null, 2));
+  });
 
 program
   .command('whatsapp-listen')

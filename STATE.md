@@ -187,3 +187,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - `harness-run` now emits concise live progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result.
 
 - Harness validation now uses a timeout by default, preventing long-running commands like dev servers from wedging the CLI indefinitely.
+
+- RocketClaw2 now includes a persisted local WhatsApp session profile model, allowing local token/session bootstrap storage as a stepping stone toward fuller native integration.

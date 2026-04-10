@@ -1,7 +1,7 @@
 import type { MessageChannelPlugin, MessageSendRequest, MessageSendResult } from '../types.js';
 
 export type WhatsAppPluginOptions = {
-  mode?: 'mock' | 'webhook';
+  mode?: 'mock' | 'webhook' | 'session';
   webhookUrl?: string;
 };
 
@@ -30,7 +30,7 @@ export class WhatsAppChannelPlugin implements MessageChannelPlugin {
       ok: true,
       channel: this.id,
       to: request.to,
-      transportId: `mock-whatsapp-${Date.now()}`,
+      transportId: `${this.options.mode ?? 'mock'}-whatsapp-${Date.now()}`,
       detail: request.text,
     };
   }

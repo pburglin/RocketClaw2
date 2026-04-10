@@ -722,3 +722,8 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 ### Safe validation commands
 
 `harness-run` now applies a timeout to validation commands by default so long-running processes like `npm run dev` do not wedge the CLI forever. Use `--validate-timeout-ms` to tune the limit.
+
+
+### Simple local WhatsApp session profile
+
+RocketClaw2 now supports a persisted local WhatsApp session profile as a stepping stone toward fuller native integration. Use `whatsapp-session` to save, inspect, or clear a local token/session record.

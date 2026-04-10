@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const WhatsAppConfigSchema = z.object({
   enabled: z.boolean().default(true),
-  mode: z.enum(['mock', 'webhook']).default('mock'),
+  mode: z.enum(['mock', 'webhook', 'session']).default('mock'),
   webhookUrl: z.string().url().optional(),
   defaultRecipient: z.string().optional(),
 });

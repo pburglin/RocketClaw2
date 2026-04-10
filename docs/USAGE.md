@@ -349,3 +349,12 @@ Inbound WhatsApp webhook events now:
 - persist to the WhatsApp inbox log
 - create or reuse a session titled `WhatsApp <sender>`
 - append the inbound text as a user message
+
+
+## WhatsApp-triggered actions
+
+When sent through the inbound webhook listener, these message texts now trigger runtime actions:
+- `status`
+- `workspace-status`
+- `next`
+- `next-actions`

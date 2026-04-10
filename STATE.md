@@ -179,3 +179,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a local WhatsApp webhook listener and inbox persistence path for inbound events, not just outbound mock/webhook send configuration.
 
 - Inbound WhatsApp events now automatically bridge into persistent sessions, creating or reusing `WhatsApp <sender>` session records and appending user messages.
+
+- Inbound WhatsApp messages can now trigger a first safe action surface, including workspace status and next-actions dispatch.

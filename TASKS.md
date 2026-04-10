@@ -148,3 +148,5 @@
 - Add real inbound WhatsApp listener/runtime support instead of mock-only integration posture.
 
 - Bridge inbound WhatsApp events into persistent sessions so messages can drive runtime behavior.
+
+- Add inbound WhatsApp action dispatch so messages can trigger runtime actions/events.

@@ -697,3 +697,12 @@ This is the first real server-side runtime path for WhatsApp integration, replac
 ### WhatsApp event-to-session bridge
 
 Inbound WhatsApp webhook events now create or append to persistent RocketClaw2 sessions automatically. This means incoming messages become first-class runtime inputs instead of just sitting in a raw inbox log.
+
+
+### WhatsApp-triggered actions
+
+Inbound WhatsApp messages can now trigger a small runtime action surface. Current safe commands:
+- `status` or `workspace-status`
+- `next` or `next-actions`
+
+The listener returns structured dispatch results, making inbound messages action-capable instead of passive.

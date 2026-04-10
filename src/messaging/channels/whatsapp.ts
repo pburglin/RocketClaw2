@@ -1,8 +1,10 @@
 import type { MessageChannelPlugin, MessageSendRequest, MessageSendResult } from '../types.js';
+import { loadWhatsAppSession } from '../whatsapp-session.js';
 
 export type WhatsAppPluginOptions = {
   mode?: 'mock' | 'webhook' | 'session';
   webhookUrl?: string;
+  root?: string;
 };
 
 export class WhatsAppChannelPlugin implements MessageChannelPlugin {
@@ -26,11 +28,25 @@ export class WhatsAppChannelPlugin implements MessageChannelPlugin {
       };
     }
 
+    if (this.options.mode === 'session') {
+      const session = await loadWhatsAppSession(this.options.root);
+      if (!session || !session.token) {
+        throw new Error('WhatsApp session mode is enabled but no local WhatsApp session profile is configured');
+      }
+      return {
+        ok: true,
+        channel: this.id,
+        to: request.to,
+        transportId: `session-whatsapp-${Date.now()}`,
+        detail: `session:${session.phoneNumber ?? 'unknown'}:${request.text}`,
+      };
+    }
+
     return {
       ok: true,
       channel: this.id,
       to: request.to,
-      transportId: `${this.options.mode ?? 'mock'}-whatsapp-${Date.now()}`,
+      transportId: `mock-whatsapp-${Date.now()}`,
       detail: request.text,
     };
   }

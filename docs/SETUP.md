@@ -46,6 +46,8 @@ npm run build
 npm link
 ```
 
+Packaging now also runs build verification automatically through `prepack`, so `npm pack` and publish-style workflows re-check the canonical CLI entrypoint before shipping.
+
 If you do not want to link globally, run commands with:
 ```bash
 node dist/src/cli.js doctor
@@ -165,3 +167,8 @@ You can now use a simple QR bootstrap flow for WhatsApp session authorization:
 - Authorize: `rocketclaw2 whatsapp-qr --authorize <token> --phone-number +15551234567`
 
 This is a lightweight bootstrap model that stores the authorized session locally.
+
+
+## Runtime-backed WhatsApp session mode
+
+When `messaging.whatsapp.mode` is `session`, RocketClaw2 expects a saved local WhatsApp session profile. If none is configured, sends now fail clearly instead of silently falling back to mock semantics.

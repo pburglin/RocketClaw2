@@ -160,3 +160,5 @@
 - Add a simple persisted WhatsApp session/bootstrap model as a stepping stone toward fuller native integration.
 
 - Add QR-based WhatsApp authorization bootstrap for local session setup.
+
+- Make WhatsApp session mode use real persisted runtime state instead of mock-like fallback behavior.

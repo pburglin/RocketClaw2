@@ -93,7 +93,10 @@ node dist/src/cli.js run --profile default
 
 ## Validation
 - `npm run build` ✅
+- `npm run verify:build` ✅
 - `npm test` ✅
+
+Packaging also re-runs build verification automatically via `prepack`, so `npm pack` or publish-style flows cannot skip the canonical CLI entrypoint check.
 
 
 ## Memory roadmap
@@ -736,3 +739,8 @@ RocketClaw2 now supports a persisted local WhatsApp session profile as a steppin
 RocketClaw2 now includes a simple QR bootstrap flow for WhatsApp session authorization:
 - `rocketclaw2 whatsapp-qr` to generate a QR bootstrap token
 - `rocketclaw2 whatsapp-qr --authorize <token> --phone-number +15551234567` to persist the authorized session
+
+
+### Runtime-backed WhatsApp session mode
+
+When WhatsApp is configured in `session` mode, the plugin now requires a persisted local WhatsApp session profile and uses that runtime-backed state instead of silently behaving like mock transport.

@@ -393,3 +393,8 @@ Use `rocketclaw2 whatsapp-session` to inspect or manage the local persisted What
 ## WhatsApp QR authorization
 
 RocketClaw2 includes `whatsapp-qr` for generating and authorizing a simple QR bootstrap token used for local session setup.
+
+
+## Runtime-backed session behavior
+
+WhatsApp `session` mode now depends on a persisted local session profile. Configure the session first with `whatsapp-session` or `whatsapp-qr`, then use session mode for runtime sends/replies.

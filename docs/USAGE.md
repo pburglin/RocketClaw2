@@ -313,3 +313,8 @@ Use `rocketclaw2 harness-iterations --id <run-id>` to inspect run history at the
 ## Plan-gated autonomous execution
 
 Use `rocketclaw2 harness-run-plan --id <approved-plan-id>` to execute a previously approved plan artifact as the basis for an autonomous coding run.
+
+
+## Plan lineage
+
+Runs created through `harness-run-plan` now retain source-plan lineage via `executedPlanId`, and normal run formatting surfaces that lineage during inspection.

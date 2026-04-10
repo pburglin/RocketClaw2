@@ -154,7 +154,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 
 - Autonomous harness runs now include critic/self-reflection after validation failures, feeding root-cause hints into subsequent iterations.
 - RocketClaw2 now includes `harness-plan`, a pre-execution review gate that saves a plan artifact without writing files.
-- `harness-run` can now execute directly from a saved reviewed plan via `--id <plan-id>`.
+- Approved harness plans can now be executed directly via `harness-run-plan --id <plan-id>`.
 - Harness plans now carry explicit approval state (`draft` or `approved`), and operators can enforce approval before execution.
 - Harness plan approvals can now be linked into the shared approval queue for unified operator review.
 - Harness artifact inspection now supports filtering by artifact kind, approval state, and success/failure posture, plus compact summaries.
@@ -168,3 +168,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Harness inspection now includes first-class iteration-level views for latest-only, failed-only, specific-iteration, and guidance-inclusive inspection.
 
 - RocketClaw2 now supports plan-gated harness execution via `harness-run-plan`, so approved plans can directly drive autonomous runs.
+
+- Executed harness runs now carry explicit source-plan lineage, so inspection can show which approved plan drove a given autonomous run.

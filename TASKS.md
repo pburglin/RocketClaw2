@@ -140,3 +140,5 @@
 - Improve harness operator UX with iteration-focused inspection views.
 
 - Add explicit plan-gated execution so approved plans can be run directly as autonomous coding runs.
+
+- Preserve source-plan lineage in executed harness run artifacts and views.

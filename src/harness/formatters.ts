@@ -82,6 +82,7 @@ export function formatCodingHarnessResult(result: CodingHarnessResult): string {
     `Last validation stderr: ${result.lastValidationStderr || 'n/a'}`,
     `Validate command: ${result.validateCommand || 'n/a'}`,
     `Run ID: ${result.runId || 'n/a'}`,
+    `Executed plan: ${result.executedPlanId || 'n/a'}`,
     `Artifact: ${result.artifactPath || 'n/a'}`,
   ].join('\n');
 }

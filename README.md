@@ -669,3 +669,8 @@ RocketClaw2 also supports iteration-specific inspection with `harness-iterations
 ### Plan-gated autonomous execution
 
 RocketClaw2 now supports executing an approved harness plan artifact directly with `harness-run-plan`. This makes the autonomous coding flow more governed: plan first, approve, then execute that approved plan.
+
+
+### Plan lineage in run artifacts
+
+Runs launched from approved plans now carry explicit `executedPlanId` lineage so inspection clearly shows which reviewed plan drove each autonomous execution.

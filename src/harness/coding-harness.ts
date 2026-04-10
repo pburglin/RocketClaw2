@@ -23,6 +23,7 @@ export type CodingHarnessResult = {
   runId?: string;
   artifactPath?: string;
   resumedFrom?: string;
+  executedPlanId?: string;
 };
 
 interface FileEdit {

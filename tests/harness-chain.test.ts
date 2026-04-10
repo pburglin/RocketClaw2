@@ -45,13 +45,27 @@ describe('harness chain', () => {
       runId: 'run-2',
     }, root, 'run-2');
 
+    await saveHarnessRun({
+      ok: true,
+      workspace: '/tmp/demo',
+      task: 'ship feature',
+      iterations: 1,
+      lastGuidance: 'resume again',
+      lastValidationStdout: 'ok',
+      lastValidationStderr: '',
+      validateCommand: 'npm test',
+      resumedFrom: 'run-2',
+      runId: 'run-3',
+    }, root, 'run-3');
+
     const chain = await buildHarnessChain('run-1', root);
     expect(chain.plan?.runId).toBe('plan-1');
-    expect(chain.resumes).toHaveLength(1);
+    expect(chain.resumes).toHaveLength(2);
 
     const text = formatHarnessChain(chain);
     expect(text).toContain('Plan: plan-1');
-    expect(text).toContain('Resume ids: run-2');
+    expect(text).toContain('run-2<=run-1');
+    expect(text).toContain('run-3<=run-2');
 
     await fs.rm(root, { recursive: true, force: true });
   });

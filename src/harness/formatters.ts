@@ -60,7 +60,9 @@ export function formatHarnessChain(chain: { root: Record<string, unknown>; plan:
     `Task: ${String(root.task ?? 'n/a')}`,
     `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
     `Resumes: ${chain.resumes.length}`,
-    chain.resumes.length > 0 ? `Resume ids: ${chain.resumes.map((item) => String(item.runId)).join(', ')}` : 'Resume ids: n/a',
+    chain.resumes.length > 0
+      ? `Resume ids: ${chain.resumes.map((item) => `${String(item.runId)}${item.resumedFrom ? `<=${String(item.resumedFrom)}` : ''}`).join(', ')}`
+      : 'Resume ids: n/a',
     `Next: ${describeHarnessNextStep(root)}`,
   ].join('\n');
 }

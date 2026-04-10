@@ -68,7 +68,23 @@ export async function buildHarnessChain(
   const all = await loadHarnessRuns(root);
   const executedPlanId = typeof rootArtifact.executedPlanId === 'string' ? rootArtifact.executedPlanId : null;
   const plan = executedPlanId ? (all.find((item) => String(item.runId) === executedPlanId) ?? null) : (rootArtifact.kind === 'plan' ? rootArtifact : null);
-  const resumes = all.filter((item) => String(item.resumedFrom ?? '') === String(rootArtifact.runId));
+
+  const queue = [String(rootArtifact.runId ?? '')];
+  const seen = new Set<string>();
+  const resumes: Record<string, unknown>[] = [];
+  while (queue.length > 0) {
+    const parentId = queue.shift()!;
+    for (const item of all) {
+      const resumedFrom = String(item.resumedFrom ?? '');
+      const runId = String(item.runId ?? '');
+      if (resumedFrom === parentId && runId && !seen.has(runId)) {
+        seen.add(runId);
+        resumes.push(item);
+        queue.push(runId);
+      }
+    }
+  }
+
   return { root: rootArtifact, plan, resumes };
 }
 

@@ -367,3 +367,8 @@ When an inbound WhatsApp message matches a supported dispatcher command, RocketC
 2. bridges it into a session
 3. dispatches a runtime action
 4. sends a WhatsApp reply back to the sender
+
+
+## Interactive harness progress
+
+`harness-run` now emits concise progress points during each iteration so operators can see live execution progress instead of waiting only for the final report.

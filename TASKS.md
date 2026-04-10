@@ -152,3 +152,5 @@
 - Add inbound WhatsApp action dispatch so messages can trigger runtime actions/events.
 
 - Add outbound auto-reply for dispatched inbound WhatsApp actions.
+
+- Improve harness UX with live progress milestones during iterations.

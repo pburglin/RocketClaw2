@@ -183,3 +183,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Inbound WhatsApp messages can now trigger a first safe action surface, including workspace status and next-actions dispatch.
 
 - Inbound WhatsApp commands now support an end-to-end action-response loop, including automatic outbound replies through the configured WhatsApp plugin.
+
+- `harness-run` now emits concise live progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result.

@@ -216,6 +216,7 @@ export async function replayHarnessValidation(
 export async function runCodingHarness(
   config: AppConfig,
   input: { workspace: string; task: string; validateCommand: string; maxIterations: number },
+  onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
 ): Promise<CodingHarnessResult> {
   let lastGuidance = '';
   let lastCriticInsight = '';
@@ -227,7 +228,9 @@ export async function runCodingHarness(
   const runId = `run-${Date.now()}`;
 
   for (let i = 1; i <= input.maxIterations; i += 1) {
+    onProgress?.({ iteration: i, stage: 'iteration-start', message: `Starting iteration ${i}` });
     const workspaceContext = await scanWorkspace(input.workspace);
+    onProgress?.({ iteration: i, stage: 'llm-request', message: 'Requesting implementation guidance' });
     lastGuidance = await runLlmQuery(
       config,
       [
@@ -250,21 +253,26 @@ export async function runCodingHarness(
       ].filter(Boolean).join('\n'),
     );
 
+    onProgress?.({ iteration: i, stage: 'llm-response', message: 'Received implementation guidance' });
     const edits = extractCodeBlocks(lastGuidance);
     const { created, modified } = edits.length > 0
       ? await applyEdits(input.workspace, edits)
       : { created: [], modified: [] };
+    onProgress?.({ iteration: i, stage: 'files-written', message: `Applied changes, created=${created.length}, modified=${modified.length}` });
 
     let ok = false;
+    onProgress?.({ iteration: i, stage: 'validation-start', message: `Running validation: ${input.validateCommand}` });
     try {
       const { stdout, stderr } = await exec(input.validateCommand, { cwd: input.workspace });
       lastValidationStdout = stdout.trim();
       lastValidationStderr = stderr.trim();
       ok = true;
+      onProgress?.({ iteration: i, stage: 'validation-passed', message: 'Validation passed' });
     } catch (error) {
       const err = error as { stdout?: string; stderr?: string; message?: string };
       lastValidationStdout = (err.stdout ?? '').trim();
       lastValidationStderr = (err.stderr ?? err.message ?? '').trim();
+      onProgress?.({ iteration: i, stage: 'validation-failed', message: 'Validation failed, analyzing cause' });
       lastCriticInsight = await buildCriticInsight(config, {
         task: input.task,
         workspace: input.workspace,

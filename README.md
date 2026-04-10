@@ -712,3 +712,8 @@ The listener returns structured dispatch results, making inbound messages action
 ### WhatsApp action-response loop
 
 Inbound WhatsApp commands can now trigger runtime actions and automatically send a WhatsApp reply through the configured channel plugin. This closes the loop from inbound event to action to outbound response.
+
+
+### Interactive harness progress
+
+`harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. This makes long-running autonomous work inspectable while it is happening, not just at the end.

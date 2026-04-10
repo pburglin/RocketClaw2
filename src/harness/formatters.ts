@@ -53,6 +53,18 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
   ].join('\n');
 }
 
+export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[] }): string {
+  const root = chain.root;
+  return [
+    `Root: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
+    `Task: ${String(root.task ?? 'n/a')}`,
+    `Plan: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    `Resumes: ${chain.resumes.length}`,
+    chain.resumes.length > 0 ? `Resume ids: ${chain.resumes.map((item) => String(item.runId)).join(', ')}` : 'Resume ids: n/a',
+    `Next: ${describeHarnessNextStep(root)}`,
+  ].join('\n');
+}
+
 export function formatHarnessLineageView(item: Record<string, unknown>): string {
   return [
     `Run ID: ${String(item.runId ?? 'n/a')}`,

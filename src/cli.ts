@@ -38,8 +38,8 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness, runCodingHarnessFromPlan } from './harness/coding-harness.js';
-import { formatCodingHarnessResult, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessLineageView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
-import { approveHarnessPlan, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
+import { formatCodingHarnessResult, formatHarnessChain, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessLineageView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
+import { approveHarnessPlan, buildHarnessChain, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { loadIterationEntries } from './harness/iteration-store.js';
 import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
@@ -561,6 +561,16 @@ program
       const { lastGuidance, planText, ...summary } = run as any;
       console.log(JSON.stringify(summary, null, 2));
     }
+  });
+
+program
+  .command('harness-chain')
+  .description('Show a consolidated chain view for a harness artifact, related plan, and resumes')
+  .requiredOption('--id <id>', 'harness artifact id')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const chain = await buildHarnessChain(options.id);
+    console.log(options.json ? JSON.stringify(chain, null, 2) : formatHarnessChain(chain));
   });
 
 program

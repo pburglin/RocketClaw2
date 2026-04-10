@@ -57,6 +57,21 @@ export async function loadHarnessRunnableInput(
   return { workspace, task, validateCommand, approvalStatus };
 }
 
+export async function buildHarnessChain(
+  artifactId: string,
+  root = getDefaultProjectRoot(),
+): Promise<{ root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[] }> {
+  const rootArtifact = await loadHarnessRun(artifactId, root);
+  if (!rootArtifact) {
+    throw new Error(`Harness artifact not found: ${artifactId}`);
+  }
+  const all = await loadHarnessRuns(root);
+  const executedPlanId = typeof rootArtifact.executedPlanId === 'string' ? rootArtifact.executedPlanId : null;
+  const plan = executedPlanId ? (all.find((item) => String(item.runId) === executedPlanId) ?? null) : (rootArtifact.kind === 'plan' ? rootArtifact : null);
+  const resumes = all.filter((item) => String(item.resumedFrom ?? '') === String(rootArtifact.runId));
+  return { root: rootArtifact, plan, resumes };
+}
+
 export async function approveHarnessPlan(
   runId: string,
   root = getDefaultProjectRoot(),

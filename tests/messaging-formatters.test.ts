@@ -9,6 +9,7 @@ describe('formatMessagingSummary', () => {
         mode: 'webhook',
         webhookUrl: 'https://example.com/hook',
         defaultRecipient: '+15551234567',
+        selfChatOnly: true,
       },
     }, {
       whatsappSession: {

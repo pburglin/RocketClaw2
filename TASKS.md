@@ -175,3 +175,5 @@
 - Add native WhatsApp transport foundation with self-chat-only default policy.
 
 - Add native inbound receive loop with self-chat-only enforcement before session bridge/dispatch.
+
+- Make native session mode the default inbound listener path for WhatsApp events.

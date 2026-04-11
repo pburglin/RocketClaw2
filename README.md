@@ -765,7 +765,13 @@ RocketClaw2 now includes a simple QR bootstrap flow for WhatsApp session authori
 
 WhatsApp session inspection is now more operator-friendly: `whatsapp-session` defaults to a readable status view with a masked token and last-used timestamp, while `--json` preserves raw output when needed.
 
-Inbound WhatsApp command handling now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, and `help`, giving the runtime a small but useful operator command surface over chat.
+Inbound WhatsApp command handling now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, `tools`, and `help`, giving the runtime a small but useful operator command surface over chat.
+
+WhatsApp session transport is now less stubby too: session-mode sends go through the native-session transport path, include the configured session identity, and persist outbound entries into a local native outbox instead of disappearing after send.
+
+By default, session-mode stays self-chat-only on outbound sends as well. Sending to external recipients now requires explicitly disabling `selfChatOnly` in config.
+
+That outbox is now inspectable through `rocketclaw2 whatsapp-outbox`.
 
 
 When WhatsApp is configured in `session` mode, the plugin now requires a persisted local WhatsApp session profile and uses that runtime-backed state instead of silently behaving like mock transport.
@@ -789,3 +795,8 @@ RocketClaw2 now defines an explicit native message transport interface and a Wha
 ### Native inbound receive loop
 
 RocketClaw2 now includes a native inbound receive loop processor for WhatsApp that applies self-chat-only filtering before session bridging and dispatch. This is the first native transport-level inbound gate.
+
+
+### Native session mode is now the default inbound path
+
+When WhatsApp is configured in `session` mode, the local webhook listener now routes inbound events through the native inbound processor by default, including self-chat-only filtering before session bridging and dispatch.

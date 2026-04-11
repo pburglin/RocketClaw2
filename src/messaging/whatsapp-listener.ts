@@ -5,6 +5,9 @@ import { getDefaultProjectRoot } from '../config/app-paths.js';
 import { ingestWhatsAppInboundToSession } from './whatsapp-session-bridge.js';
 import { dispatchWhatsAppInbound } from './whatsapp-dispatcher.js';
 import { sendWhatsAppAutoReply } from './whatsapp-auto-reply.js';
+import { processNativeWhatsAppInbound } from './whatsapp-native-inbound.js';
+import { WhatsAppNativeTransport } from './whatsapp-native.js';
+import { loadAppConfig } from '../tools/config-store.js';
 
 export type WhatsAppInboundEvent = {
   type: 'message';
@@ -59,12 +62,27 @@ export async function startWhatsAppWebhookListener(input?: { port?: number; root
         raw: payload,
       };
       await appendWhatsAppInbound(event, root);
+      const config = await loadAppConfig(root);
+      if (config.messaging.whatsapp.mode === 'session') {
+        const native = new WhatsAppNativeTransport({
+          selfChatOnly: config.messaging.whatsapp.selfChatOnly,
+          ownPhoneNumber: config.messaging.whatsapp.ownPhoneNumber,
+        });
+        const result = await processNativeWhatsAppInbound(native, event, root);
+        const reply = result.accepted && result.dispatched?.matched && result.dispatched.replyText
+          ? await sendWhatsAppAutoReply({ to: event.from, text: result.dispatched.replyText }, root)
+          : null;
+        res.statusCode = 200;
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ ok: true, native: true, result, autoReply: reply }));
+        return;
+      }
       const session = await ingestWhatsAppInboundToSession(event, root);
       const dispatched = await dispatchWhatsAppInbound(event, root);
       const reply = dispatched.matched && dispatched.replyText ? await sendWhatsAppAutoReply({ to: event.from, text: dispatched.replyText }, root) : null;
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
-      res.end(JSON.stringify({ ok: true, sessionId: session.sessionId, createdSession: session.created, dispatched, autoReply: reply }));
+      res.end(JSON.stringify({ ok: true, native: false, sessionId: session.sessionId, createdSession: session.created, dispatched, autoReply: reply }));
     } catch (error) {
       res.statusCode = 400;
       res.setHeader('content-type', 'application/json');

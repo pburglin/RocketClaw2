@@ -352,6 +352,8 @@ Start a local inbound webhook listener:
 Inspect received inbound events:
 - `rocketclaw2 whatsapp-inbox`
 - `rocketclaw2 whatsapp-inbox --json`
+- `rocketclaw2 whatsapp-outbox`
+- `rocketclaw2 whatsapp-outbox --json`
 
 
 ## WhatsApp event-to-session bridge
@@ -401,12 +403,23 @@ Use `rocketclaw2 whatsapp-session` to inspect or manage the local persisted What
 
 By default this now prints a readable status summary with masked token and last-used time. Add `--json` when you want the raw stored profile.
 
+You can also configure native-session behavior directly with:
+- `rocketclaw2 whatsapp-config --mode session --own-phone-number +15551234567`
+- `rocketclaw2 whatsapp-config --self-chat-only true`
+- `rocketclaw2 whatsapp-config --self-chat-only false` (only if you intentionally want external outbound sends)
+
 
 ## WhatsApp QR authorization
 
 RocketClaw2 includes `whatsapp-qr` for generating and authorizing a simple QR bootstrap token used for local session setup.
 
-Inbound WhatsApp command dispatch now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, and `help`, so basic operator triage can happen directly from a chat thread.
+Inbound WhatsApp command dispatch now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, `tools`, and `help`, so basic operator triage can happen directly from a chat thread.
+
+WhatsApp `session` mode now routes sends through the native-session transport helper, so the runtime reflects the persisted session identity more realistically than the earlier plain stub response.
+
+By default, session-mode sends remain self-chat-only. External recipients are rejected unless `selfChatOnly` is explicitly disabled in config.
+
+Those native-session sends are also persisted to a local WhatsApp native outbox, giving session-mode transport an inspectable outbound trail via `rocketclaw2 whatsapp-outbox`.
 
 
 ## Runtime-backed session behavior
@@ -430,3 +443,8 @@ The native WhatsApp subsystem now has an inbound receive processor that:
 - evaluates self-chat-only policy first
 - only then bridges accepted events into sessions
 - then runs dispatcher logic
+
+
+## Native-default inbound routing
+
+When `messaging.whatsapp.mode` is `session`, `whatsapp-listen` now uses the native inbound processor path by default. This means self-chat-only filtering happens before messages are bridged into sessions or dispatched.

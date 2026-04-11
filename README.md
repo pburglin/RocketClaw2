@@ -765,7 +765,7 @@ RocketClaw2 now includes a simple QR bootstrap flow for WhatsApp session authori
 
 WhatsApp session inspection is now more operator-friendly: `whatsapp-session` defaults to a readable status view with a masked token and last-used timestamp, while `--json` preserves raw output when needed.
 
-Inbound WhatsApp command handling now supports `status`, `doctor`, `next-actions`, and `help`, giving the runtime a small but useful operator command surface over chat.
+Inbound WhatsApp command handling now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, and `help`, giving the runtime a small but useful operator command surface over chat.
 
 
 When WhatsApp is configured in `session` mode, the plugin now requires a persisted local WhatsApp session profile and uses that runtime-backed state instead of silently behaving like mock transport.
@@ -784,3 +784,8 @@ This is the base layer for fuller native WhatsApp transport behavior.
 ### Native transport interface
 
 RocketClaw2 now defines an explicit native message transport interface and a WhatsApp native transport implementation scaffold. This turns native WhatsApp support into a real subsystem instead of a loose collection of helpers.
+
+
+### Native inbound receive loop
+
+RocketClaw2 now includes a native inbound receive loop processor for WhatsApp that applies self-chat-only filtering before session bridging and dispatch. This is the first native transport-level inbound gate.

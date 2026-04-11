@@ -198,7 +198,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 
 - RocketClaw2 now includes a persisted local WhatsApp session profile model, allowing local token/session bootstrap storage as a stepping stone toward fuller native integration.
 - WhatsApp session inspection now has a readable operator view with masked token and last-used timestamp, and session-mode sends now update persisted `lastUsedAt` state so runtime activity is visible.
-- Inbound WhatsApp dispatch now supports `doctor` and `help` in addition to status/next-actions, and the dispatcher now evaluates commands against the active runtime root so chat replies reflect the correct local state.
+- Inbound WhatsApp dispatch now supports `doctor`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, and `help` in addition to status/next-actions, and the dispatcher now evaluates commands against the active runtime root so chat replies reflect the correct local state.
 - Build hygiene now clears `dist/` before TypeScript compilation so stale legacy CLI artifacts do not shadow the real `dist/src/cli.js` entrypoint, and demo docs now use the canonical built path.
 - Release verification now includes a dedicated `verify:build` script that checks the published bin target, confirms stale `dist/cli.js` is absent, and asserts the built CLI help still exposes key modern commands.
 - Packaging workflows now enforce that safeguard automatically through `prepack`, so `npm pack` and publish-style flows cannot bypass build verification.
@@ -216,3 +216,5 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 
 - RocketClaw2 now includes a native WhatsApp transport foundation layer with runtime session readiness checks, self-chat-only default filtering, and a native-session send abstraction.
 - Native WhatsApp transport is now being developed as an explicit subsystem with staged subtasks: transport interface, QR/session auth, inbound receive loop, self-chat-only filtering, outbound native send/reply, and docs/tests/packaging hardening.
+
+- RocketClaw2 now includes a native WhatsApp inbound receive processor that enforces self-chat-only policy before session bridging and action dispatch.

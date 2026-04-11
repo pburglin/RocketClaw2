@@ -406,7 +406,7 @@ By default this now prints a readable status summary with masked token and last-
 
 RocketClaw2 includes `whatsapp-qr` for generating and authorizing a simple QR bootstrap token used for local session setup.
 
-Inbound WhatsApp command dispatch now supports `status`, `doctor`, `next-actions`, and `help`, so basic operator triage can happen directly from a chat thread.
+Inbound WhatsApp command dispatch now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, and `help`, so basic operator triage can happen directly from a chat thread.
 
 
 ## Runtime-backed session behavior
@@ -422,3 +422,11 @@ RocketClaw2 now has a native WhatsApp foundation layer that uses the persisted s
 ## Native transport foundation
 
 RocketClaw2 now includes an explicit native message transport interface plus a WhatsApp native transport implementation scaffold as the basis for fuller native integration.
+
+
+## Native inbound receive loop
+
+The native WhatsApp subsystem now has an inbound receive processor that:
+- evaluates self-chat-only policy first
+- only then bridges accepted events into sessions
+- then runs dispatcher logic

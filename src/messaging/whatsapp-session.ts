@@ -7,6 +7,7 @@ export type WhatsAppSessionProfile = {
   token: string;
   phoneNumber?: string;
   createdAt: string;
+  lastUsedAt?: string;
 };
 
 function getWhatsAppSessionPath(root = getDefaultProjectRoot()): string {
@@ -27,6 +28,17 @@ export async function loadWhatsAppSession(root = getDefaultProjectRoot()): Promi
   } catch {
     return null;
   }
+}
+
+export async function touchWhatsAppSession(root = getDefaultProjectRoot()): Promise<WhatsAppSessionProfile | null> {
+  const current = await loadWhatsAppSession(root);
+  if (!current) return null;
+  const next: WhatsAppSessionProfile = {
+    ...current,
+    lastUsedAt: new Date().toISOString(),
+  };
+  await saveWhatsAppSession(next, root);
+  return next;
 }
 
 export async function clearWhatsAppSession(root = getDefaultProjectRoot()): Promise<void> {

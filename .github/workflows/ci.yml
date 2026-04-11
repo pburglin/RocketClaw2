@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify build output
+        run: npm run verify:build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Verify packed artifact
+        run: npm run verify:pack
+
+      - name: Create npm package tarball
+        run: npm pack --ignore-scripts
+
+      - name: Upload npm package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rocketclaw2-package
+          path: '*.tgz'
+          if-no-files-found: error

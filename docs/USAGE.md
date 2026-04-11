@@ -18,6 +18,8 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 session-list`
 - `rocketclaw2 session-list --title-contains demo`
 - `rocketclaw2 session-show --id <session-id>`
+- `rocketclaw2 session-show --id <session-id> --summary`
+- `rocketclaw2 session-show --id <session-id> --limit 5`
 - `rocketclaw2 session-append --id <session-id> --role user --text "hello"`
 - `rocketclaw2 session-stats`
 
@@ -46,6 +48,8 @@ The current chat shell is intentionally minimal. It appends user and assistant t
 
 ## Output modes
 Most inspection commands support a human-readable default format plus raw structured output when `--json` is provided.
+
+`session-show` now also supports `--summary` for a compact overview and `--limit <n>` to control how many recent messages appear in human-readable transcript mode.
 
 Examples:
 ```bash
@@ -160,15 +164,21 @@ Approval list and summary views now surface recommended next steps directly in t
 - `rocketclaw2 doctor`
 - `rocketclaw2 doctor --json`
 
+`doctor` now checks runtime readiness too, including whether WhatsApp session mode has actually been bootstrapped and whether the workspace has any real session activity yet.
+
 ## Recommended next actions
 
 - `rocketclaw2 next-actions`
 - `rocketclaw2 next-actions --json`
 
+`next-actions` now considers runtime state too, not just static config. For example, it can point out missing WhatsApp session bootstrap when session mode is enabled, or suggest creating a first session when none exist yet.
+
 ## Workspace status
 
 - `rocketclaw2 workspace-status`
 - `rocketclaw2 workspace-status --json`
+
+`workspace-status` now includes richer messaging and session signals, including WhatsApp mode/default recipient/session state plus total message count and latest session activity.
 
 ## Session-scoped LLM overrides
 
@@ -389,12 +399,26 @@ This prevents long-running commands like `npm run dev` from hanging the CLI fore
 
 Use `rocketclaw2 whatsapp-session` to inspect or manage the local persisted WhatsApp session profile used by RocketClaw2.
 
+By default this now prints a readable status summary with masked token and last-used time. Add `--json` when you want the raw stored profile.
+
 
 ## WhatsApp QR authorization
 
 RocketClaw2 includes `whatsapp-qr` for generating and authorizing a simple QR bootstrap token used for local session setup.
 
+Inbound WhatsApp command dispatch now supports `status`, `doctor`, `next-actions`, and `help`, so basic operator triage can happen directly from a chat thread.
+
 
 ## Runtime-backed session behavior
 
 WhatsApp `session` mode now depends on a persisted local session profile. Configure the session first with `whatsapp-session` or `whatsapp-qr`, then use session mode for runtime sends/replies.
+
+
+## Native WhatsApp foundation
+
+RocketClaw2 now has a native WhatsApp foundation layer that uses the persisted session profile and enforces self-chat-only policy by default.
+
+
+## Native transport foundation
+
+RocketClaw2 now includes an explicit native message transport interface plus a WhatsApp native transport implementation scaffold as the basis for fuller native integration.

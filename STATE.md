@@ -63,6 +63,10 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - CLI operator ergonomics improved with human-readable session and memory inspection output.
 
 - Operator CLI now includes session stats and title filtering for faster inspection workflows.
+- `session-show` now supports compact overview mode and adjustable transcript length, so longer sessions can be inspected without dumping the default last-10 transcript every time.
+- `workspace-status` now surfaces richer operator signals, including WhatsApp mode/default recipient/session activity plus total message count and latest session update.
+- `next-actions` is now runtime-aware, surfacing operational gaps like missing WhatsApp session bootstrap in session mode and the lack of any created sessions, not just static config warnings.
+- `doctor` now includes runtime readiness checks for WhatsApp session bootstrap and real session activity, so it can flag incomplete setup beyond static config validity.
 
 - RocketClaw2 now has a configurable core tool catalog and access policy model with safe defaults and risk posture descriptions.
 
@@ -193,10 +197,22 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Harness validation now uses a timeout by default, preventing long-running commands like dev servers from wedging the CLI indefinitely.
 
 - RocketClaw2 now includes a persisted local WhatsApp session profile model, allowing local token/session bootstrap storage as a stepping stone toward fuller native integration.
+- WhatsApp session inspection now has a readable operator view with masked token and last-used timestamp, and session-mode sends now update persisted `lastUsedAt` state so runtime activity is visible.
+- Inbound WhatsApp dispatch now supports `doctor` and `help` in addition to status/next-actions, and the dispatcher now evaluates commands against the active runtime root so chat replies reflect the correct local state.
 - Build hygiene now clears `dist/` before TypeScript compilation so stale legacy CLI artifacts do not shadow the real `dist/src/cli.js` entrypoint, and demo docs now use the canonical built path.
 - Release verification now includes a dedicated `verify:build` script that checks the published bin target, confirms stale `dist/cli.js` is absent, and asserts the built CLI help still exposes key modern commands.
 - Packaging workflows now enforce that safeguard automatically through `prepack`, so `npm pack` and publish-style flows cannot bypass build verification.
+- GitHub Actions CI now enforces the same core quality gate on every push and pull request by running install, lint, build, build verification, tests, and packed-artifact verification on Node 22.
+- The npm package manifest now explicitly whitelists built artifacts and docs, and `verify:pack` checks that the dry-run tarball includes the canonical CLI while excluding raw `src/` and `tests/` trees.
+- CI now also creates the packed `.tgz` artifact and uploads it, making the exact publishable package inspectable from every run instead of relying only on log output.
+- Package whitelisting is now narrowed to `dist/src/**` plus docs, and pack verification rejects compiled test output like `dist/tests/**` so the published tarball stays runtime-only.
+- TypeScript config is now split so production builds compile only `src/**` via `tsconfig.build.json`, while full-project typechecking still covers tests through the main `tsconfig.json`.
+- Publish-time protection now includes a `prepublishOnly` guard that re-runs build and tarball verification, so future npm publish flows cannot bypass the packaging checks.
+- RocketClaw2 now includes a dedicated tag-triggered release workflow that re-runs the full quality gate, uploads the verified package artifact, and only attempts npm publish when `NPM_TOKEN` is configured.
 
 - RocketClaw2 now includes a simple QR-based WhatsApp authorization bootstrap flow for local session setup.
 
 - WhatsApp `session` mode now requires a persisted local session profile and no longer silently behaves like mock transport.
+
+- RocketClaw2 now includes a native WhatsApp transport foundation layer with runtime session readiness checks, self-chat-only default filtering, and a native-session send abstraction.
+- Native WhatsApp transport is now being developed as an explicit subsystem with staged subtasks: transport interface, QR/session auth, inbound receive loop, self-chat-only filtering, outbound native send/reply, and docs/tests/packaging hardening.

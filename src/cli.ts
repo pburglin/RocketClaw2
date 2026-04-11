@@ -25,6 +25,7 @@ import { clearWhatsAppSession, loadWhatsAppSession, saveWhatsAppSession } from '
 import { authorizeWhatsAppQrToken, createWhatsAppQrSession } from './messaging/whatsapp-qr.js';
 import { listWhatsAppInbound, startWhatsAppWebhookListener } from './messaging/whatsapp-listener.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
+import { formatWhatsAppSessionProfile } from './messaging/session-formatters.js';
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
@@ -53,7 +54,7 @@ import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImport
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
 import { loadImportedSkills } from './skills/store.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
-import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
+import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionOverview, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
 import { getSessionStats } from './sessions/stats.js';
 import { runChatSession } from './commands/chat.js';
@@ -409,6 +410,8 @@ program
   .description('Show a persistent session')
   .requiredOption('--id <id>', 'session id')
   .option('--json', 'output raw JSON')
+  .option('--limit <n>', 'show only the last n messages in human-readable mode', '10')
+  .option('--summary', 'show compact session overview instead of message transcript')
   .action(async (options) => {
     const session = await loadSession(options.id);
     if (!session) {
@@ -416,7 +419,16 @@ program
       process.exitCode = 1;
       return;
     }
-    console.log(options.json ? JSON.stringify(session, null, 2) : formatSessionDetail(session));
+    if (options.json) {
+      console.log(JSON.stringify(session, null, 2));
+      return;
+    }
+    if (options.summary) {
+      console.log(formatSessionOverview(session));
+      return;
+    }
+    const limit = Math.max(0, Number(options.limit ?? 10));
+    console.log(formatSessionDetail(session, { limit }));
   });
 
 program
@@ -456,6 +468,7 @@ program
   .option('--set-token <token>', 'persist a local WhatsApp session token')
   .option('--phone-number <number>', 'associate a phone number with the local session')
   .option('--clear', 'clear the persisted WhatsApp session profile')
+  .option('--json', 'output raw JSON')
   .action(async (options) => {
     if (options.clear) {
       await clearWhatsAppSession();
@@ -473,7 +486,7 @@ program
       return;
     }
     const session = await loadWhatsAppSession();
-    console.log(JSON.stringify(session, null, 2));
+    console.log(options.json ? JSON.stringify(session, null, 2) : formatWhatsAppSessionProfile(session));
   });
 
 program
@@ -502,7 +515,8 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options) => {
     const config = await loadAppConfig();
-    console.log(options.json ? JSON.stringify(config.messaging, null, 2) : formatMessagingSummary(config.messaging));
+    const session = await loadWhatsAppSession();
+    console.log(options.json ? JSON.stringify(config.messaging, null, 2) : formatMessagingSummary(config.messaging, { whatsappSession: session }));
   });
 
 program
@@ -1132,9 +1146,10 @@ program
 program
   .command('doctor')
   .description('Print basic runtime diagnostics')
-  .action(async () => {
-    const summary = await getRuntimeSummary();
-    console.log(JSON.stringify(summary, null, 2));
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const report = await runDoctorChecks();
+    console.log(options.json ? JSON.stringify(report, null, 2) : formatDoctorReport(report));
   });
 
 program

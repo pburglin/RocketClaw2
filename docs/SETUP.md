@@ -48,6 +48,18 @@ npm link
 
 Packaging now also runs build verification automatically through `prepack`, so `npm pack` and publish-style workflows re-check the canonical CLI entrypoint before shipping.
 
+GitHub Actions CI also runs `npm ci`, `npm run lint`, `npm run build`, `npm run verify:build`, `npm test`, and `npm run verify:pack` on every push and pull request.
+
+CI additionally creates an `npm pack --ignore-scripts` tarball and uploads it as a workflow artifact for direct inspection.
+
+Published package contents are now constrained through the `files` manifest in `package.json`, so the npm tarball ships runtime build output from `dist/src/**` plus docs instead of raw source, test trees, or compiled test artifacts.
+
+Production compilation now uses `tsconfig.build.json` so `npm run build` emits only runtime code, while `npm run lint` still typechecks both `src/` and `tests/` through the main `tsconfig.json`.
+
+If publishing is enabled later, `prepublishOnly` now re-runs build and pack verification so publish-time flows inherit the same safeguards as CI and prepack.
+
+There is also now a tag-triggered GitHub Actions release workflow for `v*` tags. It reruns lint, build, tests, build verification, and pack verification, uploads the `.tgz` artifact, and publishes only when `NPM_TOKEN` is present.
+
 If you do not want to link globally, run commands with:
 ```bash
 node dist/src/cli.js doctor
@@ -172,3 +184,8 @@ This is a lightweight bootstrap model that stores the authorized session locally
 ## Runtime-backed WhatsApp session mode
 
 When `messaging.whatsapp.mode` is `session`, RocketClaw2 expects a saved local WhatsApp session profile. If none is configured, sends now fail clearly instead of silently falling back to mock semantics.
+
+
+## Native WhatsApp transport foundation
+
+RocketClaw2 now includes a native WhatsApp transport foundation layer. By default, inbound handling should be treated as self-chat-only unless explicitly configured otherwise.

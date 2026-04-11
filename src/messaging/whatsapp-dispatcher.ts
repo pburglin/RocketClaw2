@@ -1,5 +1,7 @@
+import { formatDoctorReport, runDoctorChecks } from '../core/doctor.js';
 import { getRecommendedNextActions } from '../core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from '../core/workspace-status.js';
+import { getDefaultProjectRoot } from '../config/app-paths.js';
 import type { WhatsAppInboundEvent } from './whatsapp-listener.js';
 
 export type WhatsAppDispatchResult = {
@@ -8,11 +10,32 @@ export type WhatsAppDispatchResult = {
   replyText?: string;
 };
 
-export async function dispatchWhatsAppInbound(event: WhatsAppInboundEvent): Promise<WhatsAppDispatchResult> {
+function buildHelpText(): string {
+  return [
+    'RocketClaw2 WhatsApp commands:',
+    '- status',
+    '- doctor',
+    '- next-actions',
+    '- help',
+  ].join('\n');
+}
+
+export async function dispatchWhatsAppInbound(
+  event: WhatsAppInboundEvent,
+  root = getDefaultProjectRoot(),
+): Promise<WhatsAppDispatchResult> {
   const text = event.text.trim();
 
+  if (/^(help|commands)$/i.test(text)) {
+    return {
+      matched: true,
+      command: 'help',
+      replyText: buildHelpText(),
+    };
+  }
+
   if (/^(status|workspace-status)$/i.test(text)) {
-    const status = await buildWorkspaceStatus();
+    const status = await buildWorkspaceStatus(root);
     return {
       matched: true,
       command: 'workspace-status',
@@ -20,8 +43,17 @@ export async function dispatchWhatsAppInbound(event: WhatsAppInboundEvent): Prom
     };
   }
 
+  if (/^(doctor)$/i.test(text)) {
+    const report = await runDoctorChecks(root);
+    return {
+      matched: true,
+      command: 'doctor',
+      replyText: formatDoctorReport(report),
+    };
+  }
+
   if (/^(next|next-actions)$/i.test(text)) {
-    const actions = await getRecommendedNextActions();
+    const actions = await getRecommendedNextActions(root);
     return {
       matched: true,
       command: 'next-actions',

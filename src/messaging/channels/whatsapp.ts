@@ -1,5 +1,5 @@
 import type { MessageChannelPlugin, MessageSendRequest, MessageSendResult } from '../types.js';
-import { loadWhatsAppSession } from '../whatsapp-session.js';
+import { loadWhatsAppSession, touchWhatsAppSession } from '../whatsapp-session.js';
 
 export type WhatsAppPluginOptions = {
   mode?: 'mock' | 'webhook' | 'session';
@@ -33,12 +33,13 @@ export class WhatsAppChannelPlugin implements MessageChannelPlugin {
       if (!session || !session.token) {
         throw new Error('WhatsApp session mode is enabled but no local WhatsApp session profile is configured');
       }
+      const touched = await touchWhatsAppSession(this.options.root);
       return {
         ok: true,
         channel: this.id,
         to: request.to,
         transportId: `session-whatsapp-${Date.now()}`,
-        detail: `session:${session.phoneNumber ?? 'unknown'}:${request.text}`,
+        detail: `session:${session.phoneNumber ?? 'unknown'}:${request.text}:lastUsed=${touched?.lastUsedAt ?? 'unknown'}`,
       };
     }
 

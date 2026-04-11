@@ -4,6 +4,15 @@
 - Build interactive runtime, retrieval, and memory workflows on top of the TypeScript foundation.
 - Expand messaging plugins and channel integrations, starting with WhatsApp.
 - Keep docs, demos, diagrams, and roadmap aligned with shipped functionality.
+- Build a native WhatsApp transport subsystem with self-chat-only default behavior.
+
+### Native WhatsApp Transport Subtasks
+1. Transport interface + native WhatsApp runtime module
+2. QR pairing/login and credential/session persistence
+3. Inbound message subscription / receive loop
+4. Self-chat-only filter by default
+5. Outbound send and reply through the native session
+6. Docs, tests, and packaging/release validation
 
 ## Next
 - Improve retrieval quality with salience scoring and semantic summaries.
@@ -162,3 +171,5 @@
 - Add QR-based WhatsApp authorization bootstrap for local session setup.
 
 - Make WhatsApp session mode use real persisted runtime state instead of mock-like fallback behavior.
+
+- Add native WhatsApp transport foundation with self-chat-only default policy.

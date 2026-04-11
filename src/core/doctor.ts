@@ -1,14 +1,20 @@
 import { loadAppConfig } from '../tools/config-store.js';
 import { loadApprovals } from '../approval/store.js';
+import { loadWhatsAppSession } from '../messaging/whatsapp-session.js';
+import { getSessionStats } from '../sessions/stats.js';
 
 export type DoctorReport = {
   ok: boolean;
   checks: Array<{ name: string; ok: boolean; detail: string }>;
 };
 
-export async function runDoctorChecks(): Promise<DoctorReport> {
-  const config = await loadAppConfig();
-  const approvals = await loadApprovals();
+export async function runDoctorChecks(root?: string): Promise<DoctorReport> {
+  const [config, approvals, whatsappSession, sessionStats] = await Promise.all([
+    loadAppConfig(root),
+    loadApprovals(root),
+    loadWhatsAppSession(root),
+    getSessionStats(root),
+  ]);
 
   const checks = [
     {
@@ -20,6 +26,20 @@ export async function runDoctorChecks(): Promise<DoctorReport> {
       name: 'whatsapp-config',
       ok: config.messaging.whatsapp.enabled ? Boolean(config.messaging.whatsapp.mode) : true,
       detail: `WhatsApp enabled=${config.messaging.whatsapp.enabled}, mode=${config.messaging.whatsapp.mode}`,
+    },
+    {
+      name: 'whatsapp-session-readiness',
+      ok: config.messaging.whatsapp.mode !== 'session' || Boolean(whatsappSession?.token),
+      detail: config.messaging.whatsapp.mode === 'session'
+        ? whatsappSession?.token
+          ? `Session configured for ${whatsappSession.phoneNumber ?? 'unknown'}; lastUsed=${whatsappSession.lastUsedAt ?? 'never'}`
+          : 'Session mode enabled but no local WhatsApp session is configured'
+        : 'Session mode not enabled',
+    },
+    {
+      name: 'session-activity',
+      ok: sessionStats.sessionCount > 0,
+      detail: `Sessions=${sessionStats.sessionCount}, messages=${sessionStats.messageCount}, latest=${sessionStats.latestUpdatedAt ?? 'n/a'}`,
     },
     {
       name: 'tool-policies',

@@ -29,4 +29,22 @@ describe('whatsapp webhook listener', () => {
     expect(items[0]?.from).toBe('+15551234567');
     expect(items[0]?.text).toBe('hello bob');
   });
+
+  it('routes doctor commands through the runtime root and returns an auto-reply payload', async () => {
+    const root = path.join(os.tmpdir(), `rocketclaw2-wa-doctor-${Date.now()}`);
+    const server = await startWhatsAppWebhookListener({ port: 8800, root });
+    servers.push(server);
+
+    const response = await fetch('http://127.0.0.1:8800/whatsapp/webhook', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ from: '+15551234567', text: 'doctor' }),
+    });
+
+    expect(response.ok).toBe(true);
+    const payload = await response.json();
+    expect(payload.dispatched.command).toBe('doctor');
+    expect(payload.dispatched.replyText).toContain('Doctor status:');
+    expect(payload.autoReply.ok).toBe(true);
+  });
 });

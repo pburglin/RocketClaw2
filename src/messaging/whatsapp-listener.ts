@@ -60,7 +60,7 @@ export async function startWhatsAppWebhookListener(input?: { port?: number; root
       };
       await appendWhatsAppInbound(event, root);
       const session = await ingestWhatsAppInboundToSession(event, root);
-      const dispatched = await dispatchWhatsAppInbound(event);
+      const dispatched = await dispatchWhatsAppInbound(event, root);
       const reply = dispatched.matched && dispatched.replyText ? await sendWhatsAppAutoReply({ to: event.from, text: dispatched.replyText }, root) : null;
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');

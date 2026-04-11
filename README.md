@@ -98,6 +98,18 @@ node dist/src/cli.js run --profile default
 
 Packaging also re-runs build verification automatically via `prepack`, so `npm pack` or publish-style flows cannot skip the canonical CLI entrypoint check.
 
+A GitHub Actions CI workflow now runs `npm ci`, `npm run lint`, `npm run build`, `npm run verify:build`, `npm test`, and `npm run verify:pack` on every push and pull request.
+
+CI also creates the `.tgz` package with `npm pack --ignore-scripts` and uploads it as a workflow artifact, so release candidates can be inspected directly from the run.
+
+The package manifest now also limits published files to runtime build output under `dist/src/**` plus docs, so raw source, test trees, and compiled test artifacts do not leak into the npm tarball.
+
+The production build now compiles from `tsconfig.build.json`, while repo-wide typechecking still uses the main `tsconfig.json`. That keeps runtime output lean without losing test coverage in `lint`.
+
+A `prepublishOnly` guard now re-runs build and pack verification before any real publish flow.
+
+A separate tag-triggered GitHub Actions release workflow now repeats the full quality gate on `v*` tags, uploads the verified tarball, and only runs `npm publish` when `NPM_TOKEN` is configured in repository secrets.
+
 
 ## Memory roadmap
 
@@ -240,6 +252,8 @@ RocketClaw2 now includes more human-readable operator views for sessions and sem
 - `rocketclaw2 session-list`
 - `rocketclaw2 session-list --title-contains "demo"`
 - `rocketclaw2 session-show --id <session-id>`
+- `rocketclaw2 session-show --id <session-id> --summary`
+- `rocketclaw2 session-show --id <session-id> --limit 5`
 - `rocketclaw2 session-stats`
 - `rocketclaw2 memory-list`
 - `rocketclaw2 memory-list --tag preference`
@@ -249,7 +263,7 @@ RocketClaw2 now includes more human-readable operator views for sessions and sem
 This is the first step toward a richer terminal operator experience before a full TUI is introduced.
 
 
-The operator CLI now supports lightweight filtering and aggregate stats so you can inspect runtime state faster from a terminal.
+The operator CLI now supports lightweight filtering, compact overview mode, adjustable transcript length, and aggregate stats so you can inspect runtime state faster from a terminal.
 
 
 ## Configurable tool access model
@@ -485,6 +499,8 @@ RocketClaw2 now includes a richer doctor command for runtime readiness checks.
 - `rocketclaw2 doctor`
 - `rocketclaw2 doctor --json`
 
+`doctor` is now runtime-aware, warning when WhatsApp session mode lacks a saved session bootstrap or when the workspace still has no session/message activity.
+
 
 ## Recommended next actions
 
@@ -493,6 +509,8 @@ RocketClaw2 now includes an operator guidance command that recommends what to do
 - `rocketclaw2 next-actions`
 - `rocketclaw2 next-actions --json`
 
+`next-actions` is now more runtime-aware, surfacing gaps like missing WhatsApp session bootstrap in session mode or the absence of any sessions to exercise the runtime.
+
 
 ## Workspace status
 
@@ -500,6 +518,8 @@ RocketClaw2 now includes a compact dashboard-like command for overall runtime st
 
 - `rocketclaw2 workspace-status`
 - `rocketclaw2 workspace-status --json`
+
+`workspace-status` now acts more like a real operator dashboard by including WhatsApp mode/default recipient/session state and session/message activity, not just coarse counts.
 
 
 ## Session-scoped LLM overrides
@@ -743,4 +763,24 @@ RocketClaw2 now includes a simple QR bootstrap flow for WhatsApp session authori
 
 ### Runtime-backed WhatsApp session mode
 
+WhatsApp session inspection is now more operator-friendly: `whatsapp-session` defaults to a readable status view with a masked token and last-used timestamp, while `--json` preserves raw output when needed.
+
+Inbound WhatsApp command handling now supports `status`, `doctor`, `next-actions`, and `help`, giving the runtime a small but useful operator command surface over chat.
+
+
 When WhatsApp is configured in `session` mode, the plugin now requires a persisted local WhatsApp session profile and uses that runtime-backed state instead of silently behaving like mock transport.
+
+
+### Native WhatsApp transport foundation
+
+RocketClaw2 now includes a native WhatsApp transport foundation layer with:
+- runtime session readiness checks
+- self-chat-only inbound policy by default
+- native-session send path abstraction
+
+This is the base layer for fuller native WhatsApp transport behavior.
+
+
+### Native transport interface
+
+RocketClaw2 now defines an explicit native message transport interface and a WhatsApp native transport implementation scaffold. This turns native WhatsApp support into a real subsystem instead of a loose collection of helpers.

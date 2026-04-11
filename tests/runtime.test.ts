@@ -62,6 +62,129 @@ describe('getRuntimeSummary', () => {
     await fs.rm(homeRoot, { recursive: true, force: true });
   });
 
+  it('supports session-show summary and limit modes from the CLI', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-session-show-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(path.join(appRoot, 'sessions'), { recursive: true });
+    const session = {
+      id: 'session-demo',
+      title: 'Demo Session',
+      createdAt: '2026-04-10T20:00:00.000Z',
+      updatedAt: '2026-04-10T20:03:00.000Z',
+      messages: [
+        { id: 'm1', role: 'system', text: 'system boot', createdAt: '2026-04-10T20:00:00.000Z' },
+        { id: 'm2', role: 'user', text: 'hello', createdAt: '2026-04-10T20:01:00.000Z' },
+        { id: 'm3', role: 'assistant', text: 'hi there', createdAt: '2026-04-10T20:02:00.000Z' },
+      ],
+    };
+    await fs.writeFile(path.join(appRoot, 'sessions', 'session-demo.json'), JSON.stringify(session, null, 2));
+
+    const summary = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'session-show', '--id', 'session-demo', '--summary'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+    expect(summary.stdout).toContain('Role counts: system=1 user=1 assistant=1');
+
+    const limited = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'session-show', '--id', 'session-demo', '--limit', '1'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+    expect(limited.stdout).toContain('Showing last 1 messages (2 earlier hidden)');
+    expect(limited.stdout).toContain('[assistant] hi there');
+    expect(limited.stdout).not.toContain('[system] system boot');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('includes richer messaging and session details in workspace-status output', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-workspace-status-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(path.join(appRoot, 'sessions'), { recursive: true });
+    await fs.mkdir(path.join(appRoot, 'state'), { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', defaultRecipient: '+15551234567' } } }),
+    );
+    await fs.writeFile(
+      path.join(appRoot, 'sessions', 'session-demo.json'),
+      JSON.stringify({
+        id: 'session-demo',
+        title: 'Demo Session',
+        createdAt: '2026-04-10T20:00:00.000Z',
+        updatedAt: '2026-04-10T20:03:00.000Z',
+        messages: [
+          { id: 'm1', role: 'user', text: 'hello', createdAt: '2026-04-10T20:01:00.000Z' },
+          { id: 'm2', role: 'assistant', text: 'hi there', createdAt: '2026-04-10T20:02:00.000Z' },
+        ],
+      }, null, 2),
+    );
+    await fs.writeFile(
+      path.join(appRoot, 'state', 'whatsapp-session.json'),
+      JSON.stringify({
+        mode: 'session',
+        token: 'session-token-123456',
+        phoneNumber: '+15557654321',
+        createdAt: '2026-04-10T20:00:00.000Z',
+        lastUsedAt: '2026-04-10T20:05:00.000Z',
+      }, null, 2),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'workspace-status'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('WhatsApp: enabled (session)');
+    expect(stdout).toContain('WhatsApp default recipient: +15551234567');
+    expect(stdout).toContain('WhatsApp session configured: yes');
+    expect(stdout).toContain('Messages: 2');
+    expect(stdout).toContain('Latest session update: 2026-04-10T20:03:00.000Z');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('includes runtime-aware guidance in next-actions output', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-next-actions-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session' } } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'next-actions'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('whatsapp-config --default-recipient');
+    expect(stdout).toContain('WhatsApp session mode is enabled but no local session is configured');
+    expect(stdout).toContain('session-create --title "First Session"');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('includes runtime-aware readiness warnings in doctor output', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-doctor-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session' } } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'doctor'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('Doctor status: attention-needed');
+    expect(stdout).toContain('WARN | whatsapp-session-readiness | Session mode enabled but no local WhatsApp session is configured');
+    expect(stdout).toContain('WARN | session-activity | Sessions=0, messages=0, latest=n/a');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
   it('prints the resolved persisted config from the CLI', async () => {
     const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-config-home-${Date.now()}`);
     const appRoot = path.join(homeRoot, '.rocketclaw2');

@@ -5,6 +5,8 @@ export const WhatsAppConfigSchema = z.object({
   mode: z.enum(['mock', 'webhook', 'session']).default('mock'),
   webhookUrl: z.string().url().optional(),
   defaultRecipient: z.string().optional(),
+  selfChatOnly: z.boolean().default(true),
+  ownPhoneNumber: z.string().optional(),
 });
 
 export type WhatsAppConfig = z.infer<typeof WhatsAppConfigSchema>;

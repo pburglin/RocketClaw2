@@ -12,19 +12,41 @@ export function formatSessionSummary(sessions: SessionRecord[]): string {
     .join('\n');
 }
 
-export function formatSessionDetail(session: SessionRecord): string {
+export function formatSessionDetail(session: SessionRecord, options?: { limit?: number }): string {
+  const limit = options?.limit ?? 10;
+  const recentMessages = limit > 0 ? session.messages.slice(-limit) : [];
+  const hiddenCount = Math.max(session.messages.length - recentMessages.length, 0);
   const lines = [
     `Session: ${session.title}`,
     `ID: ${session.id}`,
     `Created: ${session.createdAt}`,
     `Updated: ${session.updatedAt}`,
     `Messages: ${session.messages.length}`,
-    '',
+    ...(hiddenCount > 0 ? [`Showing last ${recentMessages.length} messages (${hiddenCount} earlier hidden)`, ''] : ['']),
   ];
-  for (const message of session.messages.slice(-10)) {
+  for (const message of recentMessages) {
     lines.push(`[${message.role}] ${message.text}`);
   }
   return lines.join('\n');
+}
+
+export function formatSessionOverview(session: SessionRecord): string {
+  const counts = {
+    system: session.messages.filter((message) => message.role === 'system').length,
+    user: session.messages.filter((message) => message.role === 'user').length,
+    assistant: session.messages.filter((message) => message.role === 'assistant').length,
+  };
+
+  const lastMessage = session.messages.at(-1);
+  return [
+    `Session: ${session.title}`,
+    `ID: ${session.id}`,
+    `Created: ${session.createdAt}`,
+    `Updated: ${session.updatedAt}`,
+    `Messages: ${session.messages.length}`,
+    `Role counts: system=${counts.system} user=${counts.user} assistant=${counts.assistant}`,
+    `Last message: ${lastMessage ? `[${lastMessage.role}] ${lastMessage.text}` : 'n/a'}`,
+  ].join('\n');
 }
 
 export function formatSemanticMemory(entries: SemanticMemoryEntry[]): string {

@@ -1,13 +1,27 @@
 import { loadAppConfig } from '../tools/config-store.js';
 import { loadApprovals } from '../approval/store.js';
+import { loadWhatsAppSession } from '../messaging/whatsapp-session.js';
+import { listSessions } from '../sessions/store.js';
 
-export async function getRecommendedNextActions(): Promise<string[]> {
-  const config = await loadAppConfig();
-  const approvals = await loadApprovals();
+export async function getRecommendedNextActions(root?: string): Promise<string[]> {
+  const [config, approvals, whatsappSession, sessions] = await Promise.all([
+    loadAppConfig(root),
+    loadApprovals(root),
+    loadWhatsAppSession(root),
+    listSessions(root),
+  ]);
   const actions: string[] = [];
 
   if (!config.messaging.whatsapp.defaultRecipient) {
     actions.push('Configure a default WhatsApp recipient with `rocketclaw2 whatsapp-config --default-recipient "+15551234567"`.');
+  }
+
+  if (config.messaging.whatsapp.mode === 'session' && !whatsappSession?.token) {
+    actions.push('WhatsApp session mode is enabled but no local session is configured. Run `rocketclaw2 whatsapp-qr` or `rocketclaw2 whatsapp-session --set-token <token>`.');
+  }
+
+  if (sessions.length === 0) {
+    actions.push('Create an initial session with `rocketclaw2 session-create --title "First Session"` to start exercising runtime workflows.');
   }
 
   if (config.tools.some((tool) => tool.access === 'disabled')) {

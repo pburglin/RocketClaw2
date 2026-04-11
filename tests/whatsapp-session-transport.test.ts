@@ -24,5 +24,9 @@ describe('whatsapp session transport mode', () => {
     expect(result.ok).toBe(true);
     expect(result.transportId).toContain('session-whatsapp');
     expect(result.detail).toContain('+15551234567');
+    expect(result.detail).toContain('lastUsed=');
+
+    const updated = await import('../src/messaging/whatsapp-session.js').then((m) => m.loadWhatsAppSession(root));
+    expect(updated?.lastUsedAt).toBeTruthy();
   });
 });

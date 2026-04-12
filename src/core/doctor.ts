@@ -16,6 +16,8 @@ export async function runDoctorChecks(root?: string): Promise<DoctorReport> {
     getSessionStats(root),
   ]);
 
+  const selfChatNeedsOwnNumber = config.messaging.whatsapp.mode === 'session' && config.messaging.whatsapp.selfChatOnly !== false;
+
   const checks = [
     {
       name: 'profile',
@@ -35,6 +37,15 @@ export async function runDoctorChecks(root?: string): Promise<DoctorReport> {
           ? `Session configured for ${whatsappSession.phoneNumber ?? 'unknown'}; lastUsed=${whatsappSession.lastUsedAt ?? 'never'}`
           : 'Session mode enabled but no local WhatsApp session is configured'
         : 'Session mode not enabled',
+    },
+    {
+      name: 'whatsapp-self-chat-identity',
+      ok: !selfChatNeedsOwnNumber || Boolean(config.messaging.whatsapp.ownPhoneNumber),
+      detail: selfChatNeedsOwnNumber
+        ? config.messaging.whatsapp.ownPhoneNumber
+          ? `Self-chat-only identity configured for ${config.messaging.whatsapp.ownPhoneNumber}`
+          : 'Self-chat-only session mode is enabled but ownPhoneNumber is not configured'
+        : 'Self-chat-only identity not required',
     },
     {
       name: 'session-activity',

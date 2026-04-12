@@ -10,6 +10,7 @@ describe('formatMessagingSummary', () => {
         webhookUrl: 'https://example.com/hook',
         defaultRecipient: '+15551234567',
         selfChatOnly: true,
+        ownPhoneNumber: '+15557654321',
       },
     }, {
       whatsappSession: {
@@ -22,6 +23,8 @@ describe('formatMessagingSummary', () => {
     });
     expect(summary).toContain('WhatsApp enabled: yes');
     expect(summary).toContain('Webhook configured: yes');
+    expect(summary).toContain('Self-chat-only: yes');
+    expect(summary).toContain('Configured own phone number: +15557654321');
     expect(summary).toContain('Session configured: yes');
     expect(summary).toContain('Session phone number: +15557654321');
   });

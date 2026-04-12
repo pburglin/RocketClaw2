@@ -1,10 +1,13 @@
 import type { MessageChannelPlugin, MessageSendRequest, MessageSendResult } from '../types.js';
 import { loadWhatsAppSession, touchWhatsAppSession } from '../whatsapp-session.js';
+import { sendWhatsAppNativeMessage, shouldAllowWhatsAppOutbound } from '../whatsapp-native.js';
 
 export type WhatsAppPluginOptions = {
   mode?: 'mock' | 'webhook' | 'session';
   webhookUrl?: string;
   root?: string;
+  ownPhoneNumber?: string;
+  selfChatOnly?: boolean;
 };
 
 export class WhatsAppChannelPlugin implements MessageChannelPlugin {
@@ -33,13 +36,26 @@ export class WhatsAppChannelPlugin implements MessageChannelPlugin {
       if (!session || !session.token) {
         throw new Error('WhatsApp session mode is enabled but no local WhatsApp session profile is configured');
       }
+
+      const from = this.options.ownPhoneNumber ?? session.phoneNumber;
+      const selfChatOnly = this.options.selfChatOnly !== false;
+      if (!shouldAllowWhatsAppOutbound({ to: request.to }, { selfChatOnly, ownPhoneNumber: from })) {
+        throw new Error('WhatsApp session mode is self-chat-only and cannot send to external recipients');
+      }
+
+      const native = await sendWhatsAppNativeMessage({
+        from: from ?? request.to,
+        to: request.to,
+        text: request.text,
+      }, this.options.root);
       const touched = await touchWhatsAppSession(this.options.root);
+
       return {
-        ok: true,
+        ok: native.ok,
         channel: this.id,
         to: request.to,
-        transportId: `session-whatsapp-${Date.now()}`,
-        detail: `session:${session.phoneNumber ?? 'unknown'}:${request.text}:lastUsed=${touched?.lastUsedAt ?? 'unknown'}`,
+        transportId: `${native.transport}-${Date.now()}`,
+        detail: `${native.detail}:lastUsed=${touched?.lastUsedAt ?? 'unknown'}`,
       };
     }
 

@@ -164,14 +164,14 @@ Approval list and summary views now surface recommended next steps directly in t
 - `rocketclaw2 doctor`
 - `rocketclaw2 doctor --json`
 
-`doctor` now checks runtime readiness too, including whether WhatsApp session mode has actually been bootstrapped and whether the workspace has any real session activity yet.
+`doctor` now checks runtime readiness too, including whether WhatsApp session mode has actually been bootstrapped, whether self-chat-only session mode has a configured `ownPhoneNumber`, and whether the workspace has any real session activity yet.
 
 ## Recommended next actions
 
 - `rocketclaw2 next-actions`
 - `rocketclaw2 next-actions --json`
 
-`next-actions` now considers runtime state too, not just static config. For example, it can point out missing WhatsApp session bootstrap when session mode is enabled, or suggest creating a first session when none exist yet.
+`next-actions` now considers runtime state too, not just static config. For example, it can point out missing WhatsApp session bootstrap when session mode is enabled, prompt for `ownPhoneNumber` when self-chat-only identity is incomplete, or suggest creating a first session when none exist yet.
 
 ## Workspace status
 
@@ -408,12 +408,18 @@ You can also configure native-session behavior directly with:
 - `rocketclaw2 whatsapp-config --self-chat-only true`
 - `rocketclaw2 whatsapp-config --self-chat-only false` (only if you intentionally want external outbound sends)
 
+Use `rocketclaw2 messaging-summary` for a quick human-readable check of the active WhatsApp safety posture, including self-chat-only state, configured own phone number, and session readiness.
+
+`rocketclaw2 messaging-summary --json` now also includes `sessionState.whatsapp`, so scriptable checks can see both configured messaging settings and the persisted WhatsApp session profile in one response.
+
+`rocketclaw2 workspace-status` now surfaces the same WhatsApp safety posture at the top-level dashboard view, so operators can verify session-mode enforcement without switching commands.
+
 
 ## WhatsApp QR authorization
 
 RocketClaw2 includes `whatsapp-qr` for generating and authorizing a simple QR bootstrap token used for local session setup.
 
-Inbound WhatsApp command dispatch now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, `tools`, and `help`, so basic operator triage can happen directly from a chat thread.
+Inbound WhatsApp command dispatch now supports `status`, `doctor`, `next-actions`, `sessions`, `session <id-or-title>`, `approvals`, `memory`, `tools`, `messaging`, and `help`, so basic operator triage can happen directly from a chat thread.
 
 WhatsApp `session` mode now routes sends through the native-session transport helper, so the runtime reflects the persisted session identity more realistically than the earlier plain stub response.
 

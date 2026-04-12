@@ -10,6 +10,8 @@ export function formatMessagingSummary(config: MessagingConfig, options?: { what
     `WhatsApp mode: ${whatsapp.mode}`,
     `Default recipient: ${whatsapp.defaultRecipient ?? 'n/a'}`,
     `Webhook configured: ${whatsapp.webhookUrl ? 'yes' : 'no'}`,
+    `Self-chat-only: ${whatsapp.selfChatOnly ? 'yes' : 'no'}`,
+    `Configured own phone number: ${whatsapp.ownPhoneNumber ?? 'n/a'}`,
     `Session configured: ${session?.token ? 'yes' : 'no'}`,
     `Session phone number: ${session?.phoneNumber ?? 'n/a'}`,
     `Session last used: ${session?.lastUsedAt ?? 'never'}`,

@@ -760,6 +760,7 @@ RocketClaw2 now includes a simple QR bootstrap flow for WhatsApp session authori
 - `rocketclaw2 whatsapp-qr` to generate a QR bootstrap token
 - `rocketclaw2 whatsapp-qr --authorize <token> --phone-number +15551234567` to persist the authorized session
 
+Both QR authorization and direct `whatsapp-session --set-token --phone-number ...` bootstrap paths now also sync `messaging.whatsapp.ownPhoneNumber`, reducing duplicate setup for self-chat-only session mode.
 
 ### Runtime-backed WhatsApp session mode
 

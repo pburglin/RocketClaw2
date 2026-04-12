@@ -7,6 +7,7 @@ import { createApprovalRequest } from '../approval/store.js';
 export async function runGovernedMessageSend(
   config: AppConfig,
   input: { channel: string; to?: string; text: string; approved?: boolean },
+  root?: string,
 ): Promise<MessageSendResult> {
   if (input.channel === 'whatsapp') {
     assertWhatsAppSendAllowed(config);
@@ -15,7 +16,7 @@ export async function runGovernedMessageSend(
         kind: 'message-send',
         target: input.channel,
         detail: `Approval required for governed ${input.channel} send`,
-      });
+      }, root);
       throw new Error(`Governed messaging send requires explicit approval unless yolo mode is enabled. Approval request created: ${approval.id}`);
     }
     if (!input.approved && config.yolo.enabled && config.yolo.warn) {
@@ -23,7 +24,7 @@ export async function runGovernedMessageSend(
     }
   }
 
-  const registry = createDefaultChannelRegistry(config.messaging);
+  const registry = createDefaultChannelRegistry(config.messaging, root);
   const plugin = registry.get(input.channel);
   if (!plugin) {
     throw new Error(`Unknown channel: ${input.channel}`);

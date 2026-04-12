@@ -96,6 +96,61 @@ describe('getRuntimeSummary', () => {
     await fs.rm(homeRoot, { recursive: true, force: true });
   });
 
+  it('syncs own phone number into config when saving a whatsapp session from the CLI', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-whatsapp-session-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', selfChatOnly: true } } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'whatsapp-session', '--set-token', 'session-token-123', '--phone-number', '+15551234567'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('synced ownPhoneNumber into config');
+
+    const configRaw = await fs.readFile(path.join(appRoot, 'config.yaml'), 'utf8');
+    const config = YAML.parse(configRaw);
+    expect(config.messaging.whatsapp.ownPhoneNumber).toBe('+15551234567');
+
+    const sessionRaw = await fs.readFile(path.join(appRoot, 'state', 'whatsapp-session.json'), 'utf8');
+    const session = JSON.parse(sessionRaw);
+    expect(session.phoneNumber).toBe('+15551234567');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('reports config sync when authorizing a whatsapp qr session from the CLI', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-whatsapp-qr-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(appRoot, { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', selfChatOnly: true } } }),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'whatsapp-qr', '--authorize', 'qr-token-123', '--phone-number', '+15557654321'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    expect(stdout).toContain('synced ownPhoneNumber into config');
+
+    const configRaw = await fs.readFile(path.join(appRoot, 'config.yaml'), 'utf8');
+    const config = YAML.parse(configRaw);
+    expect(config.messaging.whatsapp.ownPhoneNumber).toBe('+15557654321');
+
+    const sessionRaw = await fs.readFile(path.join(appRoot, 'state', 'whatsapp-session.json'), 'utf8');
+    const session = JSON.parse(sessionRaw);
+    expect(session.token).toBe('qr-token-123');
+    expect(session.phoneNumber).toBe('+15557654321');
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
   it('includes richer messaging and session details in workspace-status output', async () => {
     const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-workspace-status-home-${Date.now()}`);
     const appRoot = path.join(homeRoot, '.rocketclaw2');
@@ -103,7 +158,7 @@ describe('getRuntimeSummary', () => {
     await fs.mkdir(path.join(appRoot, 'state'), { recursive: true });
     await fs.writeFile(
       path.join(appRoot, 'config.yaml'),
-      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', defaultRecipient: '+15551234567' } } }),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', defaultRecipient: '+15551234567', selfChatOnly: true, ownPhoneNumber: '+15557654321' } } }),
     );
     await fs.writeFile(
       path.join(appRoot, 'sessions', 'session-demo.json'),
@@ -136,6 +191,8 @@ describe('getRuntimeSummary', () => {
 
     expect(stdout).toContain('WhatsApp: enabled (session)');
     expect(stdout).toContain('WhatsApp default recipient: +15551234567');
+    expect(stdout).toContain('WhatsApp self-chat-only: yes');
+    expect(stdout).toContain('WhatsApp configured own phone number: +15557654321');
     expect(stdout).toContain('WhatsApp session configured: yes');
     expect(stdout).toContain('Messages: 2');
     expect(stdout).toContain('Latest session update: 2026-04-10T20:03:00.000Z');
@@ -149,7 +206,7 @@ describe('getRuntimeSummary', () => {
     await fs.mkdir(appRoot, { recursive: true });
     await fs.writeFile(
       path.join(appRoot, 'config.yaml'),
-      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session' } } }),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', selfChatOnly: true } } }),
     );
 
     const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'next-actions'], {
@@ -159,6 +216,7 @@ describe('getRuntimeSummary', () => {
 
     expect(stdout).toContain('whatsapp-config --default-recipient');
     expect(stdout).toContain('WhatsApp session mode is enabled but no local session is configured');
+    expect(stdout).toContain('whatsapp-config --own-phone-number');
     expect(stdout).toContain('session-create --title "First Session"');
 
     await fs.rm(homeRoot, { recursive: true, force: true });
@@ -170,7 +228,7 @@ describe('getRuntimeSummary', () => {
     await fs.mkdir(appRoot, { recursive: true });
     await fs.writeFile(
       path.join(appRoot, 'config.yaml'),
-      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session' } } }),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', selfChatOnly: true } } }),
     );
 
     const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'doctor'], {
@@ -180,6 +238,7 @@ describe('getRuntimeSummary', () => {
 
     expect(stdout).toContain('Doctor status: attention-needed');
     expect(stdout).toContain('WARN | whatsapp-session-readiness | Session mode enabled but no local WhatsApp session is configured');
+    expect(stdout).toContain('WARN | whatsapp-self-chat-identity | Self-chat-only session mode is enabled but ownPhoneNumber is not configured');
     expect(stdout).toContain('WARN | session-activity | Sessions=0, messages=0, latest=n/a');
 
     await fs.rm(homeRoot, { recursive: true, force: true });
@@ -202,6 +261,32 @@ describe('getRuntimeSummary', () => {
     const parsed = JSON.parse(stdout);
     expect(parsed.profile).toBe('demo');
     expect(parsed.recallScoring.diversityPenaltyPerBucketHit).toBe(11);
+
+    await fs.rm(homeRoot, { recursive: true, force: true });
+  });
+
+  it('includes session state in messaging-summary json output', async () => {
+    const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-messaging-summary-home-${Date.now()}`);
+    const appRoot = path.join(homeRoot, '.rocketclaw2');
+    await fs.mkdir(path.join(appRoot, 'state'), { recursive: true });
+    await fs.writeFile(
+      path.join(appRoot, 'config.yaml'),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', ownPhoneNumber: '+15551234567' } } }),
+    );
+    await fs.writeFile(
+      path.join(appRoot, 'state', 'whatsapp-session.json'),
+      JSON.stringify({ mode: 'session', token: 'session-token-123', phoneNumber: '+15551234567', createdAt: '2026-04-11T12:00:00.000Z' }, null, 2),
+    );
+
+    const { stdout } = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'messaging-summary', '--json'], {
+      cwd: process.cwd(),
+      env: { ...process.env, HOME: homeRoot },
+    });
+
+    const parsed = JSON.parse(stdout);
+    expect(parsed.whatsapp.mode).toBe('session');
+    expect(parsed.sessionState.whatsapp.phoneNumber).toBe('+15551234567');
+    expect(parsed.sessionState.whatsapp.token).toBe('session-token-123');
 
     await fs.rm(homeRoot, { recursive: true, force: true });
   });

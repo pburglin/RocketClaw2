@@ -8,10 +8,18 @@ import { loadAppConfig } from '../src/tools/config-store.js';
 describe('configureWhatsApp', () => {
   it('persists whatsapp integration settings into app config', async () => {
     const root = path.join(os.tmpdir(), `rocketclaw2-wa-${Date.now()}`);
-    await configureWhatsApp({ mode: 'webhook', webhookUrl: 'https://example.com/hook', defaultRecipient: '+15551234567' }, root);
+    await configureWhatsApp({
+      mode: 'session',
+      webhookUrl: 'https://example.com/hook',
+      defaultRecipient: '+15551234567',
+      selfChatOnly: false,
+      ownPhoneNumber: '+15551234567',
+    }, root);
     const config = await loadAppConfig(root);
-    expect(config.messaging.whatsapp.mode).toBe('webhook');
+    expect(config.messaging.whatsapp.mode).toBe('session');
     expect(config.messaging.whatsapp.defaultRecipient).toBe('+15551234567');
+    expect(config.messaging.whatsapp.selfChatOnly).toBe(false);
+    expect(config.messaging.whatsapp.ownPhoneNumber).toBe('+15551234567');
     await fs.rm(root, { recursive: true, force: true });
   });
 });

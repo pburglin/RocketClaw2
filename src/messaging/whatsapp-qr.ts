@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { saveWhatsAppSession } from './whatsapp-session.js';
 import { getDefaultProjectRoot } from '../config/app-paths.js';
+import { syncWhatsAppOwnPhoneNumber } from './whatsapp-config.js';
 
 export type WhatsAppQrSession = {
   qrToken: string;
@@ -27,4 +28,7 @@ export async function authorizeWhatsAppQrToken(
     phoneNumber: input.phoneNumber,
     createdAt: new Date().toISOString(),
   }, root);
+  if (input.phoneNumber) {
+    await syncWhatsAppOwnPhoneNumber(input.phoneNumber, root);
+  }
 }

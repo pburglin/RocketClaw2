@@ -12,18 +12,19 @@ describe('runDoctorChecks', () => {
     expect(formatDoctorReport(report)).toContain('Doctor status');
   });
 
-  it('flags missing session bootstrap and no-session activity when session mode is enabled', async () => {
+  it('flags missing session bootstrap, missing self-chat identity, and no-session activity when session mode is enabled', async () => {
     const root = path.join(os.tmpdir(), `rocketclaw2-doctor-runtime-${Date.now()}`);
     await fs.mkdir(root, { recursive: true });
     await fs.writeFile(
       path.join(root, 'config.yaml'),
-      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session' } } }),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', selfChatOnly: true } } }),
     );
 
     const report = await runDoctorChecks(root);
     const text = formatDoctorReport(report);
     expect(report.ok).toBe(false);
     expect(text).toContain('WARN | whatsapp-session-readiness | Session mode enabled but no local WhatsApp session is configured');
+    expect(text).toContain('WARN | whatsapp-self-chat-identity | Self-chat-only session mode is enabled but ownPhoneNumber is not configured');
     expect(text).toContain('WARN | session-activity | Sessions=0, messages=0, latest=n/a');
 
     await fs.rm(root, { recursive: true, force: true });

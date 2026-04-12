@@ -169,6 +169,8 @@ RocketClaw2 now supports a persisted local WhatsApp session profile:
 - `rocketclaw2 whatsapp-session`
 - `rocketclaw2 whatsapp-session --clear`
 
+When you provide `--phone-number`, RocketClaw2 now also syncs that value into `messaging.whatsapp.ownPhoneNumber`, which helps self-chat-only session mode become ready in one step.
+
 This is a simple bootstrap/session-storage step, not a full native WhatsApp protocol client yet.
 
 
@@ -177,6 +179,8 @@ This is a simple bootstrap/session-storage step, not a full native WhatsApp prot
 You can now use a simple QR bootstrap flow for WhatsApp session authorization:
 - Generate: `rocketclaw2 whatsapp-qr`
 - Authorize: `rocketclaw2 whatsapp-qr --authorize <token> --phone-number +15551234567`
+
+When you provide `--phone-number`, the QR authorization flow now also syncs that value into `messaging.whatsapp.ownPhoneNumber`, just like the direct session bootstrap path, and the CLI confirms that sync in its success output.
 
 This is a lightweight bootstrap model that stores the authorized session locally.
 

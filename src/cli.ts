@@ -20,8 +20,9 @@ import { buildConsolidationPlan } from './memory/consolidation.js';
 import { rememberCandidate } from './memory/remember.js';
 import { loadSemanticMemory } from './memory/semantic-store.js';
 import { createDefaultChannelRegistry } from './messaging/index.js';
-import { configureWhatsApp } from './messaging/whatsapp-config.js';
+import { configureWhatsApp, syncWhatsAppOwnPhoneNumber } from './messaging/whatsapp-config.js';
 import { clearWhatsAppSession, loadWhatsAppSession, saveWhatsAppSession } from './messaging/whatsapp-session.js';
+import { listWhatsAppNativeOutbox } from './messaging/whatsapp-native.js';
 import { authorizeWhatsAppQrToken, createWhatsAppQrSession } from './messaging/whatsapp-qr.js';
 import { listWhatsAppInbound, startWhatsAppWebhookListener } from './messaging/whatsapp-listener.js';
 import { formatMessagingSummary } from './messaging/formatters.js';
@@ -455,7 +456,9 @@ program
   .action(async (options) => {
     if (options.authorize) {
       await authorizeWhatsAppQrToken({ qrToken: options.authorize, phoneNumber: options.phoneNumber });
-      console.log('Authorized WhatsApp QR session.');
+      console.log(options.phoneNumber
+        ? 'Authorized WhatsApp QR session and synced ownPhoneNumber into config.'
+        : 'Authorized WhatsApp QR session.');
       return;
     }
     const qr = createWhatsAppQrSession();
@@ -482,7 +485,12 @@ program
         phoneNumber: options.phoneNumber,
         createdAt: new Date().toISOString(),
       });
-      console.log('Saved WhatsApp session profile.');
+      if (options.phoneNumber) {
+        await syncWhatsAppOwnPhoneNumber(options.phoneNumber);
+      }
+      console.log(options.phoneNumber
+        ? 'Saved WhatsApp session profile and synced ownPhoneNumber into config.'
+        : 'Saved WhatsApp session profile.');
       return;
     }
     const session = await loadWhatsAppSession();
@@ -510,24 +518,42 @@ program
   });
 
 program
+  .command('whatsapp-outbox')
+  .description('Show persisted outbound WhatsApp native-session events')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const items = await listWhatsAppNativeOutbox();
+    const text = items.map((item) => `${item.createdAt} | ${item.from} -> ${item.to} | ${item.text}`).join('\n');
+    console.log(options.json ? JSON.stringify(items, null, 2) : text || 'No outbound WhatsApp native-session events.');
+  });
+
+program
   .command('messaging-summary')
   .description('Show configured messaging integration summary')
   .option('--json', 'output raw JSON')
   .action(async (options) => {
     const config = await loadAppConfig();
     const session = await loadWhatsAppSession();
-    console.log(options.json ? JSON.stringify(config.messaging, null, 2) : formatMessagingSummary(config.messaging, { whatsappSession: session }));
+    const summary = {
+      ...config.messaging,
+      sessionState: {
+        whatsapp: session,
+      },
+    };
+    console.log(options.json ? JSON.stringify(summary, null, 2) : formatMessagingSummary(config.messaging, { whatsappSession: session }));
   });
 
 program
   .command('whatsapp-config')
   .description('Inspect or update WhatsApp integration settings')
   .option('--enabled <value>', 'true|false')
-  .option('--mode <mode>', 'mock|webhook')
+  .option('--mode <mode>', 'mock|webhook|session')
   .option('--webhook-url <url>', 'webhook URL for WhatsApp delivery bridge')
   .option('--default-recipient <id>', 'default WhatsApp recipient or chat id')
+  .option('--self-chat-only <value>', 'true|false, keep native session traffic limited to self chat by default')
+  .option('--own-phone-number <value>', 'phone number used for self-chat enforcement and native-session identity')
   .action(async (options) => {
-    if (!options.enabled && !options.mode && !options.webhookUrl && !options.defaultRecipient) {
+    if (!options.enabled && !options.mode && !options.webhookUrl && !options.defaultRecipient && !options.selfChatOnly && !options.ownPhoneNumber) {
       const config = await loadAppConfig();
       console.log(JSON.stringify(config.messaging.whatsapp, null, 2));
       return;
@@ -538,6 +564,8 @@ program
       ...(options.mode ? { mode: options.mode } : {}),
       ...(options.webhookUrl ? { webhookUrl: options.webhookUrl } : {}),
       ...(options.defaultRecipient ? { defaultRecipient: options.defaultRecipient } : {}),
+      ...(options.selfChatOnly ? { selfChatOnly: options.selfChatOnly === 'true' } : {}),
+      ...(options.ownPhoneNumber ? { ownPhoneNumber: options.ownPhoneNumber } : {}),
     });
     console.log(JSON.stringify(next, null, 2));
   });

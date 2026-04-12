@@ -20,6 +20,10 @@ export async function getRecommendedNextActions(root?: string): Promise<string[]
     actions.push('WhatsApp session mode is enabled but no local session is configured. Run `rocketclaw2 whatsapp-qr` or `rocketclaw2 whatsapp-session --set-token <token>`.');
   }
 
+  if (config.messaging.whatsapp.mode === 'session' && config.messaging.whatsapp.selfChatOnly !== false && !config.messaging.whatsapp.ownPhoneNumber) {
+    actions.push('WhatsApp self-chat-only session mode needs an explicit identity. Run `rocketclaw2 whatsapp-config --own-phone-number "+15551234567"`.');
+  }
+
   if (sessions.length === 0) {
     actions.push('Create an initial session with `rocketclaw2 session-create --title "First Session"` to start exercising runtime workflows.');
   }

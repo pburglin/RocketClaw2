@@ -9,6 +9,8 @@ describe('workspace status', () => {
       whatsappEnabled: true,
       whatsappMode: 'session',
       whatsappDefaultRecipient: '+15551234567',
+      whatsappSelfChatOnly: true,
+      whatsappConfiguredOwnPhoneNumber: '+15557654321',
       whatsappSessionConfigured: true,
       whatsappSessionPhoneNumber: '+15557654321',
       whatsappSessionLastUsedAt: '2026-04-10T20:05:00.000Z',
@@ -21,6 +23,8 @@ describe('workspace status', () => {
     });
     expect(text).toContain('RocketClaw2 Workspace Status');
     expect(text).toContain('WhatsApp: enabled (session)');
+    expect(text).toContain('WhatsApp self-chat-only: yes');
+    expect(text).toContain('WhatsApp configured own phone number: +15557654321');
     expect(text).toContain('Messages: 12');
     expect(text).toContain('Pending approvals: 1');
   });

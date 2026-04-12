@@ -205,6 +205,15 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Session-mode WhatsApp sends now enforce self-chat-only policy by default on outbound traffic too, with explicit config override required for external recipients.
 - `whatsapp-config` and the config helper now expose `selfChatOnly` and `ownPhoneNumber`, so native-session enforcement and identity can be configured through first-class operator flows.
 - Governed messaging approval creation now respects the provided runtime root, so approval artifacts no longer leak into the default global state when RocketClaw2 is exercised from alternate roots.
+- Messaging summary output now surfaces native-session safety posture, including self-chat-only mode and configured own phone number, so operators can verify WhatsApp enforcement settings at a glance.
+- `messaging-summary --json` now includes `sessionState.whatsapp`, bringing machine-readable operator output up to parity with the human-readable session-readiness view.
+- `workspace-status` now also surfaces WhatsApp self-chat-only mode and configured own phone number, keeping the top-level dashboard aligned with the newer native-session safety model.
+- `doctor` and `next-actions` now explicitly flag missing `ownPhoneNumber` when self-chat-only WhatsApp session mode is enabled, closing an underconfiguration gap in native-session readiness guidance.
+- WhatsApp chat dispatch now includes a `messaging` command that returns the same human-readable messaging summary and safety posture operators can already inspect from the CLI.
+- `whatsapp-session --set-token --phone-number ...` now also syncs `messaging.whatsapp.ownPhoneNumber`, reducing duplicate setup steps for self-chat-only native session mode.
+- The QR authorization bootstrap path now mirrors that behavior, syncing `ownPhoneNumber` into config when a phone number is provided during authorization.
+- Demo docs now include a first-class WhatsApp native-session/operator workflow, covering bootstrap, safety posture inspection, readiness checks, and native outbox inspection.
+- The QR bootstrap CLI now explicitly reports when authorization also synced `ownPhoneNumber` into config, matching the direct session bootstrap UX.
 - Build hygiene now clears `dist/` before TypeScript compilation so stale legacy CLI artifacts do not shadow the real `dist/src/cli.js` entrypoint, and demo docs now use the canonical built path.
 - Release verification now includes a dedicated `verify:build` script that checks the published bin target, confirms stale `dist/cli.js` is absent, and asserts the built CLI help still exposes key modern commands.
 - Packaging workflows now enforce that safeguard automatically through `prepack`, so `npm pack` and publish-style flows cannot bypass build verification.

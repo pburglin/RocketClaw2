@@ -12,17 +12,18 @@ describe('next actions', () => {
     expect(text).toContain('Do another thing');
   });
 
-  it('includes session-mode and first-session setup guidance when runtime state is incomplete', async () => {
+  it('includes session-mode, self-chat identity, and first-session setup guidance when runtime state is incomplete', async () => {
     const root = path.join(os.tmpdir(), `rocketclaw2-next-actions-${Date.now()}`);
     await fs.mkdir(root, { recursive: true });
     await fs.writeFile(
       path.join(root, 'config.yaml'),
-      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session' } } }),
+      YAML.stringify({ messaging: { whatsapp: { enabled: true, mode: 'session', selfChatOnly: true } } }),
     );
 
     const actions = await getRecommendedNextActions(root);
     expect(actions.some((item) => item.includes('whatsapp-config --default-recipient'))).toBe(true);
     expect(actions.some((item) => item.includes('WhatsApp session mode is enabled but no local session is configured'))).toBe(true);
+    expect(actions.some((item) => item.includes('whatsapp-config --own-phone-number'))).toBe(true);
     expect(actions.some((item) => item.includes('session-create --title "First Session"'))).toBe(true);
 
     await fs.rm(root, { recursive: true, force: true });

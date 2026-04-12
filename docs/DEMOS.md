@@ -5,8 +5,8 @@
 npm install
 npm run build
 npm test
-node dist/cli.js doctor
-node dist/cli.js init --profile default
+node dist/src/cli.js doctor
+node dist/src/cli.js init --profile default
 ```
 
 What this demonstrates:
@@ -16,11 +16,11 @@ What this demonstrates:
 
 ## 2. Persistent session workflow
 ```bash
-node dist/cli.js session-create --title "Demo Session"
-node dist/cli.js session-list
-node dist/cli.js session-show --id <session-id>
-node dist/cli.js session-append --id <session-id> --role user --text "Pedro prefers WhatsApp updates"
-node dist/cli.js session-stats
+node dist/src/cli.js session-create --title "Demo Session"
+node dist/src/cli.js session-list
+node dist/src/cli.js session-show --id <session-id>
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers WhatsApp updates"
+node dist/src/cli.js session-stats
 ```
 
 What this demonstrates:
@@ -30,11 +30,11 @@ What this demonstrates:
 
 ## 3. Retrieval and semantic memory workflow
 ```bash
-node dist/cli.js search --query WhatsApp
-node dist/cli.js dream
-node dist/cli.js remember
-node dist/cli.js memory-list
-node dist/cli.js recall --query WhatsApp
+node dist/src/cli.js search --query WhatsApp
+node dist/src/cli.js dream
+node dist/src/cli.js remember
+node dist/src/cli.js memory-list
+node dist/src/cli.js recall --query WhatsApp
 ```
 
 What this demonstrates:
@@ -45,7 +45,7 @@ What this demonstrates:
 
 ## 4. Interactive chat with memory-aware replies
 ```bash
-node dist/cli.js chat --title "Interactive Demo"
+node dist/src/cli.js chat --title "Interactive Demo"
 ```
 
 Suggested prompt during the session:
@@ -57,13 +57,33 @@ What this demonstrates:
 - recall-assisted responses
 - a minimal but working runtime shell for future TUI evolution
 
-## 5. Operator JSON mode
+## 5. WhatsApp native-session operator workflow
 ```bash
-node dist/cli.js session-list --json
-node dist/cli.js session-stats --json
-node dist/cli.js memory-list --json
+node dist/src/cli.js whatsapp-config --mode session --self-chat-only true
+node dist/src/cli.js whatsapp-session --set-token demo-token --phone-number +15551234567
+node dist/src/cli.js messaging-summary
+node dist/src/cli.js workspace-status
+node dist/src/cli.js doctor
+node dist/src/cli.js next-actions
+node dist/src/cli.js whatsapp-outbox
+```
+
+What this demonstrates:
+- native-session bootstrap with self-chat-only posture
+- automatic syncing of `ownPhoneNumber` from session bootstrap
+- operator inspection of messaging safety and session readiness
+- compact outbound native-session history inspection
+
+## 6. Operator JSON mode
+```bash
+node dist/src/cli.js session-list --json
+node dist/src/cli.js session-stats --json
+node dist/src/cli.js memory-list --json
+node dist/src/cli.js messaging-summary --json
+node dist/src/cli.js workspace-status --json
 ```
 
 What this demonstrates:
 - scriptable inspection output
 - parity between machine-readable and human-readable operator flows
+- combined messaging config plus persisted session-state inspection

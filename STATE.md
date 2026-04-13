@@ -235,3 +235,10 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - RocketClaw2 now includes a native WhatsApp inbound receive processor that enforces self-chat-only policy before session bridging and action dispatch.
 
 - When WhatsApp is in `session` mode, the inbound listener now routes events through the native inbound processor by default, enforcing self-chat-only policy before session bridge/dispatch.
+
+- `scoreMessageSalience()` now scores session messages by combining content length, recency decay (24h half-life), keyword density across 7 high-value pattern categories, and a conditional userFlagged bonus for high-value user messages.
+- userFlagged bonus reduced from 50 to 15 to prevent session memories from swamping semantic entries in dedup logic.
+- High-value patterns cover: importance/duty, bugs/errors, decisions, preferences, goals/tasks, questions.
+- Integration: `consolidation.ts` and `recall.ts` both use `scoreMessageSalience()` as the scoring engine.
+- `dream-run` command now executes the full dreaming consolidation loop, promoting all salience >= 30 candidates into semantic memory with `--dry-run` preview mode.
+- `dream` (plan preview) and `dream-run` (execute) form a complete first-pass dreaming workflow.

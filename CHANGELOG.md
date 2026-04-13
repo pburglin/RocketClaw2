@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LLM status, test, and query commands with configurable auth
 - Guided setup wizard with interactive LLM/messaging configuration
 
+#### Governance (added)
+- `approval-resolve-all --status` — bulk resolve all pending approvals
+- `approval-purge --days N` — auto-purge pending approvals older than N days
+
 #### Memory System
 - Unified recall across episodic session memory and curated semantic memory
 - Keyword-aware salience scoring with 7 high-value pattern categories

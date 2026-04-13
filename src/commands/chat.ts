@@ -1,5 +1,6 @@
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import pc from 'picocolors';
 import { appendMessage, createSession, loadSession } from '../sessions/store.js';
 import { recallMemory } from '../memory/recall.js';
 import type { AppConfig } from '../config/load-config.js';
@@ -56,9 +57,12 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
     throw new Error(`Session not found: ${options.sessionId}`);
   }
 
-  console.log(`RocketClaw2 chat session: ${session.title}`);
-  console.log(`Session ID: ${session.id}`);
-  console.log('Type /exit to quit.');
+  console.log(pc.cyan('━'.repeat(50)));
+  console.log(pc.bold(`${pc.green('🚀 RocketClaw2')}`) + pc.white(' chat session'));
+  console.log(pc.gray(`Session: ${session.title}  [${session.id}]`));
+  console.log(pc.cyan('━'.repeat(50)));
+  console.log(pc.dim('Type ') + pc.yellow('/exit') + pc.dim(' to quit, ') + pc.yellow('/help') + pc.dim(' for commands.'));
+  console.log('');
 
   const rl = readline.createInterface({ input, output });
 
@@ -66,11 +70,11 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
     while (true) {
       let line = '';
       try {
-        line = (await rl.question('you> ')).trim();
+        line = (await rl.question(pc.blue('you> '))).trim();
       } catch (error) {
         const err = error as { code?: string };
         if (err?.code === 'ABORT_ERR') {
-          console.log('\nExiting chat.');
+          console.log(pc.dim('\nGot signal, exiting cleanly.'));
           break;
         }
         throw error;
@@ -78,13 +82,41 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
       if (!line) continue;
       if (line === '/exit') break;
 
+      // Built-in commands
+      if (line === '/help') {
+        console.log(pc.dim('Available commands:'));
+        console.log(`  ${pc.yellow('/exit')}  - end this session`);
+        console.log(`  ${pc.yellow('/help')} - show this message`);
+        console.log(`  ${pc.yellow('/mem')}  - show recalled memory so far (last message)`);
+        continue;
+      }
+      if (line === '/mem') {
+        const lastUserMsg = session.messages.filter((m) => m.role === 'user').at(-1);
+        if (!lastUserMsg) {
+          console.log(pc.dim('No user messages yet.'));
+        } else {
+          const recalled = await recallMemory(lastUserMsg.text);
+          if (recalled.length === 0) {
+            console.log(pc.dim('No memory recalled for your last message.'));
+          } else {
+            console.log(pc.dim(`Memory for "${lastUserMsg.text}":`));
+            for (const hit of recalled.slice(0, 5)) {
+              const label = hit.kind === 'semantic' ? pc.cyan('[semantic]') : pc.gray(`[session]`);
+              console.log(`  ${label} ${hit.text}`);
+            }
+          }
+        }
+        continue;
+      }
+
       await appendMessage(session.id, 'user', line);
       const recalled = await recallMemory(line);
       const reply = await buildAssistantReply(options.config, line, recalled);
       await appendMessage(session.id, 'assistant', reply);
-      console.log(`assistant> ${reply}`);
+      console.log(pc.green('assistant> ') + reply);
     }
   } finally {
     rl.close();
+    console.log(pc.dim(`\nSession saved: ${session.id}`));
   }
 }

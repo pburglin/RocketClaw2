@@ -54,10 +54,14 @@ node dist/src/cli.js chat --title "Interactive Demo"
 Suggested prompt during the session:
 - `Pedro prefers WhatsApp for updates`
 - `What do you remember about messaging?`
+- `/help` — show available commands
+- `/mem` — show recalled memory for the last user message
 
 What this demonstrates:
+- colored readline UI with session branding banner
 - live session persistence
-- recall-assisted responses
+- recall-assisted responses with memory context
+- built-in commands for introspection
 - a minimal but working runtime shell for future TUI evolution
 
 ## 5. WhatsApp native-session operator workflow

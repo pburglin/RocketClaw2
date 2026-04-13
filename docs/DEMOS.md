@@ -32,7 +32,8 @@ What this demonstrates:
 ```bash
 node dist/src/cli.js search --query WhatsApp
 node dist/src/cli.js dream
-node dist/src/cli.js remember
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js dream-run
 node dist/src/cli.js memory-list
 node dist/src/cli.js recall --query WhatsApp
 ```
@@ -40,6 +41,8 @@ node dist/src/cli.js recall --query WhatsApp
 What this demonstrates:
 - episodic search over saved session messages
 - first-pass dreaming/consolidation planning
+- dry-run preview before executing promotion loop
+- execution of the full dreaming loop (promote salience >= 30 candidates)
 - promotion into curated semantic memory
 - unified recall across session and semantic memory
 

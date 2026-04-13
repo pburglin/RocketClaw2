@@ -150,6 +150,32 @@ program
   });
 
 program
+  .command('dream-run')
+  .description('Run the dreaming loop: promote all high-salience candidates into semantic memory')
+  .option('--dry-run', 'show what would be promoted without actually promoting')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const plan = await buildConsolidationPlan();
+    const promotees = plan.filter((c) => c.suggestedAction === 'promote');
+    if (promotees.length === 0) {
+      console.log('No candidates meet the promote threshold (salience >= 30).');
+      return;
+    }
+    if (options.dryRun) {
+      console.log(`Would promote ${promotees.length} candidate(s):`);
+      console.log(JSON.stringify(promotees, null, 2));
+      return;
+    }
+    for (const candidate of promotees) {
+      await rememberCandidate(candidate);
+    }
+    console.log(`Promoted ${promotees.length} candidate(s) into semantic memory.`);
+    if (options.json) {
+      console.log(JSON.stringify(promotees, null, 2));
+    }
+  });
+
+program
   .command('search')
   .description('Search persisted session memory')
   .requiredOption('--query <text>', 'text to search for')

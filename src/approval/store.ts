@@ -58,3 +58,35 @@ export async function resolveApprovalRequest(id: string, status: 'approved' | 'r
   await saveApprovals(approvals, root);
   return item;
 }
+
+export async function bulkResolveApprovals(ids: string[], status: 'approved' | 'rejected', root = getDefaultProjectRoot()): Promise<{ resolved: number; notFound: number }> {
+  const approvals = await loadApprovals(root);
+  const idSet = new Set(ids);
+  let resolved = 0;
+  let notFound = 0;
+  const now = new Date().toISOString();
+  for (const item of approvals) {
+    if (idSet.has(item.id)) {
+      item.status = status;
+      item.resolvedAt = now;
+      resolved++;
+      idSet.delete(item.id);
+    }
+  }
+  notFound = idSet.size;
+  await saveApprovals(approvals, root);
+  return { resolved, notFound };
+}
+
+export async function purgeStaleApprovals(olderThanDays: number, root = getDefaultProjectRoot()): Promise<number> {
+  const approvals = await loadApprovals(root);
+  const cutoff = Date.now() - olderThanDays * 86400000;
+  const before = approvals.length;
+  const filtered = approvals.filter((item) => {
+    if (item.status !== 'pending') return true;
+    return new Date(item.createdAt).getTime() > cutoff;
+  });
+  const purged = before - filtered.length;
+  await saveApprovals(filtered, root);
+  return purged;
+}

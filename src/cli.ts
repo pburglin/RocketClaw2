@@ -30,7 +30,7 @@ import { formatWhatsAppSessionProfile } from './messaging/session-formatters.js'
 import { assertWhatsAppSendAllowed } from './messaging/enforcement.js';
 import { formatSendResult } from './messaging/send-formatters.js';
 import { runGovernedMessageSend } from './messaging/runtime.js';
-import { createApprovalRequest, loadApprovals, resolveApprovalRequest } from './approval/store.js';
+import { createApprovalRequest, loadApprovals, resolveApprovalRequest, bulkResolveApprovals, purgeStaleApprovals } from './approval/store.js';
 import { formatApprovals, formatApprovalSummary, formatPendingApprovalActions } from './approval/formatters.js';
 import { approveAndDescribeNextStep } from './approval/runtime.js';
 import { resolveRalphPreset, runRalphLoop } from './loops/ralph.js';
@@ -1088,6 +1088,36 @@ program
   .action(async (options) => {
     const item = await resolveApprovalRequest(options.id, options.status);
     console.log(JSON.stringify(item, null, 2));
+  });
+
+program
+  .command('approval-resolve-all')
+  .description('Resolve all pending approvals in bulk')
+  .requiredOption('--status <status>', 'approved|rejected')
+  .action(async (options) => {
+    const items = await loadApprovals();
+    const pending = items.filter((item) => item.status === 'pending');
+    if (pending.length === 0) {
+      console.log('No pending approvals to resolve.');
+      return;
+    }
+    const result = await bulkResolveApprovals(pending.map((p) => p.id), options.status);
+    console.log(`Resolved ${result.resolved} approvals as ${options.status}, ${result.notFound} not found.`);
+  });
+
+program
+  .command('approval-purge')
+  .description('Purge pending approvals older than --days (default 7)')
+  .option('--days <number>', 'purge approvals older than this many days', '7')
+  .action(async (options) => {
+    const days = Number(options.days);
+    if (isNaN(days) || days < 1) {
+      console.error('--days must be a positive number');
+      process.exitCode = 1;
+      return;
+    }
+    const purged = await purgeStaleApprovals(days);
+    console.log(`Purged ${purged} stale pending approvals older than ${days} days.`);
   });
 
 program

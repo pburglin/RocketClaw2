@@ -144,8 +144,22 @@ program
 program
   .command('dream')
   .description('Build a first-pass memory consolidation plan from persisted sessions')
-  .action(async () => {
+  .option('--json', 'output raw JSON (default)')
+  .option('--summary', 'show compact summary of candidates')
+  .action(async (options) => {
     const plan = await buildConsolidationPlan();
+    if (options.summary) {
+      if (plan.length === 0) {
+        console.log('No consolidation candidates found.');
+        return;
+      }
+      console.log(`Consolidation Plan: ${plan.length} candidate(s)`);
+      const promoteCount = plan.filter(c => c.suggestedAction === 'promote').length;
+      const summarizeCount = plan.filter(c => c.suggestedAction === 'summarize').length;
+      console.log(`- Promote:   ${promoteCount}`);
+      console.log(`- Summarize: ${summarizeCount}`);
+      return;
+    }
     console.log(JSON.stringify(plan, null, 2));
   });
 

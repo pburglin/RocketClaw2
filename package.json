@@ -31,12 +31,14 @@
     "pino": "^9.7.0",
     "undici": "^6.21.2",
     "yaml": "^2.8.1",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "blessed": "^0.1.81"
   },
   "devDependencies": {
     "@types/node": "^22.15.29",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "@types/blessed": "^0.1.25"
   }
 }

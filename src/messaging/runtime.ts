@@ -3,6 +3,7 @@ import { assertWhatsAppSendAllowed } from './enforcement.js';
 import { createDefaultChannelRegistry } from './index.js';
 import type { MessageSendResult } from './types.js';
 import { createApprovalRequest } from '../approval/store.js';
+import { runWithQueue } from '../queue/runtime.js';
 
 export async function runGovernedMessageSend(
   config: AppConfig,
@@ -21,6 +22,24 @@ export async function runGovernedMessageSend(
     }
     if (!input.approved && config.yolo.enabled && config.yolo.warn) {
       console.warn('[YOLO WARNING] Auto-approving governed WhatsApp send.');
+    }
+  }
+
+  // If LLM is rate-limited, queue the outbound message processing
+  if (input.text.length > 0) {
+    const queueResult = await runWithQueue(
+      config,
+      { channel: input.channel },
+      input.text,
+    );
+    if (queueResult.queued) {
+      return {
+        ok: true,
+        channel: input.channel,
+        to: input.to || '',
+        messageId: queueResult.error || 'queued',
+        queued: true,
+      };
     }
   }
 

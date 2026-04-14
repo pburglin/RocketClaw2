@@ -1,10 +1,14 @@
 import type { AppConfig } from '../config/load-config.js';
 import { explainLlmError } from './errors.js';
+import { recordLlmRequest, recordLlmResponse, recordLlmError } from '../telemetry/runtime.js';
 
-export async function runLlmQuery(config: AppConfig, prompt: string): Promise<string> {
+export async function runLlmQuery(config: AppConfig, prompt: string, channel = 'cli'): Promise<string> {
   if (!config.llm.apiKey) {
     throw new Error('No LLM API key configured. Set llm.apiKey in config.yaml or pass --llm-api-key for this session.');
   }
+
+  recordLlmRequest(channel);
+  const start = Date.now();
 
   const response = await fetch(`${config.llm.baseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
@@ -21,8 +25,12 @@ export async function runLlmQuery(config: AppConfig, prompt: string): Promise<st
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(explainLlmError(response.status, text));
+    const err = new Error(explainLlmError(response.status, text));
+    recordLlmError(channel, err.message);
+    throw err;
   }
+
+  recordLlmResponse(channel, Date.now() - start);
 
   const payload = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;

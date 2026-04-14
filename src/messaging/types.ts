@@ -10,6 +10,8 @@ export type MessageSendResult = {
   to: string;
   transportId?: string;
   detail?: string;
+  messageId?: string;
+  queued?: boolean;
 };
 
 export interface MessageChannelPlugin {

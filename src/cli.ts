@@ -4,6 +4,7 @@ import { computeSummary } from './telemetry/store.js';
 import { formatTelemetrySummary, formatPerfReport, formatDeprecationReport } from './telemetry/formatters.js';
 import { getQueueStats, clearDoneItems } from './queue/store.js';
 import { processQueue as runQueue } from './queue/runtime.js';
+import { QueueOrchestrator } from './queue/orchestrator.js';
 import { getRuntimeSummary } from './core/runtime.js';
 import { formatDoctorReport, runDoctorChecks } from './core/doctor.js';
 import { buildRecallScoringDiff, getDefaultRecallScoringConfig, getRecallScoringRanges, listRecallScoringPaths, loadConfig, loadConfigFromDisk, resetRecallScoring, setRecallScoringValue } from './config/load-config.js';
@@ -1298,9 +1299,20 @@ program
   .command('run')
   .description('Run the minimal runtime shell')
   .option('--profile <name>', 'config profile', 'default')
-  .action((options) => {
+  .action(async (options) => {
     const config = loadConfig({ profile: options.profile });
     console.log(`RocketClaw2 runtime starting with profile: ${config.profile}`);
+    
+    // Start the background queue orchestrator
+    const orchestrator = new QueueOrchestrator(config);
+    orchestrator.start();
+    console.log('Proactive queue orchestrator active.');
+
+    // Keep process alive (minimal shell placeholder)
+    process.on('SIGINT', () => {
+      orchestrator.stop();
+      process.exit(0);
+    });
   });
 
 program.parse();

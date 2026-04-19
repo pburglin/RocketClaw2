@@ -17,6 +17,16 @@ Streamline and simplify RocketClaw2 v0.1.0 by removing redundant options, improv
 4. **Streamlined CLI/UX**: Reduced cognitive load through simplified options and better defaults
 5. **Improved Documentation**: Clear examples, use cases, and troubleshooting guides
 
+## Specific Implementation Tasks
+1. **Create streamlined autonomous coding command** (`auto-code`) that combines plan → approve → execute with smart defaults
+2. **Enhance TUI with real-time health dashboard** showing system metrics, queue status, and active processes
+3. **Improve heartbeat system** to intelligently prioritize and schedule tasks based on system health
+4. **Simplify recall/scoring system** with presets and better defaults
+5. **Consolidate tool policies** into clearer access levels
+6. **Remove redundant CLI commands** and merge overlapping functionality
+7. **Improve error handling and recovery** in autonomous flows
+8. **Add intelligent task queuing** based on priority and system readiness
+
 ## Planning Artifacts
 - Update TODO.md with v0.2.0 specific tasks
 - Maintain CHANGELOG.md for tracking changes
@@ -30,4 +40,3 @@ Streamline and simplify RocketClaw2 v0.1.0 by removing redundant options, improv
 - Commit and push after each milestone
 - Focus on value-driven iterations
 - Maintain backward compatibility where practical
-

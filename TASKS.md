@@ -34,6 +34,16 @@
 - Smart CLI and terminal UI roadmap with future multi-channel support
 - Retrieval and recall workflows over persisted sessions ✅ (done)
 
+### 🚀 Agentic Excellence (New v0.2.0 Focus)
+- **Built-in Agentic Skills**: Streamlined setup for autonomous patterns:
+    - **Ralph Loop**: Built-in "verify-and-fix" autonomous loops.
+    - **Karpathian Loop**: Iterative data-driven self-improvement workflows.
+    - **World Model**: Context-aware reasoning modules.
+    - **Second Brain**: Integrated personal data RAG.
+    - **Multi-Agent Teams**: Orchestration patterns for collaborative agents.
+    - **Evaluator-Optimizer**: Self-correcting implementation flows.
+- **Guided Setup**: Skill-based wizards to walk users through pattern configuration and usage.
+
 - Add salience scoring and a first-pass consolidation planner for dreaming-style memory optimization. ✅ (done)
 
 - Add curated semantic memory storage and a first promotion flow from consolidation candidates. ✅ (done)

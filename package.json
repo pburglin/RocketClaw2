@@ -27,6 +27,7 @@
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "blessed": "^0.1.81",
     "commander": "^12.1.0",
     "pino": "^9.7.0",
     "undici": "^6.21.2",
@@ -34,6 +35,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/blessed": "^0.1.27",
     "@types/node": "^22.15.29",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",

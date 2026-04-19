@@ -177,3 +177,5 @@
 - Add native inbound receive loop with self-chat-only enforcement before session bridge/dispatch. ✅ (done)
 
 - Make native session mode the default inbound listener path for WhatsApp events. ✅ (done)
+## Added Features
+- RocketMoto.us CLI tool for scraping motorcycle routes and generating submissions (in custom-skills/rocketmoto-cli/)

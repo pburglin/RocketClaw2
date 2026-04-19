@@ -385,7 +385,7 @@ program
       throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
     }
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -410,7 +410,7 @@ program
   .option('--session-id <id>', 'resume an existing session')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -426,7 +426,7 @@ program
   .option('--session-id <id>', 'resume an existing session')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -785,7 +785,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -829,7 +829,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -855,7 +855,7 @@ program
       throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
     }
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -895,7 +895,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -917,7 +917,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -1223,7 +1223,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const hasOverrides = Boolean(globalOpts.llmBaseUrl || globalOpts.llmApiKey || globalOpts.llmModel);
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
@@ -1239,7 +1239,7 @@ program
   .description('Run a quick connectivity and auth test against the configured LLM')
   .action(async (_options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -1260,7 +1260,7 @@ program
   .requiredOption('--prompt <text>', 'prompt to send to the model')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -1284,122 +1284,3 @@ program
     console.log(options.json ? JSON.stringify(report, null, 2) : formatDoctorReport(report));
   });
 
-// ── Heartbeat ────────────────────────────────────────────────────────────────
-program
-  .command('heartbeat')
-  .description('Run a single heartbeat verification cycle')
-  .option('--json', 'output raw JSON')
-  .option('--interval <ms>', 'set verification interval in milliseconds (for continuous mode)')
-  .option('--continuous', 'run in continuous mode with specified interval')
-  .action(async (options, command) => {
-    const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
-    const config = applySessionOverrides(rootConfig, {
-      llmBaseUrl: globalOpts.llmBaseUrl,
-      llmApiKey: globalOpts.llmApiKey,
-      llmModel: globalOpts.llmModel,
-    });
-    const { createHeartbeatVerifier } = await import('./heartbeat/index.js');
-    const verifier = createHeartbeatVerifier(config);
-    
-    if (options.continuous) {
-      const interval = options.interval ? parseInt(options.interval) : 300000; // Default 5 minutes
-      console.log(`[Heartbeat] Starting continuous verification (interval: ${interval}ms)`);
-      verifier.start(interval);
-      
-      // Handle graceful shutdown
-      process.on('SIGINT', () => {
-        verifier.stop();
-        console.log('[Heartbeat] Verification stopped');
-        process.exit(0);
-      });
-      process.on('SIGTERM', () => {
-        verifier.stop();
-        console.log('[Heartbeat] Verification stopped');
-        process.exit(0);
-      });
-      
-      // Keep process running
-      return new Promise((resolve) => {
-        // Resolve when stopped externally
-        const checkInterval = setInterval(() => {
-          if (!verifier.isRunning()) {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 1000);
-      });
-    } else {
-      // Single verification
-      const result = await verifier.performVerification();
-      console.log(options.json ? JSON.stringify(result, null, 2) : `Heartbeat Verification Complete
-${'='.repeat(50)}
-Overall Status: ${result.healthCheck.overallStatus.toUpperCase()}
-Health Checks: ${result.healthCheck.checks.length} total
-Queue Processed: ${result.queueProcessed.processed} ok, ${result.queueProcessed.failed} failed
-Actions Taken: ${result.actionsTaken.length}
-Recommendations: ${result.recommendations.length}`);
-    }
-  });
-
-// ── Telemetry ────────────────────────────────────────────────────────────────// ── Telemetry ────────────────────────────────────────────────────────────────
-program
-  .command('telemetry')
-  .description('Show telemetry summary (commands, errors, LLM, queue)')
-  .option('--period <days>', 'lookback period in days', '7')
-  .option('--perf', 'show per-command p50/p95 performance')
-  .option('--deprecation', 'show deprecation candidates')
-  .action(async (options) => {
-    const summary = await computeSummary(
-      new Date(Date.now() - Number(options.period) * 86400 * 1000).toISOString(),
-    );
-    console.log(formatTelemetrySummary(summary));
-    if (options.perf) console.log(await formatPerfReport());
-    if (options.deprecation) console.log(await formatDeprecationReport());
-  });
-
-// ── Queue ────────────────────────────────────────────────────────────────────
-program
-  .command('queue')
-  .description('Inspect or process the request queue')
-  .option('--stats', 'show queue statistics')
-  .option('--process <limit>', 'process up to N pending items', '10')
-  .option('--clear', 'clear done items older than 7 days')
-  .action(async (options) => {
-    const rootConfig = await loadAppConfig();
-    const config = applySessionOverrides(rootConfig, {});
-    if (options.stats) {
-      const s = await getQueueStats();
-      console.log(`\n📬 Queue Stats\n${'─'.repeat(30)}\n  pending:    ${s.pending}\n  processing: ${s.processing}\n  done:       ${s.done}\n  failed:     ${s.failed}`);
-    }
-    if (options.process) {
-      const r = await runQueue(config, Number(options.process));
-      console.log(`\nQueue processed: ${r.processed} ok, ${r.failed} failed`);
-    }
-    if (options.clear) {
-      const n = await clearDoneItems();
-      console.log(`\nCleared ${n} done item(s).`);
-    }
-  });
-
-program
-  .command('run')
-  .description('Run the minimal runtime shell')
-  .option('--profile <name>', 'config profile', 'default')
-  .action(async (options) => {
-    const config = loadConfig({ profile: options.profile });
-    console.log(`RocketClaw2 runtime starting with profile: ${config.profile}`);
-    
-    // Start the background queue orchestrator
-    const orchestrator = new QueueOrchestrator(config);
-    orchestrator.start();
-    console.log('Proactive queue orchestrator active.');
-
-    // Keep process alive (minimal shell placeholder)
-    process.on('SIGINT', () => {
-      orchestrator.stop();
-      process.exit(0);
-    });
-  });
-
-program.parse();

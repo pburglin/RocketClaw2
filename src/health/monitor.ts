@@ -1,7 +1,7 @@
 import type { AppConfig } from '../config/load-config.js';
 import { QueueOrchestrator } from '../queue/orchestrator.js';
 import { getQueueStats } from '../queue/store.js';
-import { runDoctorChecks } from '../core/doctor.js';
+import { runDoctorChecks, type DoctorReport } from '../core/doctor.js';
 
 export type HealthCheckResult = {
   timestamp: string;
@@ -12,7 +12,7 @@ export type HealthCheckResult = {
     message: string;
     details?: Record<string, unknown>;
   }[];
-  queueStats: ReturnType<typeof getQueueStats>;
+  queueStats: Awaited<ReturnType<typeof getQueueStats>>;
   recommendations: string[];
 };
 
@@ -105,7 +105,7 @@ export class HealthMonitor {
     }
     
     // Get queue stats
-    const queueStats = getQueueStats();
+    const queueStats = await getQueueStats();
     
     // Add queue-based recommendations
     if (queueStats.pending > 10) {
@@ -168,38 +168,44 @@ export class HealthMonitor {
 
   private async runDoctorDiagnostics(): Promise<HealthCheckResult['checks'][0]> {
     try {
-      const results = await runDoctorChecks(this.config);
-      const failedChecks = results.filter(r => !r.ok);
+      // Run doctor checks (loads config from disk)
+      const results = await runDoctorChecks();
+      // Handle the DoctorReport structure
+      if (!results || !results.checks) {
+        throw new Error('Invalid doctor check results');
+      }
+      
+      const failedChecks = results.checks.filter((r: { ok: boolean }) => !r.ok);
       
       if (failedChecks.length === 0) {
         return {
           name: 'doctor-diagnostics',
           status: 'pass',
           message: 'All diagnostic checks passed',
-          details: { checksRun: results.length, passed: results.length }
+          details: { checksRun: results.checks.length, passed: results.checks.length }
         };
-      } else if (failedChecks.length <= results.length * 0.3) { // Less than 30% failed
+      } else if (failedChecks.length <= results.checks.length * 0.3) { // Less than 30% failed
         return {
           name: 'doctor-diagnostics',
           status: 'warn',
-          message: `${failedChecks.length} of ${results.length} diagnostic checks showed warnings`,
+          message: `${failedChecks.length} of ${results.checks.length} diagnostic checks showed warnings`,
           details: { 
-            checksRun: results.length,
-            passed: results.length - failedChecks.length,
+            checksRun: results.checks.length,
+            passed: results.checks.length - failedChecks.length,
             failed: failedChecks.length,
-            failedChecks: failedChecks.map(f => f.check)
+            failedChecks: failedChecks.map((f: { name: string }) => f.name)
           }
         };
       } else {
         return {
           name: 'doctor-diagnostics',
           status: 'fail',
-          message: `${failedChecks.length} of ${results.length} diagnostic checks failed`,
+          message: `${failedChecks.length} of ${results.checks.length} diagnostic checks failed`,
           details: { 
-            checksRun: results.length,
-            passed: results.length - failedChecks.length,
+            checksRun: results.checks.length,
+            passed: results.checks.length - failedChecks.length,
             failed: failedChecks.length,
-            failedChecks: failedChecks.map(f => f.check)
+            failedChecks: failedChecks.map((f: { name: string }) => f.name)
           }
         };
       }
@@ -215,17 +221,17 @@ export class HealthMonitor {
 
   private async checkQueueHealth(): Promise<HealthCheckResult['checks'][0]> {
     try {
-      const stats = getQueueStats();
+      const stats = await getQueueStats();
       
       // Healthy if queue is processing normally
-      if (stats.processing === false && stats.pending === 0 && stats.failed === 0) {
+      if (stats.processing === 0 && stats.pending === 0 && stats.failed === 0) {
         return {
           name: 'queue-health',
           status: 'pass',
           message: 'Queue system is idle and healthy',
           details: stats
         };
-      } else if (stats.failed === 0 && stats.processing === true) {
+      } else if (stats.failed === 0 && stats.processing > 0) {
         return {
           name: 'queue-health',
           status: 'pass',

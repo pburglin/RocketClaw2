@@ -385,7 +385,7 @@ program
       throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
     }
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -410,7 +410,7 @@ program
   .option('--session-id <id>', 'resume an existing session')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -426,7 +426,7 @@ program
   .option('--session-id <id>', 'resume an existing session')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -785,7 +785,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -829,7 +829,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -855,7 +855,7 @@ program
       throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
     }
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -895,7 +895,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -917,7 +917,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -1223,7 +1223,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const hasOverrides = Boolean(globalOpts.llmBaseUrl || globalOpts.llmApiKey || globalOpts.llmModel);
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
@@ -1239,7 +1239,7 @@ program
   .description('Run a quick connectivity and auth test against the configured LLM')
   .action(async (_options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -1260,7 +1260,7 @@ program
   .requiredOption('--prompt <text>', 'prompt to send to the model')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
@@ -1291,15 +1291,15 @@ program
   .option('--json', 'output raw JSON')
   .option('--interval <ms>', 'set verification interval in milliseconds (for continuous mode)')
   .option('--continuous', 'run in continuous mode with specified interval')
-  .action(async (options, command) => {
+  .action(async (options) => {
     const rootConfig = await loadAppConfig();
-    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const globalOpts = command.parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
     });
-    const { createHeartbeatVerifier } = await import('./heartbeat/index.js');
+    
     const verifier = createHeartbeatVerifier(config);
     
     if (options.continuous) {

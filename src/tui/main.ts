@@ -1,4 +1,4 @@
-import blessed = require('blessed');
+import * as blessed from 'blessed';
 import type { AppConfig } from '../config/load-config.js';
 import { getQueueStats } from '../queue/store.js';
 import { runDoctorChecks } from '../core/doctor.js';

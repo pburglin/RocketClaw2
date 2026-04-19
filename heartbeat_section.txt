@@ -1,0 +1,60 @@
+// ── Heartbeat ────────────────────────────────────────────────────────────────
+program
+  .command('heartbeat')
+  .description('Run a single heartbeat verification cycle')
+  .option('--json', 'output raw JSON')
+  .option('--interval <ms>', 'set verification interval in milliseconds (for continuous mode)')
+  .option('--continuous', 'run in continuous mode with specified interval')
+  .action(async (options) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = command.parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+    });
+    
+    const { createHeartbeatVerifier } = await import('./heartbeat/index.js');
+    const verifier = createHeartbeatVerifier(config);
+    
+    if (options.continuous) {
+      const interval = options.interval ? parseInt(options.interval) : 300000; // Default 5 minutes
+      console.log(`[Heartbeat] Starting continuous verification (interval: ${interval}ms)`);
+      verifier.start(interval);
+      
+      // Handle graceful shutdown
+      process.on('SIGINT', () => {
+        verifier.stop();
+        console.log('[Heartbeat] Verification stopped');
+        process.exit(0);
+      });
+      process.on('SIGTERM', () => {
+        verifier.stop();
+        console.log('[Heartbeat] Verification stopped');
+        process.exit(0);
+      });
+      
+      // Keep process running
+      return new Promise((resolve) => {
+        // Resolve when stopped externally
+        const checkInterval = setInterval(() => {
+          if (!verifier.isRunning()) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 1000);
+      });
+    } else {
+      // Single verification
+      const result = await verifier.performVerification();
+      console.log(options.json ? JSON.stringify(result, null, 2) : `Heartbeat Verification Complete
+${'='.repeat(50)}
+Overall Status: ${result.healthCheck.overallStatus.toUpperCase()}
+Health Checks: ${result.healthCheck.checks.length} total
+Queue Processed: ${result.queueProcessed.processed} ok, ${result.queueProcessed.failed} failed
+Actions Taken: ${result.actionsTaken.length}
+Recommendations: ${result.recommendations.length}`);
+    }
+  });
+
+// ── Telemetry ────────────────────────────────────────────────────────────────

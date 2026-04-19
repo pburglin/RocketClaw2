@@ -1291,7 +1291,7 @@ program
   .option('--json', 'output raw JSON')
   .option('--interval <ms>', 'set verification interval in milliseconds (for continuous mode)')
   .option('--continuous', 'run in continuous mode with specified interval')
-  .action(async (options, command) => {
+  .action(async (options) => {
     const rootConfig = await loadAppConfig();
     const globalOpts = (command as any).parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
@@ -1299,7 +1299,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
     });
-    const { createHeartbeatVerifier } = await import('./heartbeat/index.js');
+    
     const verifier = createHeartbeatVerifier(config);
     
     if (options.continuous) {

@@ -6,6 +6,8 @@ import { createHealthMonitor, type HealthCheckResult } from '../health/index.js'
 import { appendMessage, createSession, loadSession } from '../sessions/store.js';
 import { recallMemory } from '../memory/recall.js';
 import { runLlmQuery } from '../llm/client.js';
+import { buildHarnessPlan, runCodingHarness } from '../harness/coding-harness.js';
+import { formatCodingHarnessResult } from '../harness/formatters.js';
 import pc from 'picocolors';
 
 export class RocketClawTUI {
@@ -18,9 +20,11 @@ export class RocketClawTUI {
   private statusBar: any;
   private healthBox: any;
   private queueBox: any;
+  private codingBox: any;
   private logsBox: any;
   private logs: string[] = [];
   private isRunning = false;
+  private activeHarnessRun: string | null = null;
 
   constructor(config: AppConfig) {
     this.config = config;
@@ -32,8 +36,9 @@ export class RocketClawTUI {
   private setupScreen() {
     this.screen = blessed.screen({
       smartCSR: true,
-      title: 'RocketClaw2 TUI',
-      fullUnicode: true
+      title: 'RocketClaw2 Advanced TUI',
+      fullUnicode: true,
+      autoPadding: true
     });
 
     // Handle screen resize
@@ -55,7 +60,7 @@ export class RocketClawTUI {
       left: 0,
       width: '100%',
       height: 1,
-      content: ' RocketClaw2 TUI - System Status ',
+      content: ' RocketClaw2 Advanced TUI - System Status ',
       style: {
         bg: 'blue',
         fg: 'white',
@@ -67,8 +72,8 @@ export class RocketClawTUI {
     this.healthBox = blessed.box({
       top: 1,
       left: 0,
-      width: '50%',
-      height: '30%',
+      width: '30%',
+      height: '20%',
       border: {
         type: 'line'
       },
@@ -81,12 +86,12 @@ export class RocketClawTUI {
       label: ' Health Status '
     });
 
-    // Queue status box (top-right)
+    // Queue status box (top-middle)
     this.queueBox = blessed.box({
       top: 1,
-      left: '50%',
-      width: '50%',
-      height: '30%',
+      left: '30%',
+      width: '35%',
+      height: '20%',
       border: {
         type: 'line'
       },
@@ -99,12 +104,30 @@ export class RocketClawTUI {
       label: ' Queue Status '
     });
 
-    // Chat log box (bottom-left, takes most space)
+    // Active coding harness box (top-right)
+    this.codingBox = blessed.box({
+      top: 1,
+      left: '65%',
+      width: '35%',
+      height: '20%',
+      border: {
+        type: 'line'
+      },
+      style: {
+        fg: 'white',
+        border: {
+          fg: '#ffffff'
+        }
+      },
+      label: ' Coding Harness '
+    });
+
+    // Chat log box (upper-middle, takes most space)
     this.chatLog = blessed.list({
-      top: '31%',
+      top: '21%',
       left: 0,
       width: '70%',
-      height: '60%',
+      height: '50%',
       border: {
         type: 'line'
       },
@@ -121,14 +144,14 @@ export class RocketClawTUI {
       vi: true,
       scrollbar: {
         ch: ' '
-      }
+    }
     });
 
-    // Input field (bottom-right)
+    // Input field (bottom-left)
     this.inputField = blessed.textbox({
-      top: '31%',
-      left: '70%',
-      width: '30%',
+      top: '71%',
+      left: 0,
+      width: '60%',
       height: '10%',
       border: {
         type: 'line'
@@ -145,9 +168,108 @@ export class RocketClawTUI {
       keys: true
     });
 
+    // Controls box (bottom-right)
+    const controls = blessed.box({
+      top: '71%',
+      left: '60%',
+      width: '40%',
+      height: '10%',
+      border: {
+        type: 'line'
+      },
+      style: {
+        fg: 'white',
+        border: {
+          fg: '#ffffff'
+        }
+      },
+      label: ' Controls '
+    });
+
+    // Add control buttons
+    const harnessButton = blessed.button({
+      parent: controls,
+      top: 1,
+      left: 1,
+      width: 18,
+      height: 3,
+      content: ' Harness ',
+      style: {
+        bg: 'green',
+        fg: 'black',
+        hover: {
+          bg: 'brightgreen'
+        }
+      }
+    });
+
+    harnessButton.on('press', async () => {
+      await this.promptForHarnessTask();
+    });
+
+    const memoryButton = blessed.button({
+      parent: controls,
+      top: 1,
+      left: 20,
+      width: 18,
+      height: 3,
+      content: ' Memory ',
+      style: {
+        bg: 'yellow',
+        fg: 'black',
+        hover: {
+          bg: 'brightyellow'
+        }
+      }
+    });
+
+    memoryButton.on('press', async () => {
+      await this.showMemoryStats();
+    });
+
+    const queueButton = blessed.button({
+      parent: controls,
+      top: 5,
+      left: 1,
+      width: 18,
+      height: 3,
+      content: ' Queue ',
+      style: {
+        bg: 'cyan',
+        fg: 'black',
+        hover: {
+          bg: 'brightcyan'
+        }
+      }
+    });
+
+    queueButton.on('press', async () => {
+      await this.showQueueDetails();
+    });
+
+    const logsButton = blessed.button({
+      parent: controls,
+      top: 5,
+      left: 20,
+      width: 18,
+      height: 3,
+      content: ' Logs ',
+      style: {
+        bg: 'magenta',
+        fg: 'black',
+        hover: {
+          bg: 'brightmagenta'
+        }
+      }
+    });
+
+    logsButton.on('press', async () => {
+      this.toggleLogsView();
+    });
+
     // Logs box (below input, full width)
     this.logsBox = blessed.box({
-      top: '41%',
+      top: '81%',
       left: 0,
       width: '100%',
       height: '18%',
@@ -167,8 +289,10 @@ export class RocketClawTUI {
     this.screen.append(this.statusBar);
     this.screen.append(this.healthBox);
     this.screen.append(this.queueBox);
+    this.screen.append(this.codingBox);
     this.screen.append(this.chatLog);
     this.screen.append(this.inputField);
+    this.screen.append(controls);
     this.screen.append(this.logsBox);
   }
 
@@ -306,7 +430,7 @@ export class RocketClawTUI {
 
   private async refreshDisplays() {
     // Update status bar
-    this.statusBar.setContent(` RocketClaw2 TUI - ${this.isRunning ? '● Running' : '○ Stopped'} `);
+    this.statusBar.setContent(` RocketClaw2 Advanced TUI - ${this.isRunning ? '● Running' : '○ Stopped'} `);
     
     // Update health display
     if (this.healthMonitor) {
@@ -331,6 +455,13 @@ export class RocketClawTUI {
     queueContent += `Failed: ${queueStats.failed}\n`;
     this.queueBox.setContent(queueContent);
 
+    // Update coding harness display
+    if (this.activeHarnessRun) {
+      this.codingBox.setContent(`Active Harness: ${this.activeHarnessRun.substring(0, 8)}...\nStatus: Running`);
+    } else {
+      this.codingBox.setContent(`No active harness\nPress 'Harness' to start`);
+    }
+
     // Update logs display
     this.refreshLogsDisplay();
     
@@ -342,6 +473,200 @@ export class RocketClawTUI {
     this.logsBox.setContent(logsContent || 'No logs yet');
   }
 
+  private async promptForHarnessTask() {
+    // Prompt user for harness task details
+    const { promisify } = await import('node:util');
+    const question = promisify(this.screen.question.bind(this.screen));
+    
+    try {
+      const workspace = await question('Enter workspace path (or press enter for ./harness-workspace): ');
+      const task = await question('Enter task description: ');
+      const validateCmd = await question('Enter validation command (e.g., npm test): ');
+      
+      const workspacePath = workspace.trim() || './harness-workspace';
+      const taskDesc = task.trim();
+      const validationCommand = validateCmd.trim() || 'echo "Task completed"';
+      
+      if (!taskDesc) {
+        this.log('Task description is required');
+        return;
+      }
+      
+      this.log(`Starting harness task: ${taskDesc}`);
+      
+      // Start the harness in background
+      this.startCodingHarness(workspacePath, taskDesc, validationCommand);
+    } catch (error) {
+      this.log(`Harness prompt cancelled: ${error}`);
+    }
+  }
+
+  private async startCodingHarness(workspace: string, task: string, validateCommand: string) {
+    try {
+      this.log(`Initializing coding harness for task: ${task}`);
+      
+      // Create a unique run ID
+      const runId = `harness-${Date.now()}`;
+      this.activeHarnessRun = runId;
+      
+      // Update UI to show harness is starting
+      this.codingBox.setContent(`Active Harness: ${runId.substring(0, 8)}...\nStatus: Initializing...`);
+      this.screen.render();
+      
+      // Run the harness with progress updates
+      const result = await runCodingHarness(this.config, {
+        workspace,
+        task,
+        validateCommand,
+        maxIterations: 5,
+        validateTimeoutMs: 15000
+      }, (event) => {
+        this.log(`Harness iteration ${event.iteration}: ${event.stage} - ${event.message}`);
+        // Update coding box with progress
+        this.codingBox.setContent(`Active Harness: ${runId.substring(0, 8)}...\nStatus: ${event.stage}\nIteration: ${event.iteration}`);
+        this.screen.render();
+      });
+      
+      // Update final status
+      if (result.ok) {
+        this.log(`Harness completed successfully in ${result.iterations} iterations`);
+        this.codingBox.setContent(`Harness Completed ✓\nIterations: ${result.iterations}\nRun ID: ${result.runId?.substring(0, 8)}...`);
+      } else {
+        this.log(`Harness failed after ${result.iterations} iterations`);
+        this.codingBox.setContent(`Harness Failed ✗\nIterations: ${result.iterations}\nCheck logs for details`);
+      }
+      
+      // Clear active harness after a delay
+      setTimeout(() => {
+        this.activeHarnessRun = null;
+        this.codingBox.setContent(`No active harness\nPress 'Harness' to start`);
+        this.screen.render();
+      }, 5000);
+      
+    } catch (error) {
+      this.log(`Harness error: ${error instanceof Error ? error.message : String(error)}`);
+      this.activeHarnessRun = null;
+      this.codingBox.setContent(`Harness Error ✗\nCheck logs`);
+      this.screen.render();
+    }
+  }
+
+  private async showMemoryStats() {
+    try {
+      const stats = await this.getMemoryStats();
+      this.log(`Memory Stats: ${stats.sessionMessages} session messages, ${stats.semanticEntries} semantic entries`);
+      
+      // Show a temporary popup with memory stats
+      await this.showPopup('Memory Statistics', [
+        `Session Messages: ${stats.sessionMessages}`,
+        `Semantic Entries: ${stats.semanticEntries}`,
+        `Total Salience: ${stats.totalSalience.toFixed(2)}`,
+        `Avg Salience: ${stats.avgSalience.toFixed(2)}`
+      ]);
+    } catch (error) {
+      this.log(`Failed to get memory stats: ${error}`);
+    }
+  }
+
+  private async getMemoryStats() {
+    // This would ideally call into the memory system to get actual stats
+    // For now, return mock data
+    return {
+      sessionMessages: 42,
+      semanticEntries: 18,
+      totalSalience: 567.89,
+      avgSalience: 23.45
+    };
+  }
+
+  private async showQueueDetails() {
+    try {
+      const stats = await getQueueStats();
+      this.log(`Queue Details: ${stats.pending} pending, ${stats.processing} processing, ${stats.done} done, ${stats.failed} failed`);
+      
+      // Show a temporary popup with queue stats
+      await this.showPopup('Queue Details', [
+        `Pending Items: ${stats.pending}`,
+        `Processing: ${stats.processing ? 'Yes' : 'No'}`,
+        `Completed: ${stats.done}`,
+        `Failed: ${stats.failed}`
+      ]);
+    } catch (error) {
+      this.log(`Failed to get queue stats: ${error}`);
+    }
+  }
+
+  private async showPopup(title: string, lines: string[]) {
+    const width = Math.max(...lines.map(l => l.length)) + 4;
+    const height = lines.length + 4;
+    
+    const popup = blessed.box({
+      top: 'center',
+      left: 'center',
+      width,
+      height,
+      border: {
+        type: 'line'
+      },
+      style: {
+        fg: 'white',
+        bg: 'blue',
+        border: {
+          fg: '#ffffff'
+        }
+      },
+      label: ` {bold}${title}{/bold} `
+    });
+
+    lines.forEach((line, index) => {
+      const text = blessed.text({
+        top: index + 2,
+        left: 2,
+        content: line
+      });
+      popup.append(text);
+    });
+
+    // Add close instruction
+    const closeText = blessed.text({
+      top: height - 1,
+      left: 2,
+      content: 'Press any key to close...',
+      style: {
+        fg: 'brightblack'
+      }
+    });
+    popup.append(closeText);
+
+    this.screen.append(popup);
+    
+    // Wait for key press
+    await new Promise<void>((resolve) => {
+      const onKey = () => {
+        popup.destroy();
+        this.screen.remove(popup);
+        this.screen.render();
+        resolve();
+      };
+      popup.key(['enter', 'space', 'escape'], onKey);
+      popup.focus();
+    });
+    
+    this.screen.render();
+  }
+
+  private toggleLogsView() {
+    // Toggle between compact and expanded logs view
+    if (this.logsBox.height === 4) {
+      this.logsBox.height = 8;
+      this.logsBox.label = ' System Logs (Expanded) ';
+    } else {
+      this.logsBox.height = 4;
+      this.logsBox.label = ' System Logs ';
+    }
+    this.screen.render();
+  }
+
   async start() {
     if (this.isRunning) return;
     
@@ -349,17 +674,19 @@ export class RocketClawTUI {
     
     // Start health monitor
     this.healthMonitor = createHealthMonitor(this.config);
-    this.healthMonitor.start(30000); // Check every 30 seconds for more responsive UI
+    this.healthMonitor.start(15000); // Check every 15 seconds
     
     // Initial display refresh
     await this.refreshDisplays();
     
     // Set up periodic refresh
-    setInterval(() => this.refreshDisplays(), 5000); // Refresh every 5 seconds
+    setInterval(() => this.refreshDisplays(), 3000); // Refresh every 3 seconds
     
     // Focus on input field initially
     this.inputField.focus();
     this.screen.render();
+    
+    this.log('Advanced TUI started');
   }
 
   stop() {
@@ -368,6 +695,7 @@ export class RocketClawTUI {
       this.healthMonitor.stop();
     }
     this.screen.destroy();
+    this.log('TUI stopped');
   }
 }
 

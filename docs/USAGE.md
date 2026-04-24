@@ -289,6 +289,12 @@ In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
 
 ## Autonomous coding harness
 
+Recommended paths:
+- use `auto-code` when you want the fastest operator experience
+- use `auto-code --no-auto-approve` when you want a fast plan-creation step followed by explicit review/approval
+- use raw `harness-plan` / `harness-run` commands when you want lower-level control over each phase
+
+Commands:
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-plan --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --request-approval`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
@@ -299,7 +305,8 @@ In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
 
 ## Evaluator-Optimizer operator flow
 
-- `rocketclaw2 harness-plan --workspace . --task "Draft a feature plan" --validate "npm run build" --request-approval`
+- `rocketclaw2 auto-code --workspace . --task "Draft a feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve`
+- `rocketclaw2 harness-show --id <plan-id> --plan`
 - `rocketclaw2 harness-approve --id <plan-id>`
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan`
 - `rocketclaw2 harness-show --id <run-id> --full`
@@ -307,6 +314,7 @@ In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
 
 Recommended use:
 - define explicit review criteria first
+- use `auto-code --no-auto-approve` as the fast path to create a reviewable plan artifact
 - inspect critic/evaluator feedback before another run
 - use this pattern when quality improves through review, not just raw retries
 
@@ -319,10 +327,10 @@ Recommended role split:
 - Reviewer/QA → validation + final gaps
 
 Current RocketClaw2 building blocks for this pattern:
-- `rocketclaw2 harness-plan`
+- `rocketclaw2 auto-code --no-auto-approve`
+- `rocketclaw2 harness-show --id <plan-id-or-run-id> --plan`
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan`
-- `rocketclaw2 harness-show --full`
-- `rocketclaw2 harness-iterations --latest --guidance`
+- `rocketclaw2 harness-iterations --id <run-id> --latest --guidance`
 - `rocketclaw2 approval-list`
 - `rocketclaw2 next-actions`
 
@@ -368,7 +376,8 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 - `rocketclaw2 harness-iterations --id <run-id> --failed-only`
 - `rocketclaw2 harness-iterations --id <run-id> --iteration 2`
 - `rocketclaw2 harness-iterations --id <run-id> --latest --guidance`
-- `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>" --request-approval` — generate a reviewable plan and optionally enqueue approval
+- `rocketclaw2 auto-code --workspace <path> --task "..." --validate "<cmd>" --max-iterations 5 --no-auto-approve` — fast path to create a saved plan artifact and print the next review commands
+- `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>" --request-approval` — lower-level plan creation path when you want tighter manual control
 - `rocketclaw2 harness-approve --id <plan-id>` — mark a saved plan as approved
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan` — execute a reviewed and approved plan artifact
 - `rocketclaw2 harness-validate --id <run-id>` — re-apply saved code blocks and re-run the validate command

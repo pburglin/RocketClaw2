@@ -124,9 +124,9 @@ This prints the current runtime posture and recommended next configuration actio
 
 ## Built-in skill setup roadmap
 
-RocketClaw2 v0.2.0 is adding built-in setup guidance for reusable agentic patterns.
+RocketClaw2 v0.2.0 now includes a built-in skills roadmap/doc set for reusable agentic patterns, even though some runtime surfaces are still partial.
 
-First planned guided skill packs:
+Current documented skill packs:
 - Ralph Loop
 - Second Brain
 - Evaluator-Optimizer
@@ -143,6 +143,11 @@ Start with these references:
 - `docs/skills-roadmap/EVALUATOR-OPTIMIZER.md`
 - `docs/skills-roadmap/MULTI-AGENT-TEAMS.md`
 - `docs/skills-roadmap/WORLD-MODEL.md`
+
+Recommended operator path:
+- use `rocketclaw2 setup-wizard` to orient on runtime readiness
+- pick a skill from `BUILT-IN-SKILLS.md`
+- follow its command flow and demo before trying to generalize the pattern
 
 The intent is for future setup flows to help users enable these patterns with sane defaults instead of manual prompt engineering.
 

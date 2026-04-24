@@ -23,11 +23,17 @@ Recommended prerequisites:
 
 ## Operator flow
 ```bash
-rocketclaw2 harness-plan --workspace . --task "Draft a feature plan" --validate "npm run build" --request-approval
+rocketclaw2 auto-code --workspace . --task "Draft a feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
+rocketclaw2 harness-show --id <plan-id> --plan
 rocketclaw2 harness-approve --id <plan-id>
 rocketclaw2 harness-run --id <plan-id> --require-approved-plan
 rocketclaw2 harness-show --id <run-id> --full
 ```
+
+Recommended posture:
+- use `auto-code --no-auto-approve` as the fast path to create a reviewable artifact
+- then continue through explicit inspection, approval, and execution
+- fall back to raw `harness-plan` when you want lower-level control over the planning phase
 
 ## Current RocketClaw2 fit
 Today, the closest implementation surface is the harness + critic flow:
@@ -42,5 +48,5 @@ Today, the closest implementation surface is the harness + critic flow:
 - prefer explicit acceptance over silent retries
 
 ## Demo ideas
-- plan → critique → refine for a feature implementation
+- auto-code plan artifact → critique → approve → execute for a feature implementation
 - draft a message or doc, score it, then revise once before approval

@@ -3,7 +3,7 @@
 RocketClaw2 is a Node.js and TypeScript reimplementation of RocketClaw, designed as a modern modular personal AI runtime.
 
 ## Status
-Scaffolding and architecture planning are underway.
+Core runtime, native WhatsApp transport, autonomous harness flows, and the v0.2.0 built-in skills documentation set are in place. Current work is focused on tightening operator guidance, demos, and the next layer of guided autonomy workflows.
 
 ## Goals
 - reimplement RocketClaw in Node.js with TypeScript
@@ -52,8 +52,9 @@ flowchart TD
   MemoryCmds --> SemanticMemory[semantic-memory.json]
   MessageCmds --> ChannelRegistry[Channel registry]
   ChannelRegistry --> WhatsAppPlugin[WhatsApp plugin]
-  WhatsAppPlugin --> MockMode[Mock mode]
+  WhatsAppPlugin --> NativeSession[Native session mode]
   WhatsAppPlugin --> WebhookMode[Webhook bridge mode]
+  WhatsAppPlugin --> MockMode[Mock mode]
 
   AppConfig --> Governance[Tool + channel governance]
   Governance --> MessageCmds
@@ -91,10 +92,13 @@ node dist/src/cli.js run --profile default
 `npm run build` now also sets executable permissions on `dist/src/cli.js`, so `npm link` produces a runnable `rocketclaw2` command without a manual chmod step.
 
 ## Current implementation
-- TypeScript project bootstrap
-- minimal CLI with `doctor` and `run` commands
-- basic config loader
-- initial runtime summary + test
+- TypeScript CLI/runtime with config, governance, diagnostics, and packaging verification
+- persistent sessions plus episodic/semantic memory, recall, dreaming, and promotion flows
+- interactive chat shell with LLM support, recall-aware responses, and persistent session history
+- governed tool and messaging execution with approvals, next-step guidance, and yolo posture controls
+- autonomous coding harness flows (`auto-code`, `harness-plan`, `harness-run`, resume/inspect/validate tooling)
+- native WhatsApp transport with QR/bootstrap flows, inbound session bridging, self-chat-only safety, and outbox inspection
+- roadmap/docs/demo coverage for Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, and Evaluator-Optimizer patterns
 
 ## Validation
 - `npm run build` ✅
@@ -630,8 +634,12 @@ RocketClaw2 now includes an initial autonomous coding harness command.
 Examples:
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Draft the plan only" --validate "npm run build" --max-iterations 5 --no-auto-approve`
 
 This first milestone provides the full outer loop: workspace selection, task description, LLM-guided iteration, validation, and result reporting.
+
+`auto-code --no-auto-approve` now saves a real plan artifact and prints the exact follow-up commands for the governed path: inspect the plan, approve it, then execute it with `harness-run --id <plan-id> --require-approved-plan`.
 
 
 ### Harness run artifacts

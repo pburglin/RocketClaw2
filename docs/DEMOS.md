@@ -111,7 +111,8 @@ What this demonstrates:
 
 ## 8. Evaluator-Optimizer demo
 ```bash
-node dist/src/cli.js harness-plan --workspace . --task "Draft a small feature plan" --validate "npm run build" --request-approval
+node dist/src/cli.js auto-code --workspace . --task "Draft a small feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js harness-show --id <plan-id> --plan
 node dist/src/cli.js harness-approve --id <plan-id>
 node dist/src/cli.js harness-run --id <plan-id> --require-approved-plan
 node dist/src/cli.js harness-show --id <run-id> --full
@@ -120,7 +121,8 @@ node dist/src/cli.js harness-iterations --id <run-id> --latest --guidance
 
 What this demonstrates:
 - producer/evaluator style autonomous refinement
-- plan-review-run governance
+- using `auto-code` as the fast path to create a governed plan artifact
+- explicit plan-review-run governance
 - inspection of guidance, critic feedback, and validation outcomes
 - a visible revise-after-critique workflow instead of opaque retries
 
@@ -144,7 +146,7 @@ What this demonstrates:
 
 ## 10. Multi-Agent Teams roadmap demo
 ```bash
-node dist/src/cli.js harness-plan --workspace . --task "Define acceptance criteria and implementation plan" --validate "npm run build" --request-approval
+node dist/src/cli.js auto-code --workspace . --task "Define acceptance criteria and implementation plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
 node dist/src/cli.js harness-show --id <plan-id> --plan
 node dist/src/cli.js next-actions
 node dist/src/cli.js workspace-status
@@ -152,7 +154,7 @@ node dist/src/cli.js workspace-status
 
 What this demonstrates:
 - the current operator-facing building blocks for specialist-role workflows
-- explicit planning artifacts before implementation handoff
+- using `auto-code` as the fast path to create a reviewable planning artifact
 - runtime posture inspection before delegating work to future specialist agents
 
 ## 11. World Model roadmap demo
@@ -186,12 +188,15 @@ node dist/src/cli.js system-summary
 node dist/src/cli.js workspace-status
 node dist/src/cli.js next-actions
 node dist/src/cli.js telemetry --period 7 --perf
-node dist/src/cli.js harness-plan --workspace . --task "Implement the next highest-value RocketClaw2 improvement" --validate "npm run build" --request-approval
+node dist/src/cli.js auto-code --workspace . --task "Implement the next highest-value RocketClaw2 improvement" --validate "npm run build" --max-iterations 5 --no-auto-approve
 node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js harness-approve --id <plan-id>
+node dist/src/cli.js harness-run --id <plan-id> --require-approved-plan
 ```
 
 What this demonstrates:
 - using World Model commands to orient before acting
 - using Karpathian signals to choose the next improvement target
-- turning that target into a governed implementation plan
+- using `auto-code` as the fast path to create a governed improvement plan
+- continuing through explicit review/approval before execution
 - treating RocketClaw2 itself as a system that can improve through its own skill patterns

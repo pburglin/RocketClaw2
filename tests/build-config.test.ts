@@ -9,7 +9,7 @@ describe('build tsconfig split', () => {
     const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
     const buildConfig = JSON.parse(await fs.readFile(path.join(root, 'tsconfig.build.json'), 'utf8'));
 
-    expect(packageJson.scripts?.build).toBe('npm run clean && tsc -p tsconfig.build.json');
+    expect(packageJson.scripts?.build).toBe('npm run clean && tsc -p tsconfig.build.json && node scripts/fix-cli-perms.mjs');
     expect(buildConfig.extends).toBe('./tsconfig.json');
     expect(buildConfig.include).toEqual(['src/**/*.ts']);
     expect(buildConfig.exclude).toContain('tests/**/*.ts');

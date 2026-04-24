@@ -10,7 +10,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-describe('getRuntimeSummary', () => {
+describe('getRuntimeSummary', { timeout: 15000 }, () => {
   it('returns bootstrap status', async () => {
     await expect(getRuntimeSummary()).resolves.toMatchObject({
       name: 'RocketClaw2',

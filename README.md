@@ -88,6 +88,8 @@ node dist/src/cli.js doctor
 node dist/src/cli.js run --profile default
 ```
 
+`npm run build` now also sets executable permissions on `dist/src/cli.js`, so `npm link` produces a runnable `rocketclaw2` command without a manual chmod step.
+
 ## Current implementation
 - TypeScript project bootstrap
 - minimal CLI with `doctor` and `run` commands

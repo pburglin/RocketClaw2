@@ -44,7 +44,10 @@ To make `rocketclaw2` available as a shell command from this checkout:
 npm install
 npm run build
 npm link
+rocketclaw2 --help
 ```
+
+`npm run build` now also fixes executable permissions on `dist/src/cli.js`, so linked CLI installs work without a manual `chmod +x` step.
 
 Packaging now also runs build verification automatically through `prepack`, so `npm pack` and publish-style workflows re-check the canonical CLI entrypoint before shipping.
 

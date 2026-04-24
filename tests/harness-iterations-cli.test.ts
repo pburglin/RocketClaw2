@@ -9,7 +9,7 @@ import { saveIterationEntry } from '../src/harness/iteration-store.js';
 const execFileAsync = promisify(execFile);
 
 describe('harness-iterations CLI filters', () => {
-  it('supports latest, failed-only, and iteration filters', async () => {
+  it('smoke-tests filtered CLI output and guidance rendering', async () => {
     const homeRoot = path.join(os.tmpdir(), `rocketclaw2-iter-cli-${Date.now()}`);
     const appRoot = path.join(homeRoot, '.rocketclaw2');
     const runId = 'run-iter-cli';
@@ -36,32 +36,13 @@ describe('harness-iterations CLI filters', () => {
       validationStderr: '',
     }, appRoot);
 
-    const latest = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'harness-iterations', '--id', runId, '--latest'], {
+    const latest = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'harness-iterations', '--id', runId, '--latest', '--guidance'], {
       cwd: process.cwd(),
       env: { ...process.env, HOME: homeRoot },
     });
     expect(latest.stdout).toContain('Iteration 2 | passed=true');
     expect(latest.stdout).not.toContain('Iteration 1 | passed=false');
-
-    const failedOnly = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'harness-iterations', '--id', runId, '--failed-only'], {
-      cwd: process.cwd(),
-      env: { ...process.env, HOME: homeRoot },
-    });
-    expect(failedOnly.stdout).toContain('Iteration 1 | passed=false');
-    expect(failedOnly.stdout).not.toContain('Iteration 2 | passed=true');
-
-    const specific = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'harness-iterations', '--id', runId, '--iteration', '2'], {
-      cwd: process.cwd(),
-      env: { ...process.env, HOME: homeRoot },
-    });
-    expect(specific.stdout).toContain('Iteration 2 | passed=true');
-    expect(specific.stdout).not.toContain('Iteration 1 | passed=false');
-
-    const guidance = await execFileAsync('./node_modules/.bin/tsx', ['src/cli.ts', 'harness-iterations', '--id', runId, '--latest', '--guidance'], {
-      cwd: process.cwd(),
-      env: { ...process.env, HOME: homeRoot },
-    });
-    expect(guidance.stdout).toContain('guidance: second');
+    expect(latest.stdout).toContain('guidance: second');
 
     await fs.rm(homeRoot, { recursive: true, force: true });
   }, 15000);

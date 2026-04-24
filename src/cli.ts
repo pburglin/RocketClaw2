@@ -50,7 +50,7 @@ import { buildWorldModel, formatWorldModel } from './core/world-model.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness, runCodingHarnessFromPlan } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessChain, formatHarnessChainSummary, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessLineageView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, buildHarnessChain, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
-import { loadIterationEntries } from './harness/iteration-store.js';
+import { filterIterationEntries, loadIterationEntries } from './harness/iteration-store.js';
 import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
 import { runLlmQuery } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
@@ -67,6 +67,34 @@ import { appendMessage, createSession, listSessions, loadSession } from './sessi
 import { getSessionStats } from './sessions/stats.js';
 import { runChatSession } from './commands/chat.js';
 import { runAutoCode } from './commands/auto-code.js';
+
+function normalizeCliArgv(argv: string[]): string[] {
+  const prefix = argv.slice(0, 2);
+  const rest = argv.slice(2);
+  const normalized: string[] = [];
+
+  for (let i = 0; i < rest.length; i += 1) {
+    const raw = rest[i] ?? '';
+    const token = raw.replace(/[\u2013\u2014\u2212]/g, '-');
+    const nextRaw = rest[i + 1] ?? '';
+    const next = nextRaw.replace(/[\u2013\u2014\u2212]/g, '-');
+
+    if (token === '-' && /^-[A-Za-z][A-Za-z0-9-]*$/.test(next)) {
+      normalized.push(`-${next}`);
+      i += 1;
+      continue;
+    }
+
+    if (/^-[A-Za-z][A-Za-z0-9-]+$/.test(token) && !token.startsWith('--')) {
+      normalized.push(`-${token}`);
+      continue;
+    }
+
+    normalized.push(token);
+  }
+
+  return [...prefix, ...normalized];
+}
 
 const program = new Command();
 
@@ -757,17 +785,11 @@ program
   .option('--guidance', 'include guidance text for each returned iteration')
   .option('--json', 'output raw JSON')
   .action(async (options) => {
-    let entries = await loadIterationEntries(options.id);
-    if (options.iteration) {
-      const wanted = Number(options.iteration);
-      entries = entries.filter((entry) => entry.iteration === wanted);
-    }
-    if (options.failedOnly) {
-      entries = entries.filter((entry) => entry.validationPassed === false);
-    }
-    if (options.latest && entries.length > 0) {
-      entries = [entries[entries.length - 1]!];
-    }
+    const entries = filterIterationEntries(await loadIterationEntries(options.id), {
+      latest: Boolean(options.latest),
+      failedOnly: Boolean(options.failedOnly),
+      iteration: options.iteration ? Number(options.iteration) : null,
+    });
     console.log(options.json ? JSON.stringify(entries, null, 2) : formatHarnessIterations(entries, { includeGuidance: Boolean(options.guidance) }));
   });
 
@@ -1440,11 +1462,29 @@ program
     } else {
       if (result.ok) {
         console.log(result.result ?? 'Autonomous coding completed successfully.');
+        if (result.planId) {
+          console.log(`Plan ID: ${result.planId}`);
+        }
+        if (result.artifactPath) {
+          console.log(`Artifact: ${result.artifactPath}`);
+        }
       } else {
         console.error(result.error ?? 'Autonomous coding failed.');
+        if (result.planId) {
+          console.error(`Plan ID: ${result.planId}`);
+        }
+        if (result.artifactPath) {
+          console.error(`Artifact: ${result.artifactPath}`);
+        }
+        if (result.nextSteps && result.nextSteps.length > 0) {
+          console.error('Next steps:');
+          for (const step of result.nextSteps) {
+            console.error(`- ${step}`);
+          }
+        }
         process.exitCode = 1;
       }
     }
   });
 
-program.parse();
+program.parse(normalizeCliArgv(process.argv));

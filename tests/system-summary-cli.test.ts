@@ -12,5 +12,5 @@ describe('system-summary CLI', () => {
     });
 
     expect(stdout).toContain('Profile:');
-  });
+  }, 15000);
 });

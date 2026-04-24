@@ -49,6 +49,17 @@ describe('harness-run require-approved-plan mode', () => {
       expect(msg).toContain('Harness plan plan-1 is not approved');
     }
 
+    try {
+      await execFileAsync('node', [cli, 'harness-run', '-', '-id', 'plan-1', '--require-approved-plan'], {
+        env: { ...process.env, HOME: homeRoot },
+      });
+      throw new Error('expected harness-run with malformed pasted option to fail on plan approval state');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      expect(msg).toContain('Harness plan plan-1 is not approved');
+      expect(msg).not.toContain('unknown option');
+    }
+
     await fs.rm(homeRoot, { recursive: true, force: true });
   });
 });

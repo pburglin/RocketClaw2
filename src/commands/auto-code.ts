@@ -14,7 +14,7 @@ export async function runAutoCode(
   validateCommand: string = 'true',
   maxIterations: number = 5,
   autoApprove: boolean = true
-): Promise<{ ok: boolean; result?: string; error?: string }> {
+): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
     // Step 1: Build a plan
     const planResult = await buildHarnessPlan(config, {
@@ -31,12 +31,26 @@ export async function runAutoCode(
       const approveResult = await approveHarnessPlan(planArtifact.runId);
 
       if (approveResult.approvalStatus !== 'approved') {
-        return { ok: false, error: `Failed to approve plan: status is ${approveResult.approvalStatus}` };
+        return {
+          ok: false,
+          error: `Failed to approve plan: status is ${approveResult.approvalStatus}`,
+          planId: planArtifact.runId,
+          artifactPath: planArtifact.path,
+        };
       }
     } else {
-      // In manual mode, we would return the plan for user review
-      console.log(`Plan created and saved as ${planArtifact.runId}. Use harness-approve to approve it manually.`);
-      return { ok: false, error: 'Manual approval required. Use harness-approve command.' };
+      return {
+        ok: false,
+        error: 'Manual approval required before execution.',
+        planId: planArtifact.runId,
+        artifactPath: planArtifact.path,
+        approvalRequired: true,
+        nextSteps: [
+          `rocketclaw2 harness-show --id ${planArtifact.runId} --plan`,
+          `rocketclaw2 harness-approve --id ${planArtifact.runId}`,
+          `rocketclaw2 harness-run --id ${planArtifact.runId} --require-approved-plan`,
+        ],
+      };
     }
 
     // Step 4: Execute the approved plan
@@ -51,7 +65,9 @@ export async function runAutoCode(
 
     return {
       ok: true,
-      result: `Autonomous coding completed successfully.\n${formatCodingHarnessResult(executionResult)}`
+      result: `Autonomous coding completed successfully.\n${formatCodingHarnessResult(executionResult)}`,
+      planId: planArtifact.runId,
+      artifactPath: planArtifact.path,
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);

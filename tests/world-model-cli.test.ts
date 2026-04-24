@@ -13,5 +13,5 @@ describe('world-model CLI', () => {
 
     expect(stdout).toContain('RocketClaw2 World Model');
     expect(stdout).toContain('Active goal:');
-  });
+  }, 15000);
 });

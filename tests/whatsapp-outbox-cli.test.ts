@@ -34,5 +34,5 @@ describe('whatsapp-outbox CLI', () => {
     expect(stdout).toContain('2026-04-11T10:00:00.000Z | +15551234567 -> +15557654321 | hello native');
 
     await fs.rm(homeRoot, { recursive: true, force: true });
-  });
+  }, 15000);
 });

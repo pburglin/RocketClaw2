@@ -6,10 +6,11 @@ import { formatCodingHarnessResult } from '../harness/formatters.js';
 function buildLlmRecoverySteps(config: AppConfig): string[] {
   const baseUrl = config.llm.baseUrl;
   const model = config.llm.model;
+  const auth = '--llm-api-key "$API_KEY"';
   return [
-    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-model "${model}" llm-status`,
-    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-model "${model}" llm-test`,
-    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-model "${model}" llm-query --prompt "Reply with exactly: LLM_OK"`,
+    `rocketclaw2 --llm-base-url "${baseUrl}" ${auth} --llm-model "${model}" llm-status`,
+    `rocketclaw2 --llm-base-url "${baseUrl}" ${auth} --llm-model "${model}" llm-test`,
+    `rocketclaw2 --llm-base-url "${baseUrl}" ${auth} --llm-model "${model}" llm-query --prompt "Reply with exactly: LLM_OK"`,
     'If that times out too, retry with a known-fast model such as gpt-4o-mini.',
   ];
 }

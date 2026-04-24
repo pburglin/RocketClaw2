@@ -752,7 +752,7 @@ Runs launched from approved plans now carry explicit `executedPlanId` lineage so
 
 ### Strict execution control
 
-`harness-run` supports `--require-approved-plan`, which refuses direct execution unless `--id` references an approved plan artifact. The governed path is: `harness-plan`, `harness-approve`, then `harness-run --id <plan-id> --require-approved-plan`.
+`harness-run` supports `--require-approved-plan`, which refuses direct execution unless `--id` references an approved plan artifact. Preferred governed path: `auto-code --no-auto-approve`, then inspect/approve, then `harness-run --id <plan-id> --require-approved-plan`. Lower-level path: `harness-plan`, `harness-approve`, then `harness-run --id <plan-id> --require-approved-plan`.
 
 
 ### Live WhatsApp listener path

@@ -16,6 +16,7 @@ describe('harness-run require-approved-plan mode', () => {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       expect(msg).toContain('require-approved-plan');
+      expect(msg).toContain('auto-code --no-auto-approve');
       expect(msg).toContain('harness-run --id <plan-id>');
     }
   });

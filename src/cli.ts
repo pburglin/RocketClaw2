@@ -888,7 +888,7 @@ program
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     if (options.requireApprovedPlan && !options.id) {
-      throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run --id <plan-id> --require-approved-plan.');
+      throw new Error('Direct harness-run is disabled in require-approved-plan mode. Preferred path: use auto-code --no-auto-approve to create a reviewable plan, then harness-approve, then harness-run --id <plan-id> --require-approved-plan. Lower-level path: harness-plan, harness-approve, then harness-run --id <plan-id> --require-approved-plan.');
     }
     const rootConfig = await loadAppConfig();
     const globalOpts = (command as any).parent?.opts?.() ?? {};

@@ -87,4 +87,20 @@ describe('runAutoCode', () => {
     expect(approveHarnessPlanMock).not.toHaveBeenCalled();
     expect(runCodingHarnessFromPlanMock).not.toHaveBeenCalled();
   });
+
+  it('returns LLM recovery steps when planning fails with an LLM/provider error', async () => {
+    buildHarnessPlanMock.mockRejectedValue(new Error('LLM provider timed out (code: 524). Provider returned error'));
+
+    const { runAutoCode } = await import('../src/commands/auto-code.js');
+    const result = await runAutoCode({ llm: { baseUrl: 'https://example.com/v1', model: 'demo-model' } } as any, '/tmp/demo', 'demo', 'npm test', 3, true);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('Autonomous coding failed: LLM provider timed out');
+    expect(result.nextSteps).toEqual([
+      'rocketclaw2 --llm-base-url "https://example.com/v1" --llm-model "demo-model" llm-status',
+      'rocketclaw2 --llm-base-url "https://example.com/v1" --llm-model "demo-model" llm-test',
+      'rocketclaw2 --llm-base-url "https://example.com/v1" --llm-model "demo-model" llm-query --prompt "Reply with exactly: LLM_OK"',
+      'If that times out too, retry with a known-fast model such as gpt-4o-mini.',
+    ]);
+  });
 });

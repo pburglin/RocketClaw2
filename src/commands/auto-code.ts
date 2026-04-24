@@ -3,6 +3,17 @@ import { approveHarnessPlan, saveHarnessRun } from '../harness/store.js';
 import type { AppConfig } from '../config/load-config.js';
 import { formatCodingHarnessResult } from '../harness/formatters.js';
 
+function buildLlmRecoverySteps(config: AppConfig): string[] {
+  const baseUrl = config.llm.baseUrl;
+  const model = config.llm.model;
+  return [
+    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-model "${model}" llm-status`,
+    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-model "${model}" llm-test`,
+    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-model "${model}" llm-query --prompt "Reply with exactly: LLM_OK"`,
+    'If that times out too, retry with a known-fast model such as gpt-4o-mini.',
+  ];
+}
+
 /**
  * Run a streamlined autonomous coding flow that combines planning, approval, and execution
  * with smart defaults for minimal user intervention.
@@ -13,19 +24,19 @@ export async function runAutoCode(
   task: string,
   validateCommand: string = 'true',
   maxIterations: number = 5,
-  autoApprove: boolean = true
+  autoApprove: boolean = true,
 ): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
     // Step 1: Build a plan
     const planResult = await buildHarnessPlan(config, {
       workspace,
       task,
-      validateCommand
+      validateCommand,
     });
 
     // Step 2: Save the plan to get a runId
     const planArtifact = await saveHarnessRun(planResult);
-    
+
     // Step 3: Approve the plan (automatically if requested)
     if (autoApprove) {
       const approveResult = await approveHarnessPlan(planArtifact.runId);
@@ -71,6 +82,11 @@ export async function runAutoCode(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `Autonomous coding failed: ${errorMsg}` };
+    const looksLlmRelated = /\bLLM\b|provider timed out|message content|chat\/completions|model may be invalid|authentication failed|endpoint not found|rate limit/i.test(errorMsg);
+    return {
+      ok: false,
+      error: `Autonomous coding failed: ${errorMsg}`,
+      nextSteps: looksLlmRelated ? buildLlmRecoverySteps(config) : undefined,
+    };
   }
 }

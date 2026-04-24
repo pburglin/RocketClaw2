@@ -44,6 +44,32 @@ function extractCompletionText(payload: unknown): string {
   return extractText(record.output) || extractText(record.message);
 }
 
+function explainPayloadError(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as Record<string, unknown>;
+  const errorValue = record.error;
+  if (!errorValue || typeof errorValue !== 'object' || Array.isArray(errorValue)) return null;
+
+  const errorRecord = errorValue as Record<string, unknown>;
+  const code = errorRecord.code;
+  const message = typeof errorRecord.message === 'string' ? errorRecord.message : 'Provider returned an error payload.';
+  const codeText = code === undefined || code === null ? '' : ` (code: ${String(code)})`;
+
+  if (String(code) === '524') {
+    return [
+      `LLM provider timed out${codeText}.`,
+      message,
+      'This usually means the upstream provider/model did not finish in time.',
+      'Recommended next steps:',
+      '- verify the same base URL/model with `rocketclaw2 llm-query --prompt "Reply with exactly: LLM_OK"`',
+      '- retry with a faster/smaller known-good model such as `gpt-4o-mini`',
+      '- if this is a gateway/provider shim, check its upstream timeout limits',
+    ].join('\n');
+  }
+
+  return `LLM provider returned an error payload${codeText}. ${message}`;
+}
+
 export async function runLlmQuery(config: AppConfig, prompt: string, channel = 'cli'): Promise<string> {
   if (!config.llm.apiKey) {
     throw new Error('No LLM API key configured. Set llm.apiKey in config.yaml or pass --llm-api-key for this session.');
@@ -75,10 +101,19 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channel = '
   recordLlmResponse(channel, Date.now() - start);
 
   const payload = await response.json();
+  const payloadError = explainPayloadError(payload);
+  if (payloadError) {
+    const err = new Error(payloadError);
+    recordLlmError(channel, err.message);
+    throw err;
+  }
+
   const content = extractCompletionText(payload).trim();
   if (!content) {
     const preview = JSON.stringify(payload).slice(0, 400);
-    throw new Error(`LLM query returned no message content. Response preview: ${preview}`);
+    const err = new Error(`LLM query returned no message content. Response preview: ${preview}`);
+    recordLlmError(channel, err.message);
+    throw err;
   }
 
   return content;

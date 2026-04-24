@@ -47,4 +47,14 @@ describe('runLlmQuery', () => {
     const text = await runLlmQuery(config, 'hello');
     expect(text).toBe('hello from responses api');
   });
+
+  it('surfaces wrapped provider timeout payloads clearly', async () => {
+    vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ error: { message: 'Provider returned error', code: 524 } }),
+    } as Response);
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    await expect(runLlmQuery(config, 'hello')).rejects.toThrow('LLM provider timed out');
+  });
 });

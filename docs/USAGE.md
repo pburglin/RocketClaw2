@@ -74,11 +74,40 @@ node dist/src/cli.js recall --query WhatsApp
 node dist/src/cli.js chat --session-id <session-id>
 ```
 
+## Built-in agentic skill patterns (roadmap)
+RocketClaw2 v0.2.0 is being expanded to include guided built-in skills for common high-value autonomy patterns. These skills are meant to reduce setup friction, provide opinionated defaults, and teach operators how to use each workflow well.
+
+Planned built-in skills:
+- **Ralph Loop** — verify-and-fix loops for code, configs, and operator tasks
+- **Karpathian Loop** — metric-driven iterative improvement and evaluation cycles
+- **World Model** — explicit context modeling for plans, constraints, and situational awareness
+- **Second Brain** — personal data ingestion, retrieval, summarization, and memory hygiene
+- **Multi-Agent Teams** — orchestrated specialist agents with scoped roles and handoffs
+- **Evaluator-Optimizer** — paired producer/evaluator loops for refinement and quality scoring
+
+Most developed built-in skill docs right now:
+- `docs/skills-roadmap/RALPH-LOOP.md`
+- `docs/skills-roadmap/KARPATHIAN-LOOP.md`
+- `docs/skills-roadmap/SECOND-BRAIN.md`
+- `docs/skills-roadmap/SECOND-BRAIN-DEMO.md`
+- `docs/skills-roadmap/EVALUATOR-OPTIMIZER.md`
+- `docs/skills-roadmap/MULTI-AGENT-TEAMS.md`
+- `docs/skills-roadmap/WORLD-MODEL.md`
+
+Each pattern is expected to ship with:
+- setup guidance
+- recommended command flows
+- guardrails and anti-patterns
+- demo scenarios in `docs/DEMOS.md`
+
+`docs/skills-roadmap/BUILT-IN-SKILLS.md` also now includes a practical playbook for using these patterns together to continuously improve RocketClaw2 itself.
+
 ## Current limitations
 - chat responses are still rule-based and intentionally simple
 - retrieval is now stronger than plain substring matching, unified recall suppresses identical duplicate hits, top results get a light diversity rebalance, and recall ranking blends lexical relevance with salience and recency, but matching is still lexical and does not yet use embeddings or semantic similarity
 - dreaming currently plans and promotes memory, but does not yet rewrite or prune episodic history
 - messaging is plugin-based, with WhatsApp as the first concrete target in the roadmap
+- built-in skill packs for advanced autonomy patterns are still being documented and productized
 - the richer TUI is still future work, but the formatter layer now supports more usable terminal inspection flows
 
 ## Messaging inspection
@@ -119,6 +148,20 @@ node dist/src/cli.js chat --session-id <session-id>
 - `rocketclaw2 memory-list --tag preference`
 - `rocketclaw2 memory-list --min-salience 40 --summary`
 
+## Second Brain operator flow
+
+- `rocketclaw2 session-create --title "Second Brain Demo"`
+- `rocketclaw2 dream --summary`
+- `rocketclaw2 dream-run --dry-run`
+- `rocketclaw2 remember`
+- `rocketclaw2 recall --query "WhatsApp updates"`
+- `rocketclaw2 memory-list --summary`
+
+Recommended use:
+- capture stable preferences and repeated constraints in sessions first
+- inspect promotion candidates before writing long-term memory
+- prefer durable facts over temporary status updates
+
 ## Governed messaging execution
 
 - `rocketclaw2 message-run --channel whatsapp --text "hello" --approve`
@@ -132,6 +175,16 @@ node dist/src/cli.js chat --session-id <session-id>
 
 - `rocketclaw2 ralph-loop --preset validate --max-iterations 5`
 - `rocketclaw2 ralph-loop --preset build --max-iterations 5`
+- `rocketclaw2 ralph-loop --preset lint --max-iterations 5`
+- `rocketclaw2 ralph-loop --preset docs --max-iterations 5`
+- `rocketclaw2 ralph-loop --preset pack --max-iterations 5`
+
+Preset intent:
+- `validate` — quick test-driven verify-and-fix loops
+- `build` — compilation and packaging readiness
+- `lint` — static correctness / typecheck cleanup
+- `docs` — lightweight documentation-quality gate flows
+- `pack` — release-style package verification
 
 ## Approval workflow
 
@@ -240,6 +293,56 @@ In chat mode, press Ctrl+C or type `/exit` to leave cleanly.
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
 
+## Evaluator-Optimizer operator flow
+
+- `rocketclaw2 harness-plan --workspace . --task "Draft a feature plan" --validate "npm run build" --request-approval`
+- `rocketclaw2 harness-approve --id <plan-id>`
+- `rocketclaw2 harness-run --id <plan-id> --require-approved-plan`
+- `rocketclaw2 harness-show --id <run-id> --full`
+- `rocketclaw2 harness-iterations --id <run-id> --latest --guidance`
+
+Recommended use:
+- define explicit review criteria first
+- inspect critic/evaluator feedback before another run
+- use this pattern when quality improves through review, not just raw retries
+
+## Multi-Agent Teams operator pattern
+
+Recommended role split:
+- PM/Product → scope + acceptance criteria
+- Architect → design + risks
+- Implementer → execution
+- Reviewer/QA → validation + final gaps
+
+Current RocketClaw2 building blocks for this pattern:
+- `rocketclaw2 harness-plan`
+- `rocketclaw2 harness-run --id <plan-id> --require-approved-plan`
+- `rocketclaw2 harness-show --full`
+- `rocketclaw2 harness-iterations --latest --guidance`
+- `rocketclaw2 approval-list`
+- `rocketclaw2 next-actions`
+
+Recommended use:
+- keep role briefs small and explicit
+- pass artifacts forward between roles
+- always end with reviewer/QA validation
+
+## World Model operator pattern
+
+Current RocketClaw2 building blocks for this pattern:
+- `rocketclaw2 world-model`
+- `rocketclaw2 system-summary`
+- `rocketclaw2 workspace-status`
+- `rocketclaw2 next-actions`
+- `rocketclaw2 recall --query ...`
+- `rocketclaw2 doctor`
+
+Recommended use:
+- start with `rocketclaw2 world-model` when you want one planning/handoff snapshot instead of stitching together multiple commands
+- refresh posture before major actions
+- keep track of goals, constraints, blockers, and next actions
+- use this pattern to improve planning and handoffs across longer tasks
+
 
 Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 data directory so runs can be inspected later.
 
@@ -325,23 +428,23 @@ Use `rocketclaw2 harness-iterations --id <run-id>` to inspect run history at the
 
 ## Plan-gated autonomous execution
 
-Use `rocketclaw2 harness-run-plan --id <approved-plan-id>` to execute a previously approved plan artifact as the basis for an autonomous coding run.
+Use `rocketclaw2 harness-run --id <approved-plan-id> --require-approved-plan` to execute a previously approved plan artifact as the basis for an autonomous coding run.
 
 
 ## Plan lineage
 
-Runs created through `harness-run-plan` now retain source-plan lineage via `executedPlanId`, and normal run formatting surfaces that lineage during inspection.
+Runs created through the approved-plan execution path now retain source-plan lineage via `executedPlanId`, and normal run formatting surfaces that lineage during inspection.
 
 
 ## Strict execution control
 
 If you want to forbid direct autonomous execution, use:
-`rocketclaw2 harness-run ... --require-approved-plan`
+`rocketclaw2 harness-run --id <plan-id> --require-approved-plan`
 
-This will fail fast and instruct the operator to use:
+This governed path is:
 1. `harness-plan`
 2. `harness-approve`
-3. `harness-run-plan`
+3. `harness-run --id <plan-id> --require-approved-plan`
 
 
 ## Live WhatsApp listener

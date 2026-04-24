@@ -367,8 +367,18 @@ export async function harnessResume(
 export async function runCodingHarnessFromPlan(
   config: AppConfig,
   runId: string,
-  root = getDefaultProjectRoot(),
+  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number } = getDefaultProjectRoot(),
 ): Promise<CodingHarnessResult & { executedPlanId: string }> {
+  const root = typeof rootOrOverrides === 'string'
+    ? rootOrOverrides
+    : (rootOrOverrides.root ?? getDefaultProjectRoot());
+  const maxIterations = typeof rootOrOverrides === 'string'
+    ? 5
+    : (rootOrOverrides.maxIterations ?? 5);
+  const validateTimeoutMs = typeof rootOrOverrides === 'string'
+    ? 15000
+    : (rootOrOverrides.validateTimeoutMs ?? 15000);
+
   const planned = await loadHarnessRun(runId, root);
   if (!planned) throw new Error(`Harness artifact not found: ${runId}`);
   if (planned.kind !== 'plan') throw new Error(`Harness artifact is not a plan: ${runId}`);
@@ -378,8 +388,8 @@ export async function runCodingHarnessFromPlan(
     workspace: String(planned.workspace ?? ''),
     task: String(planned.task ?? ''),
     validateCommand: String(planned.validateCommand ?? ''),
-    maxIterations: 5,
-    validateTimeoutMs: 15000,
+    maxIterations,
+    validateTimeoutMs,
   });
   return { ...result, executedPlanId: runId };
 }

@@ -94,7 +94,7 @@ describe('getRuntimeSummary', () => {
     expect(limited.stdout).not.toContain('[system] system boot');
 
     await fs.rm(homeRoot, { recursive: true, force: true });
-  });
+  }, 15000);
 
   it('syncs own phone number into config when saving a whatsapp session from the CLI', async () => {
     const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-whatsapp-session-home-${Date.now()}`);

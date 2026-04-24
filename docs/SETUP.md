@@ -119,6 +119,42 @@ rocketclaw2 setup-wizard
 
 This prints the current runtime posture and recommended next configuration actions.
 
+## Built-in skill setup roadmap
+
+RocketClaw2 v0.2.0 is adding built-in setup guidance for reusable agentic patterns.
+
+First planned guided skill packs:
+- Ralph Loop
+- Second Brain
+- Evaluator-Optimizer
+- Multi-Agent Teams
+- World Model
+- Karpathian Loop
+
+Start with these references:
+- `docs/skills-roadmap/BUILT-IN-SKILLS.md`
+- `docs/skills-roadmap/RALPH-LOOP.md`
+- `docs/skills-roadmap/KARPATHIAN-LOOP.md`
+- `docs/skills-roadmap/SECOND-BRAIN.md`
+- `docs/skills-roadmap/SECOND-BRAIN-DEMO.md`
+- `docs/skills-roadmap/EVALUATOR-OPTIMIZER.md`
+- `docs/skills-roadmap/MULTI-AGENT-TEAMS.md`
+- `docs/skills-roadmap/WORLD-MODEL.md`
+
+The intent is for future setup flows to help users enable these patterns with sane defaults instead of manual prompt engineering.
+
+## Second Brain quick start
+For the most practical built-in memory workflow, start here:
+```bash
+node dist/src/cli.js session-create --title "Second Brain Demo"
+node dist/src/cli.js dream --summary
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js remember
+node dist/src/cli.js recall --query "preference"
+```
+
+This is the current closest thing to a built-in personal-RAG onboarding path in RocketClaw2.
+
 ## Readiness check
 
 After setup, run:

@@ -2,6 +2,9 @@ export function resolveRalphPreset(preset: string | undefined): { command?: stri
   if (!preset) return {};
   if (preset === 'validate') return { command: 'npm test', until: 'exit-0' };
   if (preset === 'build') return { command: 'npm run build', until: 'exit-0' };
+  if (preset === 'lint') return { command: 'npm run lint', until: 'exit-0' };
+  if (preset === 'docs') return { command: 'npm run build', until: 'exit-0' };
+  if (preset === 'pack') return { command: 'npm run verify:pack', until: 'exit-0' };
   return {};
 }
 

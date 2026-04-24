@@ -46,6 +46,7 @@ import { applySessionOverrides } from './config/session-overrides.js';
 import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
+import { buildWorldModel, formatWorldModel } from './core/world-model.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness, runCodingHarnessFromPlan } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessChain, formatHarnessChainSummary, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessLineageView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, buildHarnessChain, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
@@ -382,9 +383,6 @@ program
   .description('Show a unified operator view of runtime posture and configuration')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
-    if (options.requireApprovedPlan) {
-      throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
-    }
     const rootConfig = await loadAppConfig();
     const globalOpts = (command as any).parent?.opts?.() ?? {};
     const config = applySessionOverrides(rootConfig, {
@@ -394,6 +392,15 @@ program
     });
     const summary = buildSystemSummary(config);
     console.log(options.json ? JSON.stringify(summary, null, 2) : formatSystemSummary(summary));
+  });
+
+program
+  .command('world-model')
+  .description('Show a structured world-model snapshot for planning, handoff, and situational awareness')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const model = await buildWorldModel();
+    console.log(options.json ? JSON.stringify(model, null, 2) : formatWorldModel(model));
   });
 
 program
@@ -827,6 +834,8 @@ program
   .command('harness-run-plan')
   .description('Execute an approved harness plan artifact as the basis for an autonomous coding run')
   .requiredOption('--id <id>', 'approved harness plan id')
+  .option('--max-iterations <n>', 'maximum iterations', '5')
+  .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds', '15000')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
@@ -836,7 +845,10 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
     });
-    const result = await runCodingHarnessFromPlan(config, options.id);
+    const result = await runCodingHarnessFromPlan(config, options.id, {
+      maxIterations: Number(options.maxIterations),
+      validateTimeoutMs: Number(options.validateTimeoutMs),
+    });
     console.log(options.json ? JSON.stringify(result, null, 2) : formatCodingHarnessResult(result));
     if (!result.ok) process.exitCode = 1;
   });
@@ -844,16 +856,17 @@ program
 program
   .command('harness-run')
   .description('Run an autonomous coding harness loop for a workspace task until validation passes or iterations are exhausted')
+  .option('--id <plan-id>', 'approved harness plan id to execute through the governed path')
   .option('--workspace <path>', 'target workspace path')
   .option('--task <text>', 'task description')
   .option('--validate <cmd>', 'validation command to run in the workspace')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds', '15000')
-  .option('--require-approved-plan', 'refuse direct execution; require harness-plan, harness-approve, then harness-run-plan')
+  .option('--require-approved-plan', 'refuse direct execution unless --id references an approved plan artifact')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
-    if (options.requireApprovedPlan) {
-      throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run-plan.');
+    if (options.requireApprovedPlan && !options.id) {
+      throw new Error('Direct harness-run is disabled in require-approved-plan mode. Use harness-plan, harness-approve, then harness-run --id <plan-id> --require-approved-plan.');
     }
     const rootConfig = await loadAppConfig();
     const globalOpts = (command as any).parent?.opts?.() ?? {};
@@ -936,7 +949,7 @@ program
 program
   .command('ralph-loop')
   .description('Repeat a command until a user-provided success condition is met')
-  .option('--preset <name>', 'validate|build')
+  .option('--preset <name>', 'validate|build|lint|docs|pack')
   .option('--command <cmd>', 'shell command to execute')
   .option('--until <condition>', 'exit-0|stdout-includes')
   .option('--match-text <text>', 'required when using stdout-includes')

@@ -68,12 +68,15 @@ flowchart TD
 - `docs/SETUP.md` - setup instructions
 - `docs/USAGE.md` - CLI usage
 - `docs/DEMOS.md` - demo scenarios
+- `docs/skills-roadmap/` - built-in skill roadmap, setup guidance, and demos for agentic patterns
+  - includes Ralph Loop, Karpathian Loop, Second Brain, Evaluator-Optimizer, Multi-Agent Teams, and World Model roadmap docs
+  - `BUILT-IN-SKILLS.md` now serves as the maturity snapshot/index for which patterns are documented, demoed, or still only partially implemented
 
 ## Next steps
-- audit legacy RocketClaw behavior in more detail
-- bootstrap the TypeScript project
-- implement the initial CLI/runtime shell
-- add setup, usage, demos, diagrams, and screenshots
+- expand the v0.2.0 roadmap around built-in guided skills for agentic autonomy patterns
+- add setup, usage, and demo docs for Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, and Evaluator-Optimizer workflows
+- prototype built-in skill packs and operator-friendly onboarding flows
+- keep improving autonomous execution and verification ergonomics
 
 ## Bootstrap commands
 ```bash
@@ -165,6 +168,7 @@ Slack / Discord / iMessage / others]
 - plugin-aware message composer and send flows
 - setup wizard and diagnostics for local or hosted environments
 - operator-friendly terminal UX with clear progress and recovery messaging
+- guided built-in skill onboarding for popular agentic patterns and autonomy workflows
 
 
 ## Session model
@@ -316,6 +320,18 @@ RocketClaw2 roadmap now explicitly includes:
 - parent/child task orchestration with isolated sub-agent briefs
 - closed-loop validation with quality gates and self-reflection
 - terminal-first plus message-based operation models
+- built-in skill packs that help operators configure and use proven agentic patterns
+
+### Planned built-in skill packs
+- **Ralph Loop**: autonomous verify-and-fix loops for build/test/lint style workflows
+- **Karpathian Loop**: iterative improvement loops driven by metrics, evaluation, and learning from prior runs
+- **World Model**: structured context modeling so the runtime can reason about user, environment, constraints, and likely next actions
+- **Second Brain**: personal knowledge ingestion, retrieval, summarization, and memory curation workflows
+- **Multi-Agent Teams**: orchestrated specialist roles with scoped briefs, handoffs, and review steps
+- **World Model**: explicit tracking of goals, environment state, constraints, blockers, and next actions
+- **Evaluator-Optimizer**: generator/critic workflows where one agent produces work and another scores or refines it
+
+These built-in skills are intended to ship with setup guidance, operator commands, and end-to-end demos so new users can adopt advanced patterns without custom prompt engineering first.
 
 
 Tool access is now configurable in RocketClaw2 config, with explicit risk acknowledgement required before enabling riskier write-capable access levels.
@@ -698,7 +714,7 @@ RocketClaw2 also supports iteration-specific inspection with `harness-iterations
 
 ### Plan-gated autonomous execution
 
-RocketClaw2 now supports executing an approved harness plan artifact directly with `harness-run-plan`. This makes the autonomous coding flow more governed: plan first, approve, then execute that approved plan.
+RocketClaw2 supports executing an approved harness plan artifact through a governed path: plan first, approve it, then execute that approved plan with `harness-run --id <plan-id> --require-approved-plan`.
 
 
 ### Plan lineage in run artifacts
@@ -708,7 +724,7 @@ Runs launched from approved plans now carry explicit `executedPlanId` lineage so
 
 ### Strict execution control
 
-`harness-run` now supports `--require-approved-plan`, which refuses direct execution and forces the governed path: plan, approve, then run the approved plan with `harness-run-plan`.
+`harness-run` supports `--require-approved-plan`, which refuses direct execution unless `--id` references an approved plan artifact. The governed path is: `harness-plan`, `harness-approve`, then `harness-run --id <plan-id> --require-approved-plan`.
 
 
 ### Live WhatsApp listener path

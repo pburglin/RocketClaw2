@@ -16,9 +16,23 @@
 - Heartbeat: Continuous verification system that monitors health, processes queues, and executes scheduled tasks
 
 ## Next Steps
-1. Monitor system stability in production
-2. Gather user feedback for future enhancements
-3. Prepare for version 0.2.0 planning
+1. Ship RocketClaw2 v0.2.0 roadmap and docs for built-in high-quality skills
+2. Add first-class setup and usage guides for agentic autonomy patterns
+3. Prototype built-in skill packs and demo flows for popular workflows
+4. Continue monitoring runtime and WhatsApp gateway stability
+
+## Current Focus
+- Expand RocketClaw2 roadmap to include built-in guided skills for:
+  - Ralph Loop (verify-and-fix autonomy)
+  - Karpathian Loop (iterative data-driven self-improvement)
+  - World Model (context modeling and planning)
+  - Second Brain (personal data RAG)
+  - Multi-Agent Teams (specialized cooperating agents)
+  - Evaluator-Optimizer workflows (generator + critic loops)
+- Add project documentation and demos that show setup, operator guidance, and practical usage for these patterns.
+
+## Current Blocker
+- Autonomous coding flows are still partially blocked by OpenClaw exec preflight behavior around complex interpreter invocations when launched through `openclaw exec`, even after LLM config fixes.
 
 ## Recent Milestones
 - Fixed TUI ESM import issue (changed from require to import * as blessed from 'blessed')

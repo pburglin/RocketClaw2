@@ -11,7 +11,7 @@ export async function runAutoCode(
   config: AppConfig,
   workspace: string,
   task: string,
-  validateCommand: string = 'echo "Task completed"',
+  validateCommand: string = 'true',
   maxIterations: number = 5,
   autoApprove: boolean = true
 ): Promise<{ ok: boolean; result?: string; error?: string }> {
@@ -40,7 +40,9 @@ export async function runAutoCode(
     }
 
     // Step 4: Execute the approved plan
-    const executionResult = await runCodingHarnessFromPlan(config, planArtifact.runId);
+    const executionResult = await runCodingHarnessFromPlan(config, planArtifact.runId, {
+      maxIterations,
+    });
 
     if (!executionResult.ok) {
       // In the real system, iteration count and guidance are in executionResult even if !ok

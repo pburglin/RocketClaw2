@@ -609,6 +609,23 @@ RocketClaw2 now includes a compact LLM status command for inspecting current rea
 - `rocketclaw2 llm-status`
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
 
+## LLM troubleshooting quick path
+
+When `auto-code`, `harness-run`, or `chat` fails in a way that looks LLM-related, use this order:
+
+1. inspect active config and overrides:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-status`
+2. verify connectivity/auth first:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-test`
+3. verify raw text generation before autonomous flows:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-query --prompt "Reply with exactly: LLM_OK"`
+4. only then retry `auto-code` or `harness-run`
+
+Notes:
+- RocketClaw2 now accepts both plain string completions and newer structured text-part responses from OpenAI-compatible providers.
+- Wrapped provider payload errors such as timeout code `524` are now surfaced as provider timeout diagnostics instead of a misleading no-content failure.
+- If `llm-query` works with `gpt-4o-mini` but not with your selected model, suspect model/provider compatibility rather than the harness itself.
+- If the provider is not compatible with `/chat/completions`, use a matching base URL or provider shim.
 
 Chat now uses the configured LLM when an API key is available, with recalled memory injected into the prompt. The old memory-listing response is now only a fallback when no LLM is configured.
 
@@ -641,6 +658,7 @@ This first milestone provides the full outer loop: workspace selection, task des
 
 `auto-code --no-auto-approve` now saves a real plan artifact and prints the exact follow-up commands for the governed path: inspect the plan, approve it, then execute it with `harness-run --id <plan-id> --require-approved-plan`.
 
+If autonomous coding fails before any files are written, run `llm-status`, `llm-test`, and `llm-query` first so you can separate provider/config problems from harness behavior.
 
 ### Harness run artifacts
 

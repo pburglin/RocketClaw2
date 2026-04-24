@@ -276,6 +276,22 @@ LLM query errors now explain likely causes such as wrong API key, wrong provider
 - `rocketclaw2 llm-status`
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
 
+## LLM troubleshooting quick path
+
+When `auto-code`, `harness-run`, or `chat` fails in a way that looks LLM-related, use this order:
+
+1. inspect active config and overrides:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-status`
+2. verify connectivity/auth first:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-test`
+3. verify raw text generation before autonomous flows:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-query --prompt "Reply with exactly: LLM_OK"`
+4. only then retry `auto-code` or `harness-run`
+
+Notes:
+- RocketClaw2 now accepts both plain string completions and newer structured text-part responses from OpenAI-compatible providers.
+- If `llm-query` works with `gpt-4o-mini` but not with your selected model, suspect model/provider compatibility rather than the harness itself.
+- If the provider is not compatible with `/chat/completions`, use a matching base URL or provider shim.
 
 Chat now uses the configured LLM when available, instead of only echoing or listing memory snippets.
 
@@ -302,6 +318,8 @@ Commands:
 - `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Draft the plan only" --validate "npm run build" --max-iterations 5 --no-auto-approve`
 
 `auto-code --no-auto-approve` now creates a real saved plan artifact and prints the exact review/approve/run commands to continue through the governed path.
+
+If autonomous coding fails before any files are written, run `llm-status`, `llm-test`, and `llm-query` first so you can separate provider/config problems from harness behavior.
 
 ## Evaluator-Optimizer operator flow
 

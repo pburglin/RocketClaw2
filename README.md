@@ -806,7 +806,7 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 
 `llm-query` and interactive `chat` now stream model text by default when the provider supports streaming, so the CLI feels live instead of waiting for the full body. Use global `--no-stream` when you want the older buffered behavior.
 
-For deeper troubleshooting, `harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now support `--verbose`, which prints formatted raw LLM requests, responses, and extracted text on stderr. For the harness/auto-code flows, verbose mode now streams the model text as it arrives by default; use global `--no-stream` when you want the older buffered behavior. Add global `--timestamps` if you want those human-readable log entries time-prefixed too.
+`harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now stream model text by default; use global `--no-stream` when you want buffered behavior instead. For deeper troubleshooting, those same commands also support `--verbose`, which prints formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you want those human-readable log entries time-prefixed too.
 
 
 ### Leaner workspace context

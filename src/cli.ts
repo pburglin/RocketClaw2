@@ -287,6 +287,39 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}) {
   };
 }
 
+function createStreamTextRenderer(options: CliRenderOptions = {}) {
+  let activeStreamLabel: string | undefined;
+  let streamOpen = false;
+
+  const startStream = (streamLabel?: string) => {
+    if (streamOpen && activeStreamLabel === streamLabel) return;
+    if (streamOpen) {
+      process.stderr.write('\n');
+    }
+    activeStreamLabel = streamLabel;
+    const context = streamLabel ? ` (${streamLabel})` : '';
+    process.stderr.write(`\n${formatCliLine(`Streaming model output${context}`, 'success', options)}\n`);
+    streamOpen = true;
+  };
+
+  const endStream = () => {
+    if (!streamOpen) return;
+    process.stderr.write('\n');
+    streamOpen = false;
+    activeStreamLabel = undefined;
+  };
+
+  return {
+    streamChunk(chunk: string, streamLabel?: string) {
+      startStream(streamLabel);
+      process.stderr.write(chunk);
+    },
+    finishStream() {
+      endStream();
+    },
+  };
+}
+
 function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions = {}) {
   let hasActiveInlineLine = false;
   let spinnerTimer: NodeJS.Timeout | undefined;
@@ -1290,6 +1323,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
     let result;
     try {
       result = await buildHarnessPlan(config, {
@@ -1301,12 +1335,12 @@ program
         verboseRenderer.render(event);
       } : undefined, progressRenderer ? (event) => {
         progressRenderer.render(event);
-      } : undefined, verboseRenderer ? (chunk, label) => {
+      } : undefined, streamRenderer ? (chunk, label) => {
         progressRenderer?.flush();
-        verboseRenderer.streamChunk(chunk, label);
+        streamRenderer.streamChunk(chunk, label);
       } : undefined);
     } finally {
-      verboseRenderer?.finishStream?.();
+      streamRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
     const artifact = await saveHarnessRun(result);
@@ -1355,6 +1389,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan-run]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
     let result;
     try {
       result = await runCodingHarnessFromPlan(config, options.id, {
@@ -1367,13 +1402,13 @@ program
           progressRenderer?.flush();
           verboseRenderer.render(event);
         } : undefined,
-        onLlmToken: verboseRenderer ? (chunk, label) => {
+        onLlmToken: streamRenderer ? (chunk, label) => {
           progressRenderer?.flush();
-          verboseRenderer.streamChunk(chunk, label);
+          streamRenderer.streamChunk(chunk, label);
         } : undefined,
       });
     } finally {
-      verboseRenderer?.finishStream?.();
+      streamRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
     console.log(options.json ? JSON.stringify(result, null, 2) : formatCodingHarnessResult(result));
@@ -1422,6 +1457,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
     let result;
     try {
       result = await runCodingHarness(config, {
@@ -1435,12 +1471,12 @@ program
       } : undefined, verboseRenderer ? (event) => {
         progressRenderer?.flush();
         verboseRenderer.render(event);
-      } : undefined, verboseRenderer ? (chunk, label) => {
+      } : undefined, streamRenderer ? (chunk, label) => {
         progressRenderer?.flush();
-        verboseRenderer.streamChunk(chunk, label);
+        streamRenderer.streamChunk(chunk, label);
       } : undefined);
     } finally {
-      verboseRenderer?.finishStream?.();
+      streamRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
     const artifact = await saveHarnessRun(result);
@@ -2024,6 +2060,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
     let result;
     try {
       result = await runAutoCode(
@@ -2040,13 +2077,13 @@ program
           progressRenderer?.flush();
           verboseRenderer.render(event);
         } : undefined,
-        verboseRenderer ? (chunk, label) => {
+        streamRenderer ? (chunk, label) => {
           progressRenderer?.flush();
-          verboseRenderer.streamChunk(chunk, label);
+          streamRenderer.streamChunk(chunk, label);
         } : undefined,
       );
     } finally {
-      verboseRenderer?.finishStream?.();
+      streamRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
     if (options.json) {

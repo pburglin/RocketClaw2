@@ -142,4 +142,42 @@ describe('runAutoCode', () => {
     expect(events.some((event) => event.stage === 'llm-request')).toBe(true);
     expect(events.some((event) => event.stage === 'execution-complete')).toBe(true);
   });
+
+  it('passes LLM token callbacks through planning and execution helpers', async () => {
+    const streamed: string[] = [];
+    buildHarnessPlanMock.mockImplementation(async (_config: unknown, _input: unknown, _onTrace: unknown, _onProgress: unknown, onToken?: (chunk: string, label?: string) => void) => {
+      onToken?.('plan chunk', 'plan generation');
+      return {
+        kind: 'plan',
+        ok: true,
+        approvalStatus: 'draft',
+        workspace: '/tmp/demo',
+        task: 'demo',
+        validateCommand: 'npm test',
+        planText: 'Summary',
+      };
+    });
+    saveHarnessRunMock.mockResolvedValue({ runId: 'plan-stream', path: '/tmp/plan-stream.json' });
+    approveHarnessPlanMock.mockResolvedValue({ approvalStatus: 'approved' });
+    runCodingHarnessFromPlanMock.mockImplementation(async (_config: unknown, _planId: string, options: { onLlmToken?: (chunk: string, label?: string) => void }) => {
+      options.onLlmToken?.('execution chunk', 'implementation guidance (iteration 1)');
+      return {
+        ok: true,
+        iterations: 1,
+        validateCommand: 'npm test',
+        lastGuidance: '',
+        lastValidationStdout: 'ok',
+        lastValidationStderr: '',
+        executedPlanId: 'plan-stream',
+        workspace: '/tmp/demo',
+        task: 'demo',
+      };
+    });
+
+    const { runAutoCode } = await import('../src/commands/auto-code.js');
+    const result = await runAutoCode({} as any, '/tmp/demo', 'demo', 'npm test', 1, true, undefined, undefined, (chunk) => streamed.push(chunk));
+
+    expect(result.ok).toBe(true);
+    expect(streamed).toEqual(['plan chunk', 'execution chunk']);
+  });
 });

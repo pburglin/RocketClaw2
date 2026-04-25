@@ -165,6 +165,7 @@ async function buildCriticInsight(
   config: AppConfig,
   input: { task: string; workspace: string; validateCommand: string; stdout: string; stderr: string },
   onLlmTrace?: (event: LlmTraceEvent) => void,
+  onLlmToken?: (chunk: string, label?: string) => void,
 ): Promise<string> {
   try {
     const response = await runLlmQuery(
@@ -179,7 +180,7 @@ async function buildCriticInsight(
         `Validation stdout: ${input.stdout || 'n/a'}`,
         `Validation stderr: ${input.stderr || 'n/a'}`,
       ].join('\n'),
-      { channel: 'cli', label: 'critic insight', onTrace: onLlmTrace },
+      { channel: 'cli', label: 'critic insight', onTrace: onLlmTrace, stream: Boolean(onLlmToken), onToken: onLlmToken ? (chunk) => onLlmToken(chunk, 'critic insight') : undefined },
     );
     return response.trim();
   } catch {
@@ -192,6 +193,7 @@ export async function buildHarnessPlan(
   input: { workspace: string; task: string; validateCommand: string },
   onLlmTrace?: (event: LlmTraceEvent) => void,
   onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
+  onLlmToken?: (chunk: string, label?: string) => void,
 ): Promise<HarnessPlan> {
   await initWorkspace(input.workspace);
   const workspaceContext = await scanWorkspace(input.workspace);
@@ -216,7 +218,7 @@ export async function buildHarnessPlan(
         `Task: ${input.task}`,
         `Validation command: ${input.validateCommand}`,
       ].filter(Boolean).join('\n'),
-      { channel: 'cli', label: 'plan generation', onTrace: onLlmTrace },
+      { channel: 'cli', label: 'plan generation', onTrace: onLlmTrace, stream: Boolean(onLlmToken), onToken: onLlmToken ? (chunk) => onLlmToken(chunk, 'plan generation') : undefined },
     );
   } finally {
     clearInterval(llmHeartbeat);
@@ -279,6 +281,7 @@ export async function runCodingHarness(
   input: { workspace: string; task: string; validateCommand: string; maxIterations: number; validateTimeoutMs?: number },
   onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
   onLlmTrace?: (event: LlmTraceEvent) => void,
+  onLlmToken?: (chunk: string, label?: string) => void,
 ): Promise<CodingHarnessResult> {
   let lastGuidance = '';
   let lastCriticInsight = '';
@@ -326,7 +329,13 @@ export async function runCodingHarness(
         onProgress?.({ iteration: i, stage: 'llm-waiting', message: `AI is thinking... (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
       }, 15000);
       try {
-        return await runLlmQuery(config, prompt, { channel: 'cli', label, onTrace: onLlmTrace });
+        return await runLlmQuery(config, prompt, {
+          channel: 'cli',
+          label,
+          onTrace: onLlmTrace,
+          stream: Boolean(onLlmToken),
+          onToken: onLlmToken ? (chunk) => onLlmToken(chunk, label) : undefined,
+        });
       } finally {
         clearInterval(llmHeartbeat);
       }
@@ -379,7 +388,7 @@ export async function runCodingHarness(
         validateCommand: input.validateCommand,
         stdout: lastValidationStdout,
         stderr: lastValidationStderr,
-      }, onLlmTrace);
+      }, onLlmTrace, onLlmToken);
     }
 
     await saveIterationEntry(runId, {
@@ -464,7 +473,7 @@ export async function harnessResume(
 export async function runCodingHarnessFromPlan(
   config: AppConfig,
   runId: string,
-  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number; onProgress?: (event: { iteration: number; stage: string; message: string }) => void; onLlmTrace?: (event: LlmTraceEvent) => void } = getDefaultProjectRoot(),
+  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number; onProgress?: (event: { iteration: number; stage: string; message: string }) => void; onLlmTrace?: (event: LlmTraceEvent) => void; onLlmToken?: (chunk: string, label?: string) => void } = getDefaultProjectRoot(),
 ): Promise<CodingHarnessResult & { executedPlanId: string }> {
   const root = typeof rootOrOverrides === 'string'
     ? rootOrOverrides
@@ -481,6 +490,9 @@ export async function runCodingHarnessFromPlan(
   const onLlmTrace = typeof rootOrOverrides === 'string'
     ? undefined
     : rootOrOverrides.onLlmTrace;
+  const onLlmToken = typeof rootOrOverrides === 'string'
+    ? undefined
+    : rootOrOverrides.onLlmToken;
 
   const planned = await loadHarnessRun(runId, root);
   if (!planned) throw new Error(`Harness artifact not found: ${runId}`);
@@ -493,6 +505,6 @@ export async function runCodingHarnessFromPlan(
     validateCommand: String(planned.validateCommand ?? ''),
     maxIterations,
     validateTimeoutMs,
-  }, onProgress, onLlmTrace);
+  }, onProgress, onLlmTrace, onLlmToken);
   return { ...result, executedPlanId: runId };
 }

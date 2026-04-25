@@ -122,6 +122,40 @@ describe('workspace prompt context', () => {
     await fs.rm(tmp, { recursive: true, force: true });
   });
 
+  it('buildHarnessPlan can stream plan text chunks to a caller callback', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'harness-plan-stream-'));
+    const workspace = path.join(tmp, 'project');
+    await fs.mkdir(workspace, { recursive: true });
+    await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"demo"}\n', 'utf8');
+
+    const streamed: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Summary\\n"}}]}\n\n'));
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Files to touch\\n- package.json\\n\\nValidation\\n- npm test\\n\\nRisks\\n- none"}}]}\n\n'));
+        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+        controller.close();
+      },
+    }), {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+    }));
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const plan = await buildHarnessPlan(
+      config,
+      { workspace, task: 'Update code', validateCommand: 'npm test' },
+      undefined,
+      undefined,
+      (chunk) => streamed.push(chunk),
+    );
+
+    expect(plan.planText).toContain('Summary');
+    expect(streamed.join('')).toContain('Files to touch');
+
+    await fs.rm(tmp, { recursive: true, force: true });
+  });
+
   it('runCodingHarness lets the model request specific file contents', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'harness-request-files-'));
     const workspace = path.join(tmp, 'project');

@@ -562,7 +562,7 @@ Long LLM requests now also emit periodic `AI is thinking... (<elapsed>s elapsed,
 
 `llm-query` and interactive `chat` now stream model text by default when the provider supports streaming, so you can see the answer arrive gradually instead of waiting for the full body. Use global `--no-stream` when you want the older buffered behavior.
 
-When you want deeper troubleshooting, add `--verbose` to `harness-run`, `auto-code`, or `llm-query` to print formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you also want every human-readable log entry prefixed with time.
+When you want deeper troubleshooting, add `--verbose` to `harness-run`, `auto-code`, or `llm-query` to print formatted raw LLM requests, responses, and extracted text on stderr. For `harness-run` and `auto-code`, verbose mode now streams the model text as it arrives by default; use global `--no-stream` if you want the older buffered behavior instead. Add global `--timestamps` if you also want every human-readable log entry prefixed with time.
 
 ## Safe validation commands
 

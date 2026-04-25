@@ -198,9 +198,39 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}) {
   const writeBlock = (text: string, kind: CliMessageKind = 'info') => {
     process.stderr.write(`\n${formatCliLine(text, kind, options)}\n`);
   };
+  let activeStreamLabel: string | undefined;
+  let streamOpen = false;
+
+  const startStream = (streamLabel?: string) => {
+    if (streamOpen && activeStreamLabel === streamLabel) return;
+    if (streamOpen) {
+      process.stderr.write('\n');
+    }
+    activeStreamLabel = streamLabel;
+    const context = streamLabel ? ` (${streamLabel})` : '';
+    writeBlock(header(`━━ LLM STREAM${context} ━━`), 'success');
+    streamOpen = true;
+  };
+
+  const endStream = () => {
+    if (!streamOpen) return;
+    process.stderr.write('\n');
+    streamOpen = false;
+    activeStreamLabel = undefined;
+  };
 
   return {
+    streamChunk(chunk: string, streamLabel?: string) {
+      startStream(streamLabel);
+      process.stderr.write(chunk);
+    },
+    finishStream() {
+      endStream();
+    },
     render(event: LlmTraceEvent) {
+      if (event.phase !== 'request') {
+        endStream();
+      }
       const context = event.label ? ` (${event.label})` : '';
       if (event.phase === 'request') {
         const promptText = extractReadablePrompt(event.requestBody ?? {});
@@ -1374,8 +1404,12 @@ program
       } : undefined, verboseRenderer ? (event) => {
         progressRenderer?.flush();
         verboseRenderer.render(event);
+      } : undefined, verboseRenderer ? (chunk, label) => {
+        progressRenderer?.flush();
+        verboseRenderer.streamChunk(chunk, label);
       } : undefined);
     } finally {
+      verboseRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
     const artifact = await saveHarnessRun(result);
@@ -1975,8 +2009,13 @@ program
           progressRenderer?.flush();
           verboseRenderer.render(event);
         } : undefined,
+        verboseRenderer ? (chunk, label) => {
+          progressRenderer?.flush();
+          verboseRenderer.streamChunk(chunk, label);
+        } : undefined,
       );
     } finally {
+      verboseRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
     if (options.json) {

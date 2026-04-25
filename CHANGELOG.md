@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - autonomous-coding timeout recovery steps now favor more actionable override-based LLM checks
 - `llm-query` and interactive `chat` now stream model text by default when supported, with global `--no-stream` to fall back to buffered output
 - added `llm-stats` plus chat `/llm` to track session-friendly LLM performance metrics like successes, errors, response time, tokens/second, and tokens/response
+- `harness-run` and `auto-code` verbose mode now streams model text by default, so request/response inspection feels live instead of buffered
 
 ### Changed
 - default local harness validation timeout is now disabled unless `--validate-timeout-ms` is explicitly provided

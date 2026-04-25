@@ -34,6 +34,7 @@ export async function runAutoCode(
   autoApprove: boolean = true,
   onProgress?: (event: AutoCodeProgressEvent) => void,
   onLlmTrace?: (event: LlmTraceEvent) => void,
+  onLlmToken?: (chunk: string, label?: string) => void,
 ): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
     onProgress?.({ stage: 'planning-start', message: 'Building implementation plan from the task prompt' });
@@ -42,7 +43,7 @@ export async function runAutoCode(
       workspace,
       task,
       validateCommand,
-    }, onLlmTrace, (event) => onProgress?.(event));
+    }, onLlmTrace, (event) => onProgress?.(event), onLlmToken);
 
     onProgress?.({ stage: 'planning-complete', message: 'Plan received from model' });
 
@@ -85,6 +86,7 @@ export async function runAutoCode(
       maxIterations,
       onProgress: (event) => onProgress?.({ stage: event.stage, message: event.message, iteration: event.iteration }),
       onLlmTrace,
+      onLlmToken,
     });
 
     if (!executionResult.ok) {

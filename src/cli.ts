@@ -287,9 +287,10 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}) {
   };
 }
 
-function createStreamTextRenderer(options: CliRenderOptions = {}) {
+function createStreamTextRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void }) {
   let activeStreamLabel: string | undefined;
   let streamOpen = false;
+  let pending = '';
 
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
@@ -312,9 +313,24 @@ function createStreamTextRenderer(options: CliRenderOptions = {}) {
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      process.stderr.write(chunk);
+      pending += chunk;
+      let newlineIndex = pending.indexOf('\n');
+      while (newlineIndex !== -1) {
+        const complete = pending.slice(0, newlineIndex + 1);
+        pending = pending.slice(newlineIndex + 1);
+        progressRenderer?.temporarilyClear?.();
+        process.stderr.write(complete);
+        progressRenderer?.redrawWaiting?.();
+        newlineIndex = pending.indexOf('\n');
+      }
     },
     finishStream() {
+      if (pending) {
+        progressRenderer?.temporarilyClear?.();
+        process.stderr.write(`${pending}\n`);
+        pending = '';
+        progressRenderer?.redrawWaiting?.();
+      }
       endStream();
     },
   };
@@ -325,6 +341,7 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
   let spinnerTimer: NodeJS.Timeout | undefined;
   let spinnerIndex = 0;
   let waitingLine = '';
+  let preservedWaitingLine = '';
   const spinnerFrames = ['|', '/', '-', '\\'];
   const colorEnabled = supportsColor(process.stderr);
   const spinnerColors = [39, 45, 51, 87, 123, 159];
@@ -346,12 +363,15 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     hasActiveInlineLine = true;
   };
 
-  const stopSpinner = () => {
+  const stopSpinner = (preserveWaiting = false) => {
     if (spinnerTimer) {
       clearInterval(spinnerTimer);
       spinnerTimer = undefined;
     }
-    waitingLine = '';
+    if (!preserveWaiting) {
+      waitingLine = '';
+      preservedWaitingLine = '';
+    }
     spinnerIndex = 0;
   };
 
@@ -375,8 +395,11 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     }, 120);
   };
 
-  const clearInlineLine = () => {
-    stopSpinner();
+  const clearInlineLine = (preserveWaiting = false) => {
+    if (preserveWaiting && waitingLine) {
+      preservedWaitingLine = waitingLine;
+    }
+    stopSpinner(preserveWaiting);
     if (!hasActiveInlineLine) return;
     if (process.stderr.isTTY) {
       process.stderr.write('\r\x1b[2K');
@@ -393,6 +416,7 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       const useInlineUpdate = /llm-waiting/i.test(event.stage) && Boolean(process.stderr.isTTY);
 
       if (useInlineUpdate) {
+        preservedWaitingLine = line;
         waitingLine = line;
         drawWaitingLine();
         startSpinner();
@@ -401,6 +425,15 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
 
       clearInlineLine();
       process.stderr.write(`${line}\n`);
+    },
+    temporarilyClear() {
+      clearInlineLine(true);
+    },
+    redrawWaiting() {
+      if (!preservedWaitingLine) return;
+      waitingLine = preservedWaitingLine;
+      drawWaitingLine();
+      startSpinner();
     },
     flush() {
       stopSpinner();
@@ -1323,7 +1356,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {
       result = await buildHarnessPlan(config, {
@@ -1389,7 +1422,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan-run]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {
       result = await runCodingHarnessFromPlan(config, options.id, {
@@ -1457,7 +1490,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {
       result = await runCodingHarness(config, {
@@ -2060,7 +2093,7 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions)) : undefined;
+    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {
       result = await runAutoCode(

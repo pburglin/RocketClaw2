@@ -9,6 +9,7 @@ import { saveIterationEntry } from './iteration-store.js';
 import { getDefaultProjectRoot } from '../config/app-paths.js';
 
 const exec = promisify(execCb);
+const LLM_WAIT_UPDATE_MS = Math.max(10, Number(process.env.RC2_LLM_WAIT_UPDATE_MS ?? 15000) || 15000);
 
 export type CodingHarnessResult = {
   ok: boolean;
@@ -202,7 +203,7 @@ export async function buildHarnessPlan(
   const llmHeartbeat = setInterval(() => {
     const elapsedSeconds = Math.round((Date.now() - llmStart) / 1000);
     onProgress?.({ iteration: 1, stage: 'llm-waiting', message: `AI is thinking... (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
-  }, 15000);
+  }, LLM_WAIT_UPDATE_MS);
 
   let planText = '';
   try {
@@ -327,7 +328,7 @@ export async function runCodingHarness(
       const llmHeartbeat = setInterval(() => {
         const elapsedSeconds = Math.round((Date.now() - llmStart) / 1000);
         onProgress?.({ iteration: i, stage: 'llm-waiting', message: `AI is thinking... (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
-      }, 15000);
+      }, LLM_WAIT_UPDATE_MS);
       try {
         return await runLlmQuery(config, prompt, {
           channel: 'cli',

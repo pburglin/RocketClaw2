@@ -58,4 +58,21 @@ describe('runLlmQuery', () => {
     await expect(runLlmQuery(config, 'hello')).rejects.toThrow('LLM provider timed out');
     await expect(runLlmQuery(config, 'hello')).rejects.toThrow('--llm-api-key "$API_KEY"');
   });
+
+  it('emits trace events for verbose inspection', async () => {
+    const traces: Array<Record<string, unknown>> = [];
+    vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: 'hi there' } }] }),
+    } as Response);
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const text = await runLlmQuery(config, 'hello', { channel: 'cli', label: 'unit test', onTrace: (event) => traces.push(event as unknown as Record<string, unknown>) });
+
+    expect(text).toBe('hi there');
+    expect(traces).toHaveLength(2);
+    expect(traces[0]).toMatchObject({ phase: 'request', label: 'unit test', model: 'demo-model' });
+    expect(traces[1]).toMatchObject({ phase: 'response', label: 'unit test', responseStatus: 200, extractedText: 'hi there' });
+  });
 });

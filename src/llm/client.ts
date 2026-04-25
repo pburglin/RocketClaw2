@@ -2,6 +2,25 @@ import type { AppConfig } from '../config/load-config.js';
 import { explainLlmError } from './errors.js';
 import { recordLlmRequest, recordLlmResponse, recordLlmError } from '../telemetry/runtime.js';
 
+export type LlmTraceEvent = {
+  phase: 'request' | 'response' | 'error';
+  channel: string;
+  endpoint: string;
+  model: string;
+  label?: string;
+  requestBody?: Record<string, unknown>;
+  responseStatus?: number;
+  responseBody?: unknown;
+  extractedText?: string;
+  error?: string;
+};
+
+export type RunLlmQueryOptions = {
+  channel?: string;
+  label?: string;
+  onTrace?: (event: LlmTraceEvent) => void;
+};
+
 function extractText(value: unknown): string {
   if (typeof value === 'string') return value;
   if (!value || typeof value !== 'object') return '';
@@ -70,30 +89,56 @@ function explainPayloadError(payload: unknown): string | null {
   return `LLM provider returned an error payload${codeText}. ${message}`;
 }
 
-export async function runLlmQuery(config: AppConfig, prompt: string, channel = 'cli'): Promise<string> {
+export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOptions: string | RunLlmQueryOptions = 'cli'): Promise<string> {
   if (!config.llm.apiKey) {
     throw new Error('No LLM API key configured. Set llm.apiKey in config.yaml or pass --llm-api-key for this session.');
   }
 
+  const options = typeof channelOrOptions === 'string'
+    ? { channel: channelOrOptions }
+    : channelOrOptions;
+  const channel = options.channel ?? 'cli';
+  const endpoint = `${config.llm.baseUrl.replace(/\/$/, '')}/chat/completions`;
+  const requestBody = {
+    model: config.llm.model,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.2,
+  } satisfies Record<string, unknown>;
+
   recordLlmRequest(channel);
+  options.onTrace?.({
+    phase: 'request',
+    channel,
+    endpoint,
+    model: config.llm.model,
+    label: options.label,
+    requestBody,
+  });
   const start = Date.now();
 
-  const response = await fetch(`${config.llm.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       authorization: `Bearer ${config.llm.apiKey}`,
     },
-    body: JSON.stringify({
-      model: config.llm.model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
     const text = await response.text();
     const err = new Error(explainLlmError(response.status, text));
+    options.onTrace?.({
+      phase: 'error',
+      channel,
+      endpoint,
+      model: config.llm.model,
+      label: options.label,
+      requestBody,
+      responseStatus: response.status,
+      responseBody: text,
+      error: err.message,
+    });
     recordLlmError(channel, err.message);
     throw err;
   }
@@ -104,11 +149,33 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channel = '
   const payloadError = explainPayloadError(payload);
   if (payloadError) {
     const err = new Error(payloadError);
+    options.onTrace?.({
+      phase: 'error',
+      channel,
+      endpoint,
+      model: config.llm.model,
+      label: options.label,
+      requestBody,
+      responseStatus: response.status,
+      responseBody: payload,
+      error: err.message,
+    });
     recordLlmError(channel, err.message);
     throw err;
   }
 
   const content = extractCompletionText(payload).trim();
+  options.onTrace?.({
+    phase: 'response',
+    channel,
+    endpoint,
+    model: config.llm.model,
+    label: options.label,
+    requestBody,
+    responseStatus: response.status,
+    responseBody: payload,
+    extractedText: content,
+  });
   if (!content) {
     const preview = JSON.stringify(payload).slice(0, 400);
     const err = new Error(`LLM query returned no message content. Response preview: ${preview}`);

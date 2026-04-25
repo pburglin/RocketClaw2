@@ -52,7 +52,7 @@ import { formatCodingHarnessResult, formatHarnessChain, formatHarnessChainSummar
 import { approveHarnessPlan, buildHarnessChain, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
 import { filterIterationEntries, loadIterationEntries } from './harness/iteration-store.js';
 import { formatHarnessRunSummary, formatHarnessRuns } from './harness/list-formatters.js';
-import { runLlmQuery } from './llm/client.js';
+import { runLlmQuery, type LlmTraceEvent } from './llm/client.js';
 import { runLlmTest } from './llm/test.js';
 import { runTaskLoop } from './loops/task-loop.js';
 import { formatTaskLoopResult } from './loops/task-loop-formatters.js';
@@ -96,10 +96,104 @@ function normalizeCliArgv(argv: string[]): string[] {
   return [...prefix, ...normalized];
 }
 
+function formatJsonBlock(value: unknown): string {
+  return JSON.stringify(value, null, 2);
+}
+
+function createVerboseLlmRenderer() {
+  const colorEnabled = Boolean(process.stderr.isTTY) && !process.env.NO_COLOR && (process.env.TERM ?? '').toLowerCase() !== 'dumb';
+  const color = (code: number, text: string) => colorEnabled ? `\x1b[${code}m${text}\x1b[0m` : text;
+  const header = (text: string) => color(95, text);
+  const label = (text: string) => color(36, text);
+  const dim = (text: string) => color(90, text);
+  const block = (title: string, content: string) => `${header(title)}\n${content}\n`;
+
+  return {
+    render(event: LlmTraceEvent) {
+      const context = event.label ? ` (${event.label})` : '';
+      if (event.phase === 'request') {
+        const sections = [
+          `${label('Endpoint:')} ${event.endpoint}`,
+          `${label('Model:')} ${event.model}`,
+          `${label('Channel:')} ${event.channel}`,
+          block('Prompt / request body', formatJsonBlock(event.requestBody ?? {})),
+        ];
+        process.stderr.write(`\n${header(`━━ LLM REQUEST${context} ━━`)}\n${sections.join('\n')}\n`);
+        return;
+      }
+
+      if (event.phase === 'response') {
+        const sections = [
+          `${label('HTTP status:')} ${String(event.responseStatus ?? 'n/a')}`,
+          block('Raw response payload', formatJsonBlock(event.responseBody ?? {})),
+          block('Extracted text', event.extractedText && event.extractedText.trim() ? event.extractedText : dim('(empty)')),
+        ];
+        process.stderr.write(`\n${header(`━━ LLM RESPONSE${context} ━━`)}\n${sections.join('\n')}\n`);
+        return;
+      }
+
+      const sections = [
+        `${label('HTTP status:')} ${String(event.responseStatus ?? 'n/a')}`,
+        `${label('Error:')} ${event.error ?? 'Unknown error'}`,
+      ];
+      if (event.responseBody !== undefined) {
+        sections.push(block('Raw error payload', typeof event.responseBody === 'string' ? event.responseBody : formatJsonBlock(event.responseBody)));
+      }
+      process.stderr.write(`\n${header(`━━ LLM ERROR${context} ━━`)}\n${sections.join('\n')}\n`);
+    },
+  };
+}
+
 function createProgressRenderer(defaultPrefix: string) {
   let hasActiveInlineLine = false;
+  let spinnerTimer: NodeJS.Timeout | undefined;
+  let spinnerIndex = 0;
+  let waitingLine = '';
+  const spinnerFrames = ['|', '/', '-', '\\'];
+  const colorEnabled = Boolean(process.stderr.isTTY) && !process.env.NO_COLOR && (process.env.TERM ?? '').toLowerCase() !== 'dumb';
+  const spinnerColors = [39, 45, 51, 87, 123, 159];
+
+  const renderInlineLine = (line: string) => {
+    if (!process.stderr.isTTY) {
+      process.stderr.write(`${line}\n`);
+      hasActiveInlineLine = false;
+      return;
+    }
+    process.stderr.write(`\r\x1b[2K${line}`);
+    hasActiveInlineLine = true;
+  };
+
+  const stopSpinner = () => {
+    if (spinnerTimer) {
+      clearInterval(spinnerTimer);
+      spinnerTimer = undefined;
+    }
+    waitingLine = '';
+    spinnerIndex = 0;
+  };
+
+  const formatSpinner = () => {
+    const frame = spinnerFrames[spinnerIndex % spinnerFrames.length];
+    if (!colorEnabled) return frame;
+    const color = spinnerColors[spinnerIndex % spinnerColors.length];
+    return `\x1b[38;5;${color}m${frame}\x1b[0m`;
+  };
+
+  const drawWaitingLine = () => {
+    if (!waitingLine) return;
+    renderInlineLine(`${formatSpinner()} ${waitingLine}`);
+  };
+
+  const startSpinner = () => {
+    if (spinnerTimer || !process.stderr.isTTY) return;
+    spinnerTimer = setInterval(() => {
+      spinnerIndex = (spinnerIndex + 1) % spinnerFrames.length;
+      drawWaitingLine();
+    }, 120);
+  };
 
   const clearInlineLine = () => {
+    stopSpinner();
     if (!hasActiveInlineLine) return;
     if (process.stderr.isTTY) {
       process.stderr.write('\r\x1b[2K');
@@ -116,8 +210,9 @@ function createProgressRenderer(defaultPrefix: string) {
       const useInlineUpdate = event.stage === 'llm-waiting' && Boolean(process.stderr.isTTY);
 
       if (useInlineUpdate) {
-        process.stderr.write(`\r\x1b[2K${line}`);
-        hasActiveInlineLine = true;
+        waitingLine = line;
+        drawWaitingLine();
+        startSpinner();
         return;
       }
 
@@ -125,6 +220,7 @@ function createProgressRenderer(defaultPrefix: string) {
       process.stderr.write(`${line}\n`);
     },
     flush() {
+      stopSpinner();
       if (hasActiveInlineLine) {
         process.stderr.write('\n');
         hasActiveInlineLine = false;
@@ -997,6 +1093,7 @@ program
   .option('--validate <cmd>', 'validation command to run in the workspace')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds (default: no timeout)')
+  .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--require-approved-plan', 'refuse direct execution unless --id references an approved plan artifact')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
@@ -1026,6 +1123,7 @@ program
       throw new Error('harness-run requires either --id <plan-id> or all of --workspace, --task, and --validate');
     }
     const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]');
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer() : undefined;
     let result;
     try {
       result = await runCodingHarness(config, {
@@ -1036,6 +1134,9 @@ program
         validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
       }, progressRenderer ? (event) => {
         progressRenderer.render(event);
+      } : undefined, verboseRenderer ? (event) => {
+        progressRenderer?.flush();
+        verboseRenderer.render(event);
       } : undefined);
     } finally {
       progressRenderer?.flush();
@@ -1416,6 +1517,7 @@ program
   .command('llm-query')
   .description('Run a real query against the configured or session-overridden LLM')
   .requiredOption('--prompt <text>', 'prompt to send to the model')
+  .option('--verbose', 'show formatted raw LLM request and response details on stderr')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
     const globalOpts = (command as any).parent?.opts?.() ?? {};
@@ -1425,7 +1527,8 @@ program
       llmModel: globalOpts.llmModel,
     });
     try {
-      const response = await runLlmQuery(config, options.prompt);
+      const verboseRenderer = options.verbose ? createVerboseLlmRenderer() : undefined;
+      const response = await runLlmQuery(config, options.prompt, verboseRenderer ? { channel: 'cli', label: 'llm-query', onTrace: (event) => verboseRenderer.render(event) } : 'cli');
       console.log(response);
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
@@ -1568,6 +1671,7 @@ program
   .option('--validate <cmd>', 'validation command to run in the workspace', 'echo "Task completed"')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--no-auto-approve', 'do not auto-approve the plan; require manual approval')
+  .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
@@ -1579,6 +1683,7 @@ program
     });
     const autoApprove = !options.noAutoApprove;
     const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]');
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer() : undefined;
     let result;
     try {
       result = await runAutoCode(
@@ -1590,6 +1695,10 @@ program
         autoApprove,
         progressRenderer ? (event) => {
           progressRenderer.render(event);
+        } : undefined,
+        verboseRenderer ? (event) => {
+          progressRenderer?.flush();
+          verboseRenderer.render(event);
         } : undefined,
       );
     } finally {

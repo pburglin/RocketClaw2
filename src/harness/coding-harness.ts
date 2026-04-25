@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { AppConfig } from '../config/load-config.js';
-import { runLlmQuery } from '../llm/client.js';
+import { runLlmQuery, type LlmTraceEvent } from '../llm/client.js';
 import { loadHarnessRun, saveHarnessRun } from './store.js';
 import { saveIterationEntry } from './iteration-store.js';
 import { getDefaultProjectRoot } from '../config/app-paths.js';
@@ -123,6 +123,7 @@ export type HarnessPlan = {
 async function buildCriticInsight(
   config: AppConfig,
   input: { task: string; workspace: string; validateCommand: string; stdout: string; stderr: string },
+  onLlmTrace?: (event: LlmTraceEvent) => void,
 ): Promise<string> {
   try {
     const response = await runLlmQuery(
@@ -137,6 +138,7 @@ async function buildCriticInsight(
         `Validation stdout: ${input.stdout || 'n/a'}`,
         `Validation stderr: ${input.stderr || 'n/a'}`,
       ].join('\n'),
+      { channel: 'cli', label: 'critic insight', onTrace: onLlmTrace },
     );
     return response.trim();
   } catch {
@@ -147,6 +149,7 @@ async function buildCriticInsight(
 export async function buildHarnessPlan(
   config: AppConfig,
   input: { workspace: string; task: string; validateCommand: string },
+  onLlmTrace?: (event: LlmTraceEvent) => void,
 ): Promise<HarnessPlan> {
   await initWorkspace(input.workspace);
   const workspaceContext = await scanWorkspace(input.workspace);
@@ -161,6 +164,7 @@ export async function buildHarnessPlan(
       `Task: ${input.task}`,
       `Validation command: ${input.validateCommand}`,
     ].filter(Boolean).join('\n'),
+    { channel: 'cli', label: 'plan generation', onTrace: onLlmTrace },
   );
 
   return {
@@ -217,6 +221,7 @@ export async function runCodingHarness(
   config: AppConfig,
   input: { workspace: string; task: string; validateCommand: string; maxIterations: number; validateTimeoutMs?: number },
   onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
+  onLlmTrace?: (event: LlmTraceEvent) => void,
 ): Promise<CodingHarnessResult> {
   let lastGuidance = '';
   let lastCriticInsight = '';
@@ -257,6 +262,7 @@ export async function runCodingHarness(
         '',
         'Return only the files to create/update. The validator will run after files are written.',
       ].filter(Boolean).join('\n'),
+      { channel: 'cli', label: `implementation guidance (iteration ${i})`, onTrace: onLlmTrace },
     );
     } finally {
       clearInterval(llmHeartbeat);
@@ -294,7 +300,7 @@ export async function runCodingHarness(
         validateCommand: input.validateCommand,
         stdout: lastValidationStdout,
         stderr: lastValidationStderr,
-      });
+      }, onLlmTrace);
     }
 
     await saveIterationEntry(runId, {
@@ -379,7 +385,7 @@ export async function harnessResume(
 export async function runCodingHarnessFromPlan(
   config: AppConfig,
   runId: string,
-  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number; onProgress?: (event: { iteration: number; stage: string; message: string }) => void } = getDefaultProjectRoot(),
+  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number; onProgress?: (event: { iteration: number; stage: string; message: string }) => void; onLlmTrace?: (event: LlmTraceEvent) => void } = getDefaultProjectRoot(),
 ): Promise<CodingHarnessResult & { executedPlanId: string }> {
   const root = typeof rootOrOverrides === 'string'
     ? rootOrOverrides
@@ -393,6 +399,9 @@ export async function runCodingHarnessFromPlan(
   const onProgress = typeof rootOrOverrides === 'string'
     ? undefined
     : rootOrOverrides.onProgress;
+  const onLlmTrace = typeof rootOrOverrides === 'string'
+    ? undefined
+    : rootOrOverrides.onLlmTrace;
 
   const planned = await loadHarnessRun(runId, root);
   if (!planned) throw new Error(`Harness artifact not found: ${runId}`);
@@ -405,6 +414,6 @@ export async function runCodingHarnessFromPlan(
     validateCommand: String(planned.validateCommand ?? ''),
     maxIterations,
     validateTimeoutMs,
-  }, onProgress);
+  }, onProgress, onLlmTrace);
   return { ...result, executedPlanId: runId };
 }

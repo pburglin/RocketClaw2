@@ -2,6 +2,7 @@ import { buildHarnessPlan, runCodingHarnessFromPlan } from '../harness/coding-ha
 import { approveHarnessPlan, saveHarnessRun } from '../harness/store.js';
 import type { AppConfig } from '../config/load-config.js';
 import { formatCodingHarnessResult } from '../harness/formatters.js';
+import type { LlmTraceEvent } from '../llm/client.js';
 
 export interface AutoCodeProgressEvent {
   stage: string;
@@ -33,6 +34,7 @@ export async function runAutoCode(
   maxIterations: number = 5,
   autoApprove: boolean = true,
   onProgress?: (event: AutoCodeProgressEvent) => void,
+  onLlmTrace?: (event: LlmTraceEvent) => void,
 ): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
     onProgress?.({ stage: 'planning-start', message: 'Building implementation plan from the task prompt' });
@@ -41,7 +43,7 @@ export async function runAutoCode(
       workspace,
       task,
       validateCommand,
-    });
+    }, onLlmTrace);
 
     onProgress?.({ stage: 'planning-complete', message: 'Plan received from model' });
 
@@ -83,6 +85,7 @@ export async function runAutoCode(
     const executionResult = await runCodingHarnessFromPlan(config, planArtifact.runId, {
       maxIterations,
       onProgress: (event) => onProgress?.({ stage: event.stage, message: event.message, iteration: event.iteration }),
+      onLlmTrace,
     });
 
     if (!executionResult.ok) {

@@ -857,7 +857,7 @@ program
   .description('Execute an approved harness plan artifact as the basis for an autonomous coding run')
   .requiredOption('--id <id>', 'approved harness plan id')
   .option('--max-iterations <n>', 'maximum iterations', '5')
-  .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds', '15000')
+  .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds (default: no timeout)')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
@@ -869,7 +869,7 @@ program
     });
     const result = await runCodingHarnessFromPlan(config, options.id, {
       maxIterations: Number(options.maxIterations),
-      validateTimeoutMs: Number(options.validateTimeoutMs),
+      validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
     });
     console.log(options.json ? JSON.stringify(result, null, 2) : formatCodingHarnessResult(result));
     if (!result.ok) process.exitCode = 1;
@@ -883,7 +883,7 @@ program
   .option('--task <text>', 'task description')
   .option('--validate <cmd>', 'validation command to run in the workspace')
   .option('--max-iterations <n>', 'maximum iterations', '5')
-  .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds', '15000')
+  .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds (default: no timeout)')
   .option('--require-approved-plan', 'refuse direct execution unless --id references an approved plan artifact')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
@@ -917,6 +917,10 @@ program
       task,
       validateCommand,
       maxIterations: Number(options.maxIterations),
+      validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
+    }, options.json ? undefined : (event) => {
+      const prefix = event.iteration ? `[iter ${event.iteration}]` : '[progress]';
+      console.error(`${prefix} ${event.message}`);
     });
     const artifact = await saveHarnessRun(result);
     const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path };
@@ -1456,7 +1460,18 @@ program
       llmModel: globalOpts.llmModel,
     });
     const autoApprove = !options.noAutoApprove;
-    const result = await runAutoCode(config, options.workspace, options.task, options.validate, Number(options.maxIterations), autoApprove);
+    const result = await runAutoCode(
+      config,
+      options.workspace,
+      options.task,
+      options.validate,
+      Number(options.maxIterations),
+      autoApprove,
+      options.json ? undefined : (event) => {
+        const prefix = event.iteration ? `[iter ${event.iteration}]` : '[auto-code]';
+        console.error(`${prefix} ${event.message}`);
+      },
+    );
     if (options.json) {
       console.log(JSON.stringify(result, null, 2));
     } else {

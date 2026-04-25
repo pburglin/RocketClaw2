@@ -3,6 +3,12 @@ import { approveHarnessPlan, saveHarnessRun } from '../harness/store.js';
 import type { AppConfig } from '../config/load-config.js';
 import { formatCodingHarnessResult } from '../harness/formatters.js';
 
+export interface AutoCodeProgressEvent {
+  stage: string;
+  message: string;
+  iteration?: number;
+}
+
 function buildLlmRecoverySteps(config: AppConfig): string[] {
   const baseUrl = config.llm.baseUrl;
   const model = config.llm.model;
@@ -26,8 +32,10 @@ export async function runAutoCode(
   validateCommand: string = 'true',
   maxIterations: number = 5,
   autoApprove: boolean = true,
+  onProgress?: (event: AutoCodeProgressEvent) => void,
 ): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
+    onProgress?.({ stage: 'planning-start', message: 'Building implementation plan from the task prompt' });
     // Step 1: Build a plan
     const planResult = await buildHarnessPlan(config, {
       workspace,
@@ -35,11 +43,15 @@ export async function runAutoCode(
       validateCommand,
     });
 
+    onProgress?.({ stage: 'planning-complete', message: 'Plan received from model' });
+
     // Step 2: Save the plan to get a runId
     const planArtifact = await saveHarnessRun(planResult);
+    onProgress?.({ stage: 'plan-saved', message: `Saved plan artifact ${planArtifact.runId}` });
 
     // Step 3: Approve the plan (automatically if requested)
     if (autoApprove) {
+      onProgress?.({ stage: 'plan-approval-start', message: `Auto-approving plan ${planArtifact.runId}` });
       const approveResult = await approveHarnessPlan(planArtifact.runId);
 
       if (approveResult.approvalStatus !== 'approved') {
@@ -50,6 +62,7 @@ export async function runAutoCode(
           artifactPath: planArtifact.path,
         };
       }
+      onProgress?.({ stage: 'plan-approved', message: `Plan ${planArtifact.runId} approved` });
     } else {
       return {
         ok: false,
@@ -66,8 +79,10 @@ export async function runAutoCode(
     }
 
     // Step 4: Execute the approved plan
+    onProgress?.({ stage: 'execution-start', message: `Executing approved plan ${planArtifact.runId}` });
     const executionResult = await runCodingHarnessFromPlan(config, planArtifact.runId, {
       maxIterations,
+      onProgress: (event) => onProgress?.({ stage: event.stage, message: event.message, iteration: event.iteration }),
     });
 
     if (!executionResult.ok) {
@@ -75,6 +90,7 @@ export async function runAutoCode(
       return { ok: false, error: `Execution failed. ${formatCodingHarnessResult(executionResult)}` };
     }
 
+    onProgress?.({ stage: 'execution-complete', message: 'Autonomous coding finished successfully' });
     return {
       ok: true,
       result: `Autonomous coding completed successfully.\n${formatCodingHarnessResult(executionResult)}`,

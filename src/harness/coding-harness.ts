@@ -230,8 +230,14 @@ export async function runCodingHarness(
   for (let i = 1; i <= input.maxIterations; i += 1) {
     onProgress?.({ iteration: i, stage: 'iteration-start', message: `Starting iteration ${i}` });
     const workspaceContext = await scanWorkspace(input.workspace);
-    onProgress?.({ iteration: i, stage: 'llm-request', message: 'Requesting implementation guidance' });
-    lastGuidance = await runLlmQuery(
+    onProgress?.({ iteration: i, stage: 'llm-request', message: 'Requesting implementation guidance from the model' });
+    const llmStart = Date.now();
+    const llmHeartbeat = setInterval(() => {
+      const elapsedSeconds = Math.round((Date.now() - llmStart) / 1000);
+      onProgress?.({ iteration: i, stage: 'llm-waiting', message: `Still waiting on model response (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
+    }, 15000);
+    try {
+      lastGuidance = await runLlmQuery(
       config,
       [
         'You are an autonomous coding harness. Your job is to implement the requested task.',
@@ -252,8 +258,11 @@ export async function runCodingHarness(
         'Return only the files to create/update. The validator will run after files are written.',
       ].filter(Boolean).join('\n'),
     );
+    } finally {
+      clearInterval(llmHeartbeat);
+    }
 
-    onProgress?.({ iteration: i, stage: 'llm-response', message: 'Received implementation guidance' });
+    onProgress?.({ iteration: i, stage: 'llm-response', message: 'Received implementation guidance from the model' });
     const edits = extractCodeBlocks(lastGuidance);
     const { created, modified } = edits.length > 0
       ? await applyEdits(input.workspace, edits)
@@ -263,7 +272,10 @@ export async function runCodingHarness(
     let ok = false;
     onProgress?.({ iteration: i, stage: 'validation-start', message: `Running validation: ${input.validateCommand}` });
     try {
-      const { stdout, stderr } = await exec(input.validateCommand, { cwd: input.workspace, timeout: input.validateTimeoutMs ?? 15000 });
+      const execOptions = input.validateTimeoutMs === undefined
+        ? { cwd: input.workspace }
+        : { cwd: input.workspace, timeout: input.validateTimeoutMs };
+      const { stdout, stderr } = await exec(input.validateCommand, execOptions);
       lastValidationStdout = stdout.trim();
       lastValidationStderr = stderr.trim();
       ok = true;
@@ -367,7 +379,7 @@ export async function harnessResume(
 export async function runCodingHarnessFromPlan(
   config: AppConfig,
   runId: string,
-  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number } = getDefaultProjectRoot(),
+  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number; onProgress?: (event: { iteration: number; stage: string; message: string }) => void } = getDefaultProjectRoot(),
 ): Promise<CodingHarnessResult & { executedPlanId: string }> {
   const root = typeof rootOrOverrides === 'string'
     ? rootOrOverrides
@@ -376,8 +388,11 @@ export async function runCodingHarnessFromPlan(
     ? 5
     : (rootOrOverrides.maxIterations ?? 5);
   const validateTimeoutMs = typeof rootOrOverrides === 'string'
-    ? 15000
-    : (rootOrOverrides.validateTimeoutMs ?? 15000);
+    ? undefined
+    : rootOrOverrides.validateTimeoutMs;
+  const onProgress = typeof rootOrOverrides === 'string'
+    ? undefined
+    : rootOrOverrides.onProgress;
 
   const planned = await loadHarnessRun(runId, root);
   if (!planned) throw new Error(`Harness artifact not found: ${runId}`);
@@ -390,6 +405,6 @@ export async function runCodingHarnessFromPlan(
     validateCommand: String(planned.validateCommand ?? ''),
     maxIterations,
     validateTimeoutMs,
-  });
+  }, onProgress);
   return { ...result, executedPlanId: runId };
 }

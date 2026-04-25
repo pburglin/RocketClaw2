@@ -112,10 +112,11 @@ RocketClaw2 v0.2.0 is expanding from a runtime shell into a guided operator plat
 - Suggested next step: turn signals into a first-class compare/improve workflow with explicit scorecards
 
 ### World Model
-- Runtime support: partial building blocks only (`system-summary`, `workspace-status`, `next-actions`, recall)
+- Runtime support: partial building blocks plus persisted handoff artifacts (`world-model`, `handoff-create`, `handoff-list`, `handoff-show`, `system-summary`, `workspace-status`, `next-actions`, recall)
+- Handoff metadata: owner, notes, and optional linked harness/approval lineage
 - Roadmap/setup doc: yes
 - Demo coverage: yes (roadmap demo)
-- Suggested next step: define a durable handoff/context artifact instead of relying on separate operator commands
+- Suggested next step: add richer delegation templates beyond the new PM / architect / implementer / QA handoff presets, especially for multi-hop orchestration flows
 
 ### Second Brain
 - Runtime support: available now across session memory, dreaming, promotion, and recall
@@ -124,10 +125,10 @@ RocketClaw2 v0.2.0 is expanding from a runtime shell into a guided operator plat
 - Suggested next step: add more guided onboarding so this feels like a product flow instead of a loose command set
 
 ### Multi-Agent Teams
-- Runtime support: partial building blocks only (plans, approvals, harness inspection, specialist-role guidance)
+- Runtime support: partial building blocks (scoped role templates, plans, approvals, harness inspection, specialist-role guidance)
 - Roadmap/setup doc: yes
 - Demo coverage: yes (roadmap demo)
-- Suggested next step: add scoped role templates and clearer orchestration handoff artifacts
+- Suggested next step: add clearer orchestration handoff artifacts and multi-hop role workflows on top of the new templates
 
 ### Evaluator-Optimizer
 - Runtime support: available in partial form via harness plan/critic/review loops

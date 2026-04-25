@@ -59,7 +59,7 @@
 - Build configurable tool catalog and access policy model with safe defaults and explicit override posture. ✅ (done)
 
 - Add memory decay strategy so stale episodic details lose salience unless reinforced.
-- Add handoff artifact generation for context resets and long-running work.
+- Add handoff artifact generation for context resets and long-running work. ✅ (done)
 - Add plan mode artifacts for implementation tasks.
 - Add sub-agent orchestration briefs with least-privilege context isolation.
 - Add closed-loop quality gates and critic/self-reflection fix loops. ✅ (done)

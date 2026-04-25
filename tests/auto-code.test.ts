@@ -98,9 +98,9 @@ describe('runAutoCode', () => {
     expect(result.error).toContain('Autonomous coding failed: LLM provider timed out');
     expect(result.nextSteps).toEqual([
       'rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "demo-model" llm-status',
-      'rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "demo-model" llm-test',
       'rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "demo-model" llm-query --prompt "Reply with exactly: LLM_OK"',
-      'If that times out too, retry with a known-fast model such as gpt-4o-mini.',
+      'rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "gpt-4o-mini" llm-query --prompt "Reply with exactly: LLM_OK"',
+      'If llm-status still says the API key is missing, confirm your shell expanded $API_KEY before rerunning the command.',
     ]);
   });
 

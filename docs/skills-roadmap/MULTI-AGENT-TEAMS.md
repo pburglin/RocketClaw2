@@ -36,6 +36,8 @@ Recommended prerequisites:
 
 ## Current RocketClaw2 fit
 RocketClaw2 already has partial building blocks for this pattern:
+- scoped role templates via `team-role-template`
+- `team-role-template --from-handoff-id <handoff-id>` to derive role briefs from saved handoff context
 - harness planning
 - approval gates
 - iteration history
@@ -49,5 +51,5 @@ RocketClaw2 already has partial building blocks for this pattern:
 - always end with reviewer or QA validation
 
 ## Demo ideas
-- PM creates acceptance criteria, implementer changes code, reviewer validates
+- PM creates acceptance criteria with `team-role-template`, implementer changes code, reviewer validates
 - architect writes migration plan, implementer executes, QA checks results

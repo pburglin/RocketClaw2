@@ -99,6 +99,8 @@ node dist/src/cli.js run --profile default
 - autonomous coding harness flows (`auto-code`, `harness-plan`, `harness-run`, resume/inspect/validate tooling)
 - native WhatsApp transport with QR/bootstrap flows, inbound session bridging, self-chat-only safety, and outbox inspection
 - roadmap/docs/demo coverage for Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, and Evaluator-Optimizer patterns
+- persisted world-model handoff artifacts for planning, delegation, and later review
+- `team-role-template` for first-class scoped PM / architect / implementer / reviewer briefs
 
 ## Validation
 - `npm run build` ✅
@@ -333,7 +335,7 @@ RocketClaw2 roadmap now explicitly includes:
 - **Karpathian Loop**: iterative improvement loops driven by metrics, evaluation, and learning from prior runs
 - **World Model**: structured context modeling so the runtime can reason about user, environment, constraints, and likely next actions
 - **Second Brain**: personal knowledge ingestion, retrieval, summarization, and memory curation workflows
-- **Multi-Agent Teams**: orchestrated specialist roles with scoped briefs, handoffs, and review steps
+- **Multi-Agent Teams**: orchestrated specialist roles with scoped briefs, `team-role-template`, handoffs, and review steps
 - **World Model**: explicit tracking of goals, environment state, constraints, blockers, and next actions
 - **Evaluator-Optimizer**: generator/critic workflows where one agent produces work and another scores or refines it
 
@@ -604,10 +606,11 @@ RocketClaw2 now includes a lightweight LLM connectivity/auth test command.
 
 ## LLM status
 
-RocketClaw2 now includes a compact LLM status command for inspecting current readiness and session override state.
+RocketClaw2 now includes a compact LLM status command for inspecting current readiness, retry posture, and session override state.
 
 - `rocketclaw2 llm-status`
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
+- `rocketclaw2 --llm-retry-count 0 llm-status`
 
 ## LLM troubleshooting quick path
 
@@ -624,6 +627,8 @@ When `auto-code`, `harness-run`, or `chat` fails in a way that looks LLM-related
 Notes:
 - RocketClaw2 now accepts both plain string completions and newer structured text-part responses from OpenAI-compatible providers.
 - Wrapped provider payload errors such as timeout code `524` are now surfaced as provider timeout diagnostics instead of a misleading no-content failure.
+- Server-side LLM failures now retry by default up to 3 times with exponential backoff, capped at 5 minutes between attempts.
+- Use `--llm-retry-count <n>` to override that retry budget for a CLI session (`0` disables retries; very large values such as `9999` effectively keep retrying).
 - If `llm-query` works with `gpt-4o-mini` but not with your selected model, suspect model/provider compatibility rather than the harness itself.
 - If the provider is not compatible with `/chat/completions`, use a matching base URL or provider shim.
 
@@ -658,7 +663,7 @@ This first milestone provides the full outer loop: workspace selection, task des
 
 `auto-code --no-auto-approve` now saves a real plan artifact and prints the exact follow-up commands for the governed path: inspect the plan, approve it, then execute it with `harness-run --id <plan-id> --require-approved-plan`.
 
-If autonomous coding fails before any files are written, run `llm-status`, `llm-test`, and `llm-query` first so you can separate provider/config problems from harness behavior.
+If autonomous coding fails before any files are written, start with `llm-status` and an override-based `llm-query` check so you can separate provider/config problems from harness behavior. Use `llm-test` when you specifically want the compact connectivity/auth smoke test.
 
 ### Harness run artifacts
 
@@ -785,9 +790,9 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 
 ### Interactive harness progress
 
-`harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. Long LLM requests also emit periodic “still waiting on model response … press Ctrl+C to cancel” updates so the CLI feels alive during slower provider/model combinations.
+`harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. Long LLM requests also emit periodic `AI is thinking... (<elapsed>s elapsed, press Ctrl+C to cancel)` updates so the CLI feels alive during slower provider/model combinations.
 
-For deeper troubleshooting, `harness-run`, `auto-code`, and `llm-query` now support `--verbose`, which prints formatted raw LLM requests, responses, and extracted text on stderr.
+For deeper troubleshooting, `harness-run`, `auto-code`, and `llm-query` now support `--verbose`, which prints formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you want those human-readable log entries time-prefixed too.
 
 
 ### Leaner workspace context

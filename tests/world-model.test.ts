@@ -9,6 +9,7 @@ describe('world model', () => {
         profile: 'default',
         yoloEnabled: false,
         llmModel: 'demo-model',
+        llmRetryCount: 6,
         llmApiKeyConfigured: true,
         whatsappEnabled: true,
         whatsappMode: 'session',
@@ -25,6 +26,7 @@ describe('world model', () => {
 
     expect(text).toContain('RocketClaw2 World Model');
     expect(text).toContain('Active goal: Review pending approvals');
+    expect(text).toContain('retryCount=6');
     expect(text).toContain('Constraints:');
     expect(text).toContain('Risks:');
     expect(text).toContain('Next actions:');

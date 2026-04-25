@@ -15,7 +15,9 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Delivery should include setup, usage, demos, Mermaid diagrams, screenshots, and GitHub publishing.
 
 ## Latest Validation
+- `npm run lint` ✅
 - `npm run build` ✅
+- `npm run verify:build` ✅
 - `npm test` ✅
 - CLI/session/memory/operator docs updated to reflect the current implemented feature set ✅
 
@@ -49,6 +51,15 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - The CLI now includes `recall-profile` so operators can inspect the active recall-scoring settings from persisted config.
 - `doctor` runtime diagnostics now include the active recall-scoring profile, and setup docs include a concrete `config.yaml` tuning example.
 - The CLI now includes `config-show` so operators can inspect the full resolved persisted app config, not just recall-specific diagnostics.
+- RocketClaw2 now includes persisted world-model handoff artifacts with `handoff-create`, `handoff-list`, and `handoff-show` for planning, delegation, and later review.
+- Handoff artifacts now support explicit owner/notes metadata plus optional linked harness and approval lineage for cleaner multi-step delegation.
+- Handoff views now suggest concrete follow-up commands from linked approval/harness state, reducing guesswork during review and delegation.
+- `handoff-create` now supports PM / architect / implementer / QA presets so delegation scaffolds can be created quickly without rewriting owner/notes boilerplate.
+- RocketClaw2 now includes `team-role-template` for first-class scoped PM / architect / implementer / reviewer briefs in Multi-Agent workflows.
+- Handoff preset vocabulary is now aligned with Multi-Agent role naming, so `reviewer` works as a first-class preset alongside `qa`.
+- `team-role-template` can now derive scoped role briefs directly from saved handoff artifacts with `--from-handoff-id`.
+- Harness planning now emits the same animated `AI is thinking...` wait feedback as execution, and CLI operators can opt into time-prefixed log lines with global `--timestamps`.
+- Verbose LLM inspection is more readable for multiline prompts/responses, and auto-code now highlights success vs failure output more clearly with markers/colors.
 - The CLI now includes `recall-explain` for human-readable explanations of recall scoring fields and their effect on ranking behavior.
 - The CLI now includes `recall-set` so operators can tune persisted recall scoring values by dot path without manually editing YAML.
 - Recall tuning now exposes valid dot paths and returns clearer invalid-path errors, reducing guesswork when editing scoring values.

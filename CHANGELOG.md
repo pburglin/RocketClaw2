@@ -15,7 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - better parsing for structured LLM response content and wrapped provider error payloads
 - `auto-code` recovery steps for model/provider/auth/timeout-style failures
 - live autonomous-coding progress updates for planning/execution phases
-- periodic “still waiting on model response … press Ctrl+C to cancel” feedback during slow model calls
+- periodic `AI is thinking... (<elapsed>s elapsed, press Ctrl+C to cancel)` feedback during slow model calls
+- retry-budget visibility in `llm-status`, `system-summary`, and `world-model`, including CLI override awareness
+- persisted handoff artifacts via `handoff-create`, `handoff-list`, and `handoff-show` for world-model-based planning and delegation
+- handoff metadata for owner/notes plus optional linked harness and approval lineage
+- handoff views now suggest concrete follow-up commands derived from linked approval/harness state
+- role-aware handoff presets for PM, architect, implementer, and QA delegation flows
+- first-class `team-role-template` command for scoped PM / architect / implementer / reviewer briefs
+- aligned handoff preset vocabulary so `reviewer` now works alongside `qa`
+- `team-role-template` can now derive a scoped brief directly from a saved handoff artifact
+- harness planning/execution logs now show the same animated LLM wait state, use `AI is thinking...`, support optional `--timestamps`, and color/marker-code success vs error output more clearly
+- verbose LLM inspection now preserves human-readable multiline prompt content instead of collapsing it into escaped `\\n` sequences
+- autonomous-coding timeout recovery steps now favor more actionable override-based LLM checks
 
 ### Changed
 - default local harness validation timeout is now disabled unless `--validate-timeout-ms` is explicitly provided

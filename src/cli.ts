@@ -47,6 +47,10 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildWorldModel, formatWorldModel } from './core/world-model.js';
+import { formatHandoffArtifact, formatHandoffList } from './handoff/formatters.js';
+import { resolveHandoffPreset } from './handoff/presets.js';
+import { createHandoffArtifact } from './handoff/runtime.js';
+import { loadHandoffArtifact, listHandoffArtifacts } from './handoff/store.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness, runCodingHarnessFromPlan } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessChain, formatHarnessChainSummary, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessLineageView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, buildHarnessChain, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
@@ -63,6 +67,7 @@ import { loadImportedSkills } from './skills/store.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionOverview, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { createRocketClawTUI } from './tui/index.js';
+import { buildRoleTemplate, buildRoleTemplateFromHandoff, formatRoleTemplate, normalizeTeamRole } from './teams/role-templates.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
 import { getSessionStats } from './sessions/stats.js';
 import { runChatSession } from './commands/chat.js';
@@ -97,7 +102,81 @@ function normalizeCliArgv(argv: string[]): string[] {
 }
 
 function formatJsonBlock(value: unknown): string {
+  if (typeof value === 'string') return value;
   return JSON.stringify(value, null, 2);
+}
+
+type CliRenderOptions = {
+  timestamps?: boolean;
+};
+
+type CliMessageKind = 'info' | 'success' | 'error' | 'warn';
+
+function supportsColor(stream: NodeJS.WriteStream): boolean {
+  return Boolean(stream.isTTY) && !process.env.NO_COLOR && (process.env.TERM ?? '').toLowerCase() !== 'dumb';
+}
+
+function formatTimestampPrefix(enabled: boolean): string {
+  if (!enabled) return '';
+  return `[${new Date().toLocaleTimeString('en-US', { hour12: false })}] `;
+}
+
+function extractReadableText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+
+  if (Array.isArray(value)) {
+    return value.map((part) => extractReadableText(part)).filter(Boolean).join('\n').trim();
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.text === 'string') return record.text;
+  if (typeof record.content === 'string') return record.content;
+  if (record.content) return extractReadableText(record.content);
+  if (record.message) return extractReadableText(record.message);
+  if (typeof record.output_text === 'string') return record.output_text;
+  if (record.output) return extractReadableText(record.output);
+  return '';
+}
+
+function extractReadablePrompt(value: unknown): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+  const record = value as Record<string, unknown>;
+  const messages = record.messages;
+  if (!Array.isArray(messages)) return '';
+  return messages
+    .map((message) => {
+      if (!message || typeof message !== 'object' || Array.isArray(message)) return '';
+      const item = message as Record<string, unknown>;
+      const role = typeof item.role === 'string' ? item.role : 'message';
+      const content = extractReadableText(item.content);
+      return content ? `${role}:\n${content}` : '';
+    })
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+}
+
+function formatCliLine(text: string, kind: CliMessageKind, options: CliRenderOptions = {}, stream: NodeJS.WriteStream = process.stderr): string {
+  const marker = kind === 'success'
+    ? '✔'
+    : kind === 'error'
+      ? '✖'
+      : kind === 'warn'
+        ? '▲'
+        : '›';
+  const timestamp = formatTimestampPrefix(Boolean(options.timestamps));
+  const base = `${timestamp}${marker} ${text}`;
+  if (!supportsColor(stream)) return base;
+
+  const colorCode = kind === 'success'
+    ? 82
+    : kind === 'error'
+      ? 196
+      : kind === 'warn'
+        ? 214
+        : 39;
+  return `\x1b[38;5;${colorCode}m${base}\x1b[0m`;
 }
 
 function parseOptionalNonNegativeInt(value: unknown, flagName: string): number | undefined {
@@ -109,25 +188,36 @@ function parseOptionalNonNegativeInt(value: unknown, flagName: string): number |
   return parsed;
 }
 
-function createVerboseLlmRenderer() {
-  const colorEnabled = Boolean(process.stderr.isTTY) && !process.env.NO_COLOR && (process.env.TERM ?? '').toLowerCase() !== 'dumb';
+function createVerboseLlmRenderer(options: CliRenderOptions = {}) {
+  const colorEnabled = supportsColor(process.stderr);
   const color = (code: number, text: string) => colorEnabled ? `\x1b[${code}m${text}\x1b[0m` : text;
   const header = (text: string) => color(95, text);
   const label = (text: string) => color(36, text);
   const dim = (text: string) => color(90, text);
   const block = (title: string, content: string) => `${header(title)}\n${content}\n`;
+  const writeBlock = (text: string, kind: CliMessageKind = 'info') => {
+    process.stderr.write(`\n${formatCliLine(text, kind, options)}\n`);
+  };
 
   return {
     render(event: LlmTraceEvent) {
       const context = event.label ? ` (${event.label})` : '';
       if (event.phase === 'request') {
+        const promptText = extractReadablePrompt(event.requestBody ?? {});
+        const requestRecord = (event.requestBody && typeof event.requestBody === 'object' && !Array.isArray(event.requestBody))
+          ? event.requestBody as Record<string, unknown>
+          : {};
+        const messageCount = Array.isArray(requestRecord.messages) ? requestRecord.messages.length : 0;
         const sections = [
           `${label('Endpoint:')} ${event.endpoint}`,
           `${label('Model:')} ${event.model}`,
           `${label('Channel:')} ${event.channel}`,
-          block('Prompt / request body', formatJsonBlock(event.requestBody ?? {})),
+          `${label('Message count:')} ${String(messageCount)}`,
+          `${label('Temperature:')} ${String(requestRecord.temperature ?? 'n/a')}`,
+          block('Prompt text', promptText || dim('(unavailable)')),
         ];
-        process.stderr.write(`\n${header(`━━ LLM REQUEST${context} ━━`)}\n${sections.join('\n')}\n`);
+        writeBlock(header(`━━ LLM REQUEST${context} ━━`));
+        process.stderr.write(`${sections.join('\n')}\n`);
         return;
       }
 
@@ -137,7 +227,8 @@ function createVerboseLlmRenderer() {
           block('Raw response payload', formatJsonBlock(event.responseBody ?? {})),
           block('Extracted text', event.extractedText && event.extractedText.trim() ? event.extractedText : dim('(empty)')),
         ];
-        process.stderr.write(`\n${header(`━━ LLM RESPONSE${context} ━━`)}\n${sections.join('\n')}\n`);
+        writeBlock(header(`━━ LLM RESPONSE${context} ━━`), 'success');
+        process.stderr.write(`${sections.join('\n')}\n`);
         return;
       }
 
@@ -148,7 +239,8 @@ function createVerboseLlmRenderer() {
           `${label('Retrying in:')} ${String(event.backoffMs ?? 0)} ms`,
           `${label('Reason:')} ${event.error ?? 'Retriable server-side LLM failure'}`,
         ];
-        process.stderr.write(`\n${header(`━━ LLM RETRY${context} ━━`)}\n${sections.join('\n')}\n`);
+        writeBlock(header(`━━ LLM RETRY${context} ━━`), 'warn');
+        process.stderr.write(`${sections.join('\n')}\n`);
         return;
       }
 
@@ -159,19 +251,27 @@ function createVerboseLlmRenderer() {
       if (event.responseBody !== undefined) {
         sections.push(block('Raw error payload', typeof event.responseBody === 'string' ? event.responseBody : formatJsonBlock(event.responseBody)));
       }
-      process.stderr.write(`\n${header(`━━ LLM ERROR${context} ━━`)}\n${sections.join('\n')}\n`);
+      writeBlock(header(`━━ LLM ERROR${context} ━━`), 'error');
+      process.stderr.write(`${sections.join('\n')}\n`);
     },
   };
 }
 
-function createProgressRenderer(defaultPrefix: string) {
+function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions = {}) {
   let hasActiveInlineLine = false;
   let spinnerTimer: NodeJS.Timeout | undefined;
   let spinnerIndex = 0;
   let waitingLine = '';
   const spinnerFrames = ['|', '/', '-', '\\'];
-  const colorEnabled = Boolean(process.stderr.isTTY) && !process.env.NO_COLOR && (process.env.TERM ?? '').toLowerCase() !== 'dumb';
+  const colorEnabled = supportsColor(process.stderr);
   const spinnerColors = [39, 45, 51, 87, 123, 159];
+
+  const resolveKind = (stage: string): CliMessageKind => {
+    if (/error|failed|timeout/i.test(stage)) return 'error';
+    if (/passed|complete|approved|saved|written|response/i.test(stage)) return 'success';
+    if (/retry|warning/i.test(stage)) return 'warn';
+    return 'info';
+  };
 
   const renderInlineLine = (line: string) => {
     if (!process.stderr.isTTY) {
@@ -226,8 +326,8 @@ function createProgressRenderer(defaultPrefix: string) {
   return {
     render(event: { stage: string; message: string; iteration?: number }) {
       const prefix = event.iteration ? `[iter ${event.iteration}]` : defaultPrefix;
-      const line = `${prefix} ${event.message}`;
-      const useInlineUpdate = event.stage === 'llm-waiting' && Boolean(process.stderr.isTTY);
+      const line = formatCliLine(`${prefix} ${event.message}`, resolveKind(event.stage), options);
+      const useInlineUpdate = /llm-waiting/i.test(event.stage) && Boolean(process.stderr.isTTY);
 
       if (useInlineUpdate) {
         waitingLine = line;
@@ -328,6 +428,7 @@ async function maybeShowStartupBanner(argv: string[]) {
 const program = new Command();
 
 program
+  .option('--timestamps', 'prefix human-readable CLI log lines with a timestamp')
   .option('--llm-base-url <url>', 'override LLM base URL for this CLI session only')
   .option('--llm-api-key <key>', 'override LLM API key for this CLI session only')
   .option('--llm-model <model>', 'override LLM model for this CLI session only')
@@ -657,9 +758,108 @@ program
   .command('world-model')
   .description('Show a structured world-model snapshot for planning, handoff, and situational awareness')
   .option('--json', 'output raw JSON')
-  .action(async (options) => {
-    const model = await buildWorldModel();
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+    });
+    const model = await buildWorldModel(undefined, config);
     console.log(options.json ? JSON.stringify(model, null, 2) : formatWorldModel(model));
+  });
+
+program
+  .command('handoff-create')
+  .description('Persist a handoff artifact from the current world-model snapshot')
+  .option('--preset <name>', 'pm|architect|implementer|reviewer|qa')
+  .option('--owner <name>', 'assign an intended owner for this handoff')
+  .option('--notes <text>', 'attach operator notes to this handoff')
+  .option('--related-harness-id <id>', 'link this handoff to a harness plan/run artifact')
+  .option('--related-approval-id <id>', 'link this handoff to an approval request')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const rootConfig = await loadAppConfig();
+    const globalOpts = (command as any).parent?.opts?.() ?? {};
+    const config = applySessionOverrides(rootConfig, {
+      llmBaseUrl: globalOpts.llmBaseUrl,
+      llmApiKey: globalOpts.llmApiKey,
+      llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+    });
+    const preset = resolveHandoffPreset(typeof options.preset === 'string' ? options.preset : undefined);
+    const artifact = await createHandoffArtifact(config, undefined, {
+      owner: typeof options.owner === 'string' ? options.owner : preset.owner,
+      notes: typeof options.notes === 'string' ? options.notes : preset.notes,
+      relatedHarnessId: typeof options.relatedHarnessId === 'string' ? options.relatedHarnessId : undefined,
+      relatedApprovalId: typeof options.relatedApprovalId === 'string' ? options.relatedApprovalId : undefined,
+    });
+    console.log(options.json ? JSON.stringify(artifact, null, 2) : formatHandoffArtifact(artifact));
+  });
+
+program
+  .command('handoff-list')
+  .description('List persisted handoff artifacts')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const artifacts = await listHandoffArtifacts();
+    console.log(options.json ? JSON.stringify(artifacts, null, 2) : formatHandoffList(artifacts));
+  });
+
+program
+  .command('handoff-show')
+  .description('Show a persisted handoff artifact by id')
+  .requiredOption('--id <id>', 'handoff artifact id')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const artifact = await loadHandoffArtifact(String(options.id));
+    if (!artifact) {
+      throw new Error(`Handoff artifact not found: ${String(options.id)}`);
+    }
+    console.log(options.json ? JSON.stringify(artifact, null, 2) : formatHandoffArtifact(artifact));
+  });
+
+program
+  .command('team-role-template')
+  .description('Generate a scoped brief template for a Multi-Agent Teams role')
+  .requiredOption('--role <role>', 'pm|architect|implementer|reviewer|qa')
+  .option('--goal <text>', 'shared goal for this role')
+  .option('--from-handoff-id <id>', 'derive the brief from an existing handoff artifact')
+  .option('--scope <text>', 'explicit ownership boundary for this role')
+  .option('--input <text...>', 'input artifacts or context to pass to this role')
+  .option('--deliverable <text>', 'expected output from this role')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const role = normalizeTeamRole(String(options.role));
+    const inputs = Array.isArray(options.input) ? options.input.map((item: unknown) => String(item)) : undefined;
+    const template = options.fromHandoffId
+      ? await loadHandoffArtifact(String(options.fromHandoffId)).then((handoff) => {
+          if (!handoff) {
+            throw new Error(`Handoff artifact not found: ${String(options.fromHandoffId)}`);
+          }
+          return buildRoleTemplateFromHandoff({
+            role,
+            handoff,
+            scope: typeof options.scope === 'string' ? options.scope : undefined,
+            deliverable: typeof options.deliverable === 'string' ? options.deliverable : undefined,
+            extraInputs: inputs,
+          });
+        })
+      : buildRoleTemplate({
+          role,
+          goal: typeof options.goal === 'string' ? options.goal : '',
+          scope: typeof options.scope === 'string' ? options.scope : undefined,
+          inputs,
+          deliverable: typeof options.deliverable === 'string' ? options.deliverable : undefined,
+        });
+
+    if (!options.fromHandoffId && !options.goal) {
+      throw new Error('Provide either --goal or --from-handoff-id');
+    }
+
+    console.log(options.json ? JSON.stringify(template, null, 2) : formatRoleTemplate(template));
   });
 
 program
@@ -1055,11 +1255,19 @@ program
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
-    const result = await buildHarnessPlan(config, {
-      workspace: options.workspace,
-      task: options.task,
-      validateCommand: options.validate,
-    });
+    const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', { timestamps: Boolean(globalOpts.timestamps) });
+    let result;
+    try {
+      result = await buildHarnessPlan(config, {
+        workspace: options.workspace,
+        task: options.task,
+        validateCommand: options.validate,
+      }, undefined, progressRenderer ? (event) => {
+        progressRenderer.render(event);
+      } : undefined);
+    } finally {
+      progressRenderer?.flush();
+    }
     const artifact = await saveHarnessRun(result);
     const approval = options.requestApproval
       ? await createApprovalRequest({
@@ -1149,8 +1357,9 @@ program
     if (!workspace || !task || !validateCommand) {
       throw new Error('harness-run requires either --id <plan-id> or all of --workspace, --task, and --validate');
     }
-    const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]');
-    const verboseRenderer = options.verbose ? createVerboseLlmRenderer() : undefined;
+    const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
+    const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]', renderOptions);
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
     let result;
     try {
       result = await runCodingHarness(config, {
@@ -1559,7 +1768,7 @@ program
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     try {
-      const verboseRenderer = options.verbose ? createVerboseLlmRenderer() : undefined;
+      const verboseRenderer = options.verbose ? createVerboseLlmRenderer({ timestamps: Boolean(globalOpts.timestamps) }) : undefined;
       const response = await runLlmQuery(config, options.prompt, verboseRenderer ? { channel: 'cli', label: 'llm-query', onTrace: (event) => verboseRenderer.render(event) } : 'cli');
       console.log(response);
     } catch (error) {
@@ -1716,8 +1925,9 @@ program
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const autoApprove = !options.noAutoApprove;
-    const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]');
-    const verboseRenderer = options.verbose ? createVerboseLlmRenderer() : undefined;
+    const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
+    const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]', renderOptions);
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
     let result;
     try {
       result = await runAutoCode(
@@ -1742,25 +1952,25 @@ program
       console.log(JSON.stringify(result, null, 2));
     } else {
       if (result.ok) {
-        console.log(result.result ?? 'Autonomous coding completed successfully.');
+        console.log(formatCliLine(result.result ?? 'Autonomous coding completed successfully.', 'success', renderOptions, process.stdout));
         if (result.planId) {
-          console.log(`Plan ID: ${result.planId}`);
+          console.log(formatCliLine(`Plan ID: ${result.planId}`, 'info', renderOptions, process.stdout));
         }
         if (result.artifactPath) {
-          console.log(`Artifact: ${result.artifactPath}`);
+          console.log(formatCliLine(`Artifact: ${result.artifactPath}`, 'info', renderOptions, process.stdout));
         }
       } else {
-        console.error(result.error ?? 'Autonomous coding failed.');
+        console.error(formatCliLine(result.error ?? 'Autonomous coding failed.', 'error', renderOptions));
         if (result.planId) {
-          console.error(`Plan ID: ${result.planId}`);
+          console.error(formatCliLine(`Plan ID: ${result.planId}`, 'info', renderOptions));
         }
         if (result.artifactPath) {
-          console.error(`Artifact: ${result.artifactPath}`);
+          console.error(formatCliLine(`Artifact: ${result.artifactPath}`, 'info', renderOptions));
         }
         if (result.nextSteps && result.nextSteps.length > 0) {
-          console.error('Next steps:');
+          console.error(formatCliLine('Next steps:', 'warn', renderOptions));
           for (const step of result.nextSteps) {
-            console.error(`- ${step}`);
+            console.error(formatCliLine(step, 'info', renderOptions));
           }
         }
         process.exitCode = 1;

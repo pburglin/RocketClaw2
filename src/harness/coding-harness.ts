@@ -191,23 +191,38 @@ export async function buildHarnessPlan(
   config: AppConfig,
   input: { workspace: string; task: string; validateCommand: string },
   onLlmTrace?: (event: LlmTraceEvent) => void,
+  onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
 ): Promise<HarnessPlan> {
   await initWorkspace(input.workspace);
   const workspaceContext = await scanWorkspace(input.workspace);
-  const planText = await runLlmQuery(
-    config,
-    [
-      'You are planning an autonomous coding harness task.',
-      'Do not write code. Produce a concise implementation plan only.',
-      'Include these sections exactly: Summary, Files to touch, Validation, Risks.',
-      'The workspace context below is a relative file inventory, not full file contents.',
-      `Workspace: ${input.workspace}`,
-      workspaceContext ? `Existing workspace files:\n${workspaceContext}` : '',
-      `Task: ${input.task}`,
-      `Validation command: ${input.validateCommand}`,
-    ].filter(Boolean).join('\n'),
-    { channel: 'cli', label: 'plan generation', onTrace: onLlmTrace },
-  );
+  onProgress?.({ iteration: 1, stage: 'llm-request', message: 'Requesting implementation plan from the model' });
+  const llmStart = Date.now();
+  const llmHeartbeat = setInterval(() => {
+    const elapsedSeconds = Math.round((Date.now() - llmStart) / 1000);
+    onProgress?.({ iteration: 1, stage: 'llm-waiting', message: `AI is thinking... (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
+  }, 15000);
+
+  let planText = '';
+  try {
+    planText = await runLlmQuery(
+      config,
+      [
+        'You are planning an autonomous coding harness task.',
+        'Do not write code. Produce a concise implementation plan only.',
+        'Include these sections exactly: Summary, Files to touch, Validation, Risks.',
+        'The workspace context below is a relative file inventory, not full file contents.',
+        `Workspace: ${input.workspace}`,
+        workspaceContext ? `Existing workspace files:\n${workspaceContext}` : '',
+        `Task: ${input.task}`,
+        `Validation command: ${input.validateCommand}`,
+      ].filter(Boolean).join('\n'),
+      { channel: 'cli', label: 'plan generation', onTrace: onLlmTrace },
+    );
+  } finally {
+    clearInterval(llmHeartbeat);
+  }
+
+  onProgress?.({ iteration: 1, stage: 'llm-response', message: 'Received implementation plan from the model' });
 
   return {
     kind: 'plan',
@@ -308,7 +323,7 @@ export async function runCodingHarness(
       const llmStart = Date.now();
       const llmHeartbeat = setInterval(() => {
         const elapsedSeconds = Math.round((Date.now() - llmStart) / 1000);
-        onProgress?.({ iteration: i, stage: 'llm-waiting', message: `Still waiting on model response (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
+        onProgress?.({ iteration: i, stage: 'llm-waiting', message: `AI is thinking... (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
       }, 15000);
       try {
         return await runLlmQuery(config, prompt, { channel: 'cli', label, onTrace: onLlmTrace });

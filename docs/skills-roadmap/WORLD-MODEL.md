@@ -24,8 +24,11 @@ A useful RocketClaw2 world model should capture:
 - relevant memory or session context
 
 ## Current RocketClaw2 fit
-RocketClaw2 now has a first world-model snapshot command plus the underlying building blocks:
+RocketClaw2 now has a first world-model snapshot command plus persisted handoff artifacts and the underlying building blocks:
 - `world-model`
+- `handoff-create`
+- `handoff-list`
+- `handoff-show`
 - `system-summary`
 - `workspace-status`
 - `next-actions`
@@ -35,6 +38,11 @@ RocketClaw2 now has a first world-model snapshot command plus the underlying bui
 ## Operator flow
 ```bash
 rocketclaw2 world-model
+rocketclaw2 handoff-create --preset qa --related-harness-id <run-id> --related-approval-id <approval-id>
+rocketclaw2 handoff-create --preset reviewer --related-harness-id <run-id> --related-approval-id <approval-id>
+rocketclaw2 handoff-create --owner qa --notes "Verify before merge" --related-harness-id <run-id> --related-approval-id <approval-id>
+rocketclaw2 handoff-list
+rocketclaw2 handoff-show --id <handoff-id>
 rocketclaw2 system-summary
 rocketclaw2 workspace-status
 rocketclaw2 next-actions
@@ -46,6 +54,8 @@ rocketclaw2 recall --query "current priorities"
 - separate stable constraints from temporary blockers
 - keep next actions short and specific
 - use the world model to improve handoffs, not to generate busywork
+- use role-aware presets when you want a quick PM / architect / implementer / QA handoff scaffold
+- add owner/notes/linked artifacts when the handoff needs to survive delegation across people or runs
 
 ## Demo ideas
 - inspect runtime posture before launching a complex workflow

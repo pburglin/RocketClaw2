@@ -146,6 +146,9 @@ What this demonstrates:
 
 ## 10. Multi-Agent Teams roadmap demo
 ```bash
+node dist/src/cli.js team-role-template --role pm --goal "Define acceptance criteria and implementation plan"
+node dist/src/cli.js team-role-template --role architect --goal "Design the implementation approach"
+node dist/src/cli.js team-role-template --role reviewer --from-handoff-id <handoff-id>
 node dist/src/cli.js auto-code --workspace . --task "Define acceptance criteria and implementation plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
 node dist/src/cli.js harness-show --id <plan-id> --plan
 node dist/src/cli.js next-actions
@@ -153,13 +156,19 @@ node dist/src/cli.js workspace-status
 ```
 
 What this demonstrates:
-- the current operator-facing building blocks for specialist-role workflows
+- first-class scoped brief templates for specialist-role workflows
+- ability to turn a saved handoff directly into a reviewer/QA brief
 - using `auto-code` as the fast path to create a reviewable planning artifact
 - runtime posture inspection before delegating work to future specialist agents
 
 ## 11. World Model roadmap demo
 ```bash
 node dist/src/cli.js world-model
+node dist/src/cli.js handoff-create --preset qa --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-create --preset reviewer --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-create --owner qa --notes "Verify before merge" --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-list
+node dist/src/cli.js handoff-show --id <handoff-id>
 node dist/src/cli.js system-summary
 node dist/src/cli.js next-actions
 node dist/src/cli.js workspace-status
@@ -167,6 +176,9 @@ node dist/src/cli.js workspace-status
 
 What this demonstrates:
 - a first-class world-model snapshot for planning and handoff
+- persisted handoff artifacts for later review or delegation
+- role-aware PM / architect / implementer / QA handoff presets for faster delegation
+- explicit owner/notes/linked-artifact context for cleaner multi-step handoffs
 - runtime posture inspection before taking action
 - the base layer that future context-modeling workflows will build on
 

@@ -267,14 +267,19 @@ Imported skill listings now show update-related metadata such as last action and
 
 LLM query errors now explain likely causes such as wrong API key, wrong provider URL, or model mismatch, and suggest an explicit retry command.
 
+Server-side LLM failures now retry by default up to 3 times with exponential backoff, capped at 5 minutes between attempts. Use `--llm-retry-count <n>` when you want to disable retries (`0`) or keep retrying much longer.
+
 ## LLM connectivity test
 
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-test`
 
 ## LLM status
 
+Use `llm-status` to inspect the active base URL, model, server-error retry count, API-key readiness, and whether session overrides are active.
+
 - `rocketclaw2 llm-status`
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
+- `rocketclaw2 --llm-retry-count 0 llm-status`
 
 ## LLM troubleshooting quick path
 
@@ -290,6 +295,8 @@ When `auto-code`, `harness-run`, or `chat` fails in a way that looks LLM-related
 
 Notes:
 - RocketClaw2 now accepts both plain string completions and newer structured text-part responses from OpenAI-compatible providers.
+- Server-side LLM failures now retry by default up to 3 times with exponential backoff, capped at 5 minutes between attempts.
+- Use `--llm-retry-count <n>` to override that retry budget for the current CLI session.
 - If `llm-query` works with `gpt-4o-mini` but not with your selected model, suspect model/provider compatibility rather than the harness itself.
 - If the provider is not compatible with `/chat/completions`, use a matching base URL or provider shim.
 
@@ -319,7 +326,7 @@ Commands:
 
 `auto-code --no-auto-approve` now creates a real saved plan artifact and prints the exact review/approve/run commands to continue through the governed path.
 
-If autonomous coding fails before any files are written, run `llm-status`, `llm-test`, and `llm-query` first so you can separate provider/config problems from harness behavior.
+If autonomous coding fails before any files are written, start with `llm-status` and an override-based `llm-query` check so you can separate provider/config problems from harness behavior. Use `llm-test` only when you specifically want the compact connectivity/auth smoke test.
 
 ## Evaluator-Optimizer operator flow
 
@@ -345,6 +352,9 @@ Recommended role split:
 - Reviewer/QA → validation + final gaps
 
 Current RocketClaw2 building blocks for this pattern:
+- `rocketclaw2 team-role-template --role pm --goal "Clarify scope and acceptance criteria"`
+- `rocketclaw2 team-role-template --role architect --goal "Design the approach"`
+- `rocketclaw2 team-role-template --role reviewer --from-handoff-id <handoff-id>`
 - `rocketclaw2 auto-code --no-auto-approve`
 - `rocketclaw2 harness-show --id <plan-id-or-run-id> --plan`
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan`
@@ -353,6 +363,8 @@ Current RocketClaw2 building blocks for this pattern:
 - `rocketclaw2 next-actions`
 
 Recommended use:
+- start with `team-role-template` to stamp a narrow brief before delegating work
+- use `--from-handoff-id` when you want to turn an existing saved handoff directly into a role brief
 - keep role briefs small and explicit
 - pass artifacts forward between roles
 - always end with reviewer/QA validation
@@ -361,6 +373,12 @@ Recommended use:
 
 Current RocketClaw2 building blocks for this pattern:
 - `rocketclaw2 world-model`
+- `rocketclaw2 handoff-create`
+- `rocketclaw2 handoff-create --preset qa --related-harness-id <run-id> --related-approval-id <approval-id>`
+- `rocketclaw2 handoff-create --preset reviewer --related-harness-id <run-id> --related-approval-id <approval-id>`
+- `rocketclaw2 handoff-create --owner qa --notes "Verify before merge" --related-harness-id <run-id> --related-approval-id <approval-id>`
+- `rocketclaw2 handoff-list`
+- `rocketclaw2 handoff-show --id <handoff-id>`
 - `rocketclaw2 system-summary`
 - `rocketclaw2 workspace-status`
 - `rocketclaw2 next-actions`
@@ -369,6 +387,10 @@ Current RocketClaw2 building blocks for this pattern:
 
 Recommended use:
 - start with `rocketclaw2 world-model` when you want one planning/handoff snapshot instead of stitching together multiple commands
+- run `rocketclaw2 handoff-create` when that snapshot should become a durable artifact for later review or role handoff
+- use `--preset pm|architect|implementer|reviewer|qa` to stamp a role-aware owner + default handoff notes quickly
+- attach `--owner`, `--notes`, and related harness/approval ids when you want the handoff to carry explicit delegation context instead of just posture
+- `handoff-show` now also suggests concrete follow-up commands from linked approval/harness state, so reviewers know the next operational move immediately
 - refresh posture before major actions
 - keep track of goals, constraints, blockers, and next actions
 - use this pattern to improve planning and handoffs across longer tasks
@@ -422,6 +444,7 @@ Code block format: ```filename.ext followed by file content, ending with ```
 - supports an explicit `REQUEST_FILES` round-trip so the model can pull only the files it actually needs
 - supports partial file edits using `PATCH:filename` fenced blocks
 - supports `--verbose` for formatted raw LLM request/response inspection on stderr
+- supports global `--timestamps` to prefix human-readable progress / verbose log lines with the current time
 
 `harness-show --id <run-id> --full` prints the complete saved artifact, including the full last LLM guidance.
 
@@ -523,9 +546,9 @@ When an inbound WhatsApp message matches a supported dispatcher command, RocketC
 
 `harness-run` now emits concise progress points during each iteration so operators can see live execution progress instead of waiting only for the final report.
 
-Long LLM requests now also emit periodic “still waiting on model response … press Ctrl+C to cancel” updates, which helps slow provider/model combinations feel less frozen.
+Long LLM requests now also emit periodic `AI is thinking... (<elapsed>s elapsed, press Ctrl+C to cancel)` updates, which helps slow provider/model combinations feel less frozen.
 
-When you want deeper troubleshooting, add `--verbose` to `harness-run`, `auto-code`, or `llm-query` to print formatted raw LLM requests, responses, and extracted text on stderr.
+When you want deeper troubleshooting, add `--verbose` to `harness-run`, `auto-code`, or `llm-query` to print formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you also want every human-readable log entry prefixed with time.
 
 ## Safe validation commands
 

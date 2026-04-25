@@ -1,9 +1,10 @@
 import { loadAppConfig } from '../tools/config-store.js';
 import { buildSystemSummary } from '../config/system-summary.js';
+import type { AppConfig } from '../config/load-config.js';
 import { buildWorkspaceStatus } from './workspace-status.js';
 
-export async function buildWorldModel(root?: string) {
-  const config = await loadAppConfig(root);
+export async function buildWorldModel(root?: string, configOverride?: AppConfig) {
+  const config = configOverride ?? await loadAppConfig(root);
   const [systemSummary, workspaceStatus] = await Promise.all([
     Promise.resolve(buildSystemSummary(config)),
     buildWorkspaceStatus(root),
@@ -42,6 +43,7 @@ export async function buildWorldModel(root?: string) {
       profile: systemSummary.profile,
       yoloEnabled: systemSummary.yolo.enabled,
       llmModel: systemSummary.llm.model,
+      llmRetryCount: systemSummary.llm.retryCount,
       llmApiKeyConfigured: systemSummary.llm.apiKeyConfigured,
       whatsappEnabled: workspaceStatus.whatsappEnabled,
       whatsappMode: workspaceStatus.whatsappMode,
@@ -62,7 +64,7 @@ export function formatWorldModel(model: Awaited<ReturnType<typeof buildWorldMode
     'RocketClaw2 World Model',
     `Active goal: ${model.activeGoal}`,
     `Profile: ${model.environment.profile}`,
-    `LLM: ${model.environment.llmModel} | apiKeyConfigured=${model.environment.llmApiKeyConfigured ? 'yes' : 'no'}`,
+    `LLM: ${model.environment.llmModel} | retryCount=${model.environment.llmRetryCount} | apiKeyConfigured=${model.environment.llmApiKeyConfigured ? 'yes' : 'no'}`,
     `WhatsApp: ${model.environment.whatsappEnabled ? 'enabled' : 'disabled'} (${model.environment.whatsappMode})`,
     `Sessions: ${model.environment.sessionCount} | Messages: ${model.environment.messageCount}`,
     `Semantic memory entries: ${model.environment.semanticMemoryEntries}`,

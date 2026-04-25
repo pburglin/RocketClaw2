@@ -13,12 +13,11 @@ export interface AutoCodeProgressEvent {
 function buildLlmRecoverySteps(config: AppConfig): string[] {
   const baseUrl = config.llm.baseUrl;
   const model = config.llm.model;
-  const auth = '--llm-api-key "$API_KEY"';
   return [
-    `rocketclaw2 --llm-base-url "${baseUrl}" ${auth} --llm-model "${model}" llm-status`,
-    `rocketclaw2 --llm-base-url "${baseUrl}" ${auth} --llm-model "${model}" llm-test`,
-    `rocketclaw2 --llm-base-url "${baseUrl}" ${auth} --llm-model "${model}" llm-query --prompt "Reply with exactly: LLM_OK"`,
-    'If that times out too, retry with a known-fast model such as gpt-4o-mini.',
+    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-api-key "$API_KEY" --llm-model "${model}" llm-status`,
+    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-api-key "$API_KEY" --llm-model "${model}" llm-query --prompt "Reply with exactly: LLM_OK"`,
+    `rocketclaw2 --llm-base-url "${baseUrl}" --llm-api-key "$API_KEY" --llm-model "gpt-4o-mini" llm-query --prompt "Reply with exactly: LLM_OK"`,
+    'If llm-status still says the API key is missing, confirm your shell expanded $API_KEY before rerunning the command.',
   ];
 }
 
@@ -43,7 +42,7 @@ export async function runAutoCode(
       workspace,
       task,
       validateCommand,
-    }, onLlmTrace);
+    }, onLlmTrace, (event) => onProgress?.(event));
 
     onProgress?.({ stage: 'planning-complete', message: 'Plan received from model' });
 

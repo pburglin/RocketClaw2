@@ -17,6 +17,7 @@ export function buildSystemSummary(config: AppConfig) {
     llm: {
       baseUrl: config.llm.baseUrl,
       model: config.llm.model,
+      retryCount: config.llm.retryCount,
       apiKeyConfigured: Boolean(config.llm.apiKey),
     },
   };
@@ -34,6 +35,6 @@ export function formatSystemSummary(summary: ReturnType<typeof buildSystemSummar
     `Full-access: ${summary.tools.fullAccess}`,
     `Approved overrides: ${summary.tools.approvedOverrides}`,
     `Recall scoring: salience x${summary.recallScoring.sessionSalienceMultiplier}, duplicate semantic bonus=${summary.recallScoring.duplicateSemanticPriorityBonus}, diversity penalty=${summary.recallScoring.diversityPenaltyPerBucketHit}`,
-    `LLM: baseUrl=${summary.llm.baseUrl} | model=${summary.llm.model} | apiKeyConfigured=${summary.llm.apiKeyConfigured ? 'yes' : 'no'}`,
+    `LLM: baseUrl=${summary.llm.baseUrl} | model=${summary.llm.model} | retryCount=${summary.llm.retryCount} | apiKeyConfigured=${summary.llm.apiKeyConfigured ? 'yes' : 'no'}`,
   ].join('\n');
 }

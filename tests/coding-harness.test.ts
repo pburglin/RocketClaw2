@@ -91,6 +91,7 @@ describe('extractCodeBlocks (harness integration)', () => {
 describe('workspace prompt context', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('buildHarnessPlan sends a file inventory instead of full file contents', async () => {
@@ -101,8 +102,9 @@ describe('workspace prompt context', () => {
     await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"demo"}\n', 'utf8');
 
     let requestPrompt = '';
-    vi.spyOn(globalThis, 'fetch' as any).mockImplementation(async (_url: string, init: { body?: string }) => {
-      requestPrompt = JSON.parse(String(init.body)).messages[0].content;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (...args: Parameters<typeof fetch>) => {
+      const [, init] = args;
+      requestPrompt = JSON.parse(String(init?.body)).messages[0].content;
       return {
         ok: true,
         status: 200,
@@ -128,8 +130,9 @@ describe('workspace prompt context', () => {
     await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"demo","type":"module"}\n', 'utf8');
 
     const prompts: string[] = [];
-    vi.spyOn(globalThis, 'fetch' as any).mockImplementation(async (_url: string, init: { body?: string }) => {
-      const prompt = JSON.parse(String(init.body)).messages[0].content;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (...args: Parameters<typeof fetch>) => {
+      const [, init] = args;
+      const prompt = JSON.parse(String(init?.body)).messages[0].content;
       prompts.push(prompt);
       if (prompts.length === 1) {
         return {
@@ -158,6 +161,38 @@ describe('workspace prompt context', () => {
     expect(prompts[0]).not.toContain('importantValue = 42');
     expect(prompts[1]).toContain('Requested file contents:');
     expect(prompts[1]).toContain('--- FILE: src/index.ts ---\nexport const importantValue = 42;');
+
+    await fs.rm(tmp, { recursive: true, force: true });
+  });
+
+  it('buildHarnessPlan emits AI is thinking progress updates while waiting on the model', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'harness-plan-progress-'));
+    const workspace = path.join(tmp, 'project');
+    await fs.mkdir(workspace, { recursive: true });
+    await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"demo"}\n', 'utf8');
+
+    const progress: Array<{ iteration: number; stage: string; message: string }> = [];
+    vi.spyOn(globalThis, 'setInterval').mockImplementation(((fn: () => void) => {
+      fn();
+      return 1 as any;
+    }) as any);
+    vi.spyOn(globalThis, 'clearInterval').mockImplementation(() => undefined as any);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: 'Summary\n\nFiles to touch\n- package.json\n\nValidation\n- npm test\n\nRisks\n- none' } }] }),
+    } as Response);
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const plan = await buildHarnessPlan(
+      config,
+      { workspace, task: 'Update code', validateCommand: 'npm test' },
+      undefined,
+      (event) => progress.push(event),
+    );
+
+    expect(plan.ok).toBe(true);
+    expect(progress.some((event) => event.stage === 'llm-waiting' && event.message.startsWith('AI is thinking...'))).toBe(true);
 
     await fs.rm(tmp, { recursive: true, force: true });
   });

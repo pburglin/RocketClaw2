@@ -282,6 +282,17 @@ Use `llm-status` to inspect the active base URL, model, server-error retry count
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
 - `rocketclaw2 --llm-retry-count 0 llm-status`
 
+## LLM performance stats
+
+RocketClaw2 now tracks session-friendly LLM performance telemetry, including successful responses, errors, average response time, average tokens per response, and effective completion tokens/second.
+
+- `rocketclaw2 llm-stats`
+- `rocketclaw2 llm-stats --channel cli`
+- `rocketclaw2 llm-stats --session-id <session-id>`
+- interactive `chat` also supports `/llm` for the current chat session
+
+Token counts use provider-reported usage when available and fall back to a rough estimate when the provider omits usage fields.
+
 ## LLM troubleshooting quick path
 
 When `auto-code`, `harness-run`, or `chat` fails in a way that looks LLM-related, use this order:

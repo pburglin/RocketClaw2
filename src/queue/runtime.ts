@@ -2,7 +2,6 @@ import type { AppConfig } from '../config/load-config.js';
 import { enqueueRequest, markProcessing, markDone, markFailed, peekQueue } from './store.js';
 import { recordRateLimit, recordQueueJoined, recordQueueProcessed } from '../telemetry/runtime.js';
 import { runLlmQuery } from '../llm/client.js';
-import { recordLlmRequest, recordLlmResponse, recordLlmError } from '../telemetry/runtime.js';
 
 export type QueueContext = {
   channel: string;
@@ -28,10 +27,7 @@ export async function runWithQueue(
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      recordLlmRequest(context.channel, context.sessionId);
-      const start = Date.now();
-      const result = await runLlmQuery(config, text);
-      recordLlmResponse(context.channel, Date.now() - start, context.sessionId);
+      const result = await runLlmQuery(config, text, { channel: context.channel, sessionId: context.sessionId });
       return { ok: true, result };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -56,7 +52,6 @@ export async function runWithQueue(
       }
 
       // Non-rate-limit error
-      recordLlmError(context.channel, errorMsg, context.sessionId);
       return { ok: false, error: errorMsg };
     }
   }
@@ -73,7 +68,10 @@ export async function processQueue(config: AppConfig, limit = 10): Promise<{ pro
     await markProcessing(item.id);
     try {
       const start = Date.now();
-      const result = await runLlmQuery(config, item.message);
+      const result = await runLlmQuery(config, item.message, {
+        channel: item.channel,
+        sessionId: item.metadata?.sessionId as string | undefined,
+      });
       await markDone(item.id, result);
       recordQueueProcessed(item.channel, Date.now() - start, true, item.metadata?.sessionId as string | undefined);
       processed++;

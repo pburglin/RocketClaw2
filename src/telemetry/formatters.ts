@@ -1,5 +1,5 @@
 import type { TelemetrySummary } from './schema.js';
-import { getCommandPerfSummary, getDeprecationCandidates } from './store.js';
+import { getCommandPerfSummary, getDeprecationCandidates, type LlmPerformanceStats } from './store.js';
 
 export function formatTelemetrySummary(summary: TelemetrySummary): string {
   const lines: string[] = [];
@@ -70,5 +70,31 @@ export async function formatDeprecationReport(): Promise<string> {
       lines.push(`  ${c.command.padEnd(24)} ${c.count.toString().padStart(4)} uses  (${(c.proportion * 100).toFixed(2)}%)`);
     }
   }
+  return lines.join('\n');
+}
+
+export function formatLlmPerformanceStats(stats: LlmPerformanceStats): string {
+  const lines: string[] = [];
+  lines.push('\n🤖 LLM Performance Stats');
+  lines.push('─'.repeat(50));
+  lines.push(`Window:      ${stats.periodStart.slice(0, 19)} → ${stats.periodEnd.slice(0, 19)}`);
+  if (stats.sessionId) lines.push(`Session ID:  ${stats.sessionId}`);
+  if (stats.channel) lines.push(`Channel:     ${stats.channel}`);
+  lines.push(`Requests:    ${stats.requestCount}`);
+  lines.push(`Successful:  ${stats.successCount}`);
+  lines.push(`Errors:      ${stats.errorCount}`);
+  lines.push(`Success %:   ${(stats.successRate * 100).toFixed(1)}%`);
+  lines.push(`Avg time:    ${stats.avgResponseTimeMs.toFixed(0)} ms`);
+  lines.push(`Tokens/sec:  ${stats.tokensPerSecond.toFixed(2)}`);
+  lines.push(`Avg compl.:  ${stats.avgCompletionTokensPerResponse.toFixed(1)} tokens/response`);
+  lines.push(`Avg total:   ${stats.avgTotalTokensPerResponse.toFixed(1)} tokens/response`);
+  lines.push(`Prompt tok:  ${stats.totalPromptTokens}`);
+  lines.push(`Compl. tok:  ${stats.totalCompletionTokens}`);
+  lines.push(`Total tok:   ${stats.totalTokens}`);
+  if (stats.estimatedResponseCount > 0) {
+    lines.push(`Estimated:   ${stats.estimatedResponseCount} response(s) used token estimates when provider usage was unavailable`);
+  }
+  if (stats.firstRequestAt) lines.push(`First req:   ${stats.firstRequestAt}`);
+  if (stats.lastResponseAt) lines.push(`Last resp:   ${stats.lastResponseAt}`);
   return lines.join('\n');
 }

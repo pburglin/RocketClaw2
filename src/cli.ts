@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { computeSummary } from './telemetry/store.js';
-import { formatTelemetrySummary, formatPerfReport, formatDeprecationReport } from './telemetry/formatters.js';
+import { computeSummary, getLlmPerformanceStats } from './telemetry/store.js';
+import { formatTelemetrySummary, formatPerfReport, formatDeprecationReport, formatLlmPerformanceStats } from './telemetry/formatters.js';
 import { getQueueStats, clearDoneItems } from './queue/store.js';
 import { processQueue as runQueue } from './queue/runtime.js';
 import { QueueOrchestrator } from './queue/orchestrator.js';
@@ -1731,6 +1731,22 @@ program
     });
     const status = buildLlmStatus(config, hasOverrides);
     console.log(options.json ? JSON.stringify(status, null, 2) : formatLlmStatus(status));
+  });
+
+program
+  .command('llm-stats')
+  .description('Show LLM performance stats for a period, channel, or specific session')
+  .option('--period <days>', 'lookback period in days', '7')
+  .option('--session-id <id>', 'filter to a specific session id')
+  .option('--channel <name>', 'filter to a specific channel')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const stats = await getLlmPerformanceStats({
+      periodStart: new Date(Date.now() - Number(options.period) * 86400 * 1000).toISOString(),
+      sessionId: options.sessionId,
+      channel: options.channel,
+    });
+    console.log(options.json ? JSON.stringify(stats, null, 2) : formatLlmPerformanceStats(stats));
   });
 
 program

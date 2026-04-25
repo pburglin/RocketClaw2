@@ -25,6 +25,7 @@ export type RunLlmQueryOptions = {
   retryCount?: number;
   stream?: boolean;
   onToken?: (chunk: string) => void;
+  sessionId?: string;
 };
 
 const MAX_RETRY_BACKOFF_MS = 5 * 60 * 1000;
@@ -123,6 +124,48 @@ function getRetryBackoffMs(attempt: number): number {
   return Math.min(MAX_RETRY_BACKOFF_MS, 1000 * (2 ** Math.max(0, attempt - 1)));
 }
 
+function estimateTokens(text: string): number {
+  const normalized = text.trim();
+  if (!normalized) return 0;
+  return Math.max(1, Math.ceil(normalized.length / 4));
+}
+
+function extractUsage(payload: unknown): { promptTokens?: number; completionTokens?: number; totalTokens?: number } {
+  if (!payload || typeof payload !== 'object') return {};
+  const record = payload as Record<string, unknown>;
+  const usage = record.usage;
+  if (!usage || typeof usage !== 'object' || Array.isArray(usage)) return {};
+  const usageRecord = usage as Record<string, unknown>;
+  const promptTokens = typeof usageRecord.prompt_tokens === 'number'
+    ? usageRecord.prompt_tokens
+    : typeof usageRecord.input_tokens === 'number'
+      ? usageRecord.input_tokens
+      : undefined;
+  const completionTokens = typeof usageRecord.completion_tokens === 'number'
+    ? usageRecord.completion_tokens
+    : typeof usageRecord.output_tokens === 'number'
+      ? usageRecord.output_tokens
+      : undefined;
+  const totalTokens = typeof usageRecord.total_tokens === 'number'
+    ? usageRecord.total_tokens
+    : (promptTokens ?? 0) + (completionTokens ?? 0) || undefined;
+  return { promptTokens, completionTokens, totalTokens };
+}
+
+function buildLlmMetrics(prompt: string, content: string, durationMs: number, payload: unknown): Record<string, unknown> {
+  const usage = extractUsage(payload);
+  const promptTokens = usage.promptTokens ?? estimateTokens(prompt);
+  const completionTokens = usage.completionTokens ?? estimateTokens(content);
+  const totalTokens = usage.totalTokens ?? (promptTokens + completionTokens);
+  return {
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    estimatedTokens: usage.promptTokens === undefined || usage.completionTokens === undefined,
+    tokensPerSecond: durationMs > 0 ? completionTokens / (durationMs / 1000) : 0,
+  };
+}
+
 function extractStreamDelta(payload: unknown): string {
   if (!payload || typeof payload !== 'object') return '';
   const record = payload as Record<string, unknown>;
@@ -218,6 +261,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
     ? { channel: channelOrOptions }
     : channelOrOptions;
   const channel = options.channel ?? 'cli';
+  const sessionId = options.sessionId;
   const maxRetries = options.retryCount ?? config.llm.retryCount ?? 3;
   const endpoint = `${config.llm.baseUrl.replace(/\/$/, '')}/chat/completions`;
   const shouldStream = Boolean(options.stream);
@@ -229,7 +273,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
   } satisfies Record<string, unknown>;
 
   for (let attempt = 1; ; attempt += 1) {
-    recordLlmRequest(channel);
+    recordLlmRequest(channel, sessionId);
     options.onTrace?.({
       phase: 'request',
       channel,
@@ -285,7 +329,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
         await sleep(backoffMs);
         continue;
       }
-      recordLlmError(channel, err.message);
+      recordLlmError(channel, err.message, sessionId, { responseStatus: response.status });
       throw err;
     }
 
@@ -298,7 +342,9 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
           return { content: extractCompletionText(payload).trim(), responseBody: payload };
         })();
 
-    recordLlmResponse(channel, Date.now() - start);
+    const durationMs = Date.now() - start;
+    const metrics = buildLlmMetrics(prompt, content, durationMs, responseBody);
+    recordLlmResponse(channel, durationMs, sessionId, metrics);
 
     const payloadError = explainPayloadError(responseBody);
     if (payloadError) {
@@ -336,7 +382,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
         await sleep(backoffMs);
         continue;
       }
-      recordLlmError(channel, err.message);
+      recordLlmError(channel, err.message, sessionId, { responseStatus: response.status });
       throw err;
     }
 
@@ -356,7 +402,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
     if (!content) {
       const preview = JSON.stringify(responseBody).slice(0, 400);
       const err = new Error(`LLM query returned no message content. Response preview: ${preview}`);
-      recordLlmError(channel, err.message);
+      recordLlmError(channel, err.message, sessionId, { responseStatus: response.status, responseBody });
       throw err;
     }
 

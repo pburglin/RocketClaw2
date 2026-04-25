@@ -1276,6 +1276,7 @@ program
   .requiredOption('--task <text>', 'task description')
   .requiredOption('--validate <cmd>', 'validation command that would be used during execution')
   .option('--request-approval', 'also create a persistent approval request for this plan')
+  .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
@@ -1286,17 +1287,26 @@ program
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
-    const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', { timestamps: Boolean(globalOpts.timestamps) });
+    const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
+    const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', renderOptions);
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
     let result;
     try {
       result = await buildHarnessPlan(config, {
         workspace: options.workspace,
         task: options.task,
         validateCommand: options.validate,
-      }, undefined, progressRenderer ? (event) => {
+      }, verboseRenderer ? (event) => {
+        progressRenderer?.flush();
+        verboseRenderer.render(event);
+      } : undefined, progressRenderer ? (event) => {
         progressRenderer.render(event);
+      } : undefined, verboseRenderer ? (chunk, label) => {
+        progressRenderer?.flush();
+        verboseRenderer.streamChunk(chunk, label);
       } : undefined);
     } finally {
+      verboseRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
     const artifact = await saveHarnessRun(result);
@@ -1331,6 +1341,7 @@ program
   .requiredOption('--id <id>', 'approved harness plan id')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds (default: no timeout)')
+  .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
@@ -1341,10 +1352,30 @@ program
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
-    const result = await runCodingHarnessFromPlan(config, options.id, {
-      maxIterations: Number(options.maxIterations),
-      validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
-    });
+    const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
+    const progressRenderer = options.json ? undefined : createProgressRenderer('[plan-run]', renderOptions);
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    let result;
+    try {
+      result = await runCodingHarnessFromPlan(config, options.id, {
+        maxIterations: Number(options.maxIterations),
+        validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
+        onProgress: progressRenderer ? (event) => {
+          progressRenderer.render(event);
+        } : undefined,
+        onLlmTrace: verboseRenderer ? (event) => {
+          progressRenderer?.flush();
+          verboseRenderer.render(event);
+        } : undefined,
+        onLlmToken: verboseRenderer ? (chunk, label) => {
+          progressRenderer?.flush();
+          verboseRenderer.streamChunk(chunk, label);
+        } : undefined,
+      });
+    } finally {
+      verboseRenderer?.finishStream?.();
+      progressRenderer?.flush();
+    }
     console.log(options.json ? JSON.stringify(result, null, 2) : formatCodingHarnessResult(result));
     if (!result.ok) process.exitCode = 1;
   });

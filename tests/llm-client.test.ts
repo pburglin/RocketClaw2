@@ -117,4 +117,30 @@ describe('runLlmQuery', () => {
     await expect(runLlmQuery(config, 'hello')).rejects.toThrow('LLM query failed (502)');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('can stream incremental response tokens when requested', async () => {
+    const streamedChunks: string[] = [];
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Hello "}}]}\n\n'));
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"world"}}]}\n\n'));
+        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+        controller.close();
+      },
+    });
+
+    vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue(new Response(body, {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+    }));
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const text = await runLlmQuery(config, 'hello', {
+      stream: true,
+      onToken: (chunk) => streamedChunks.push(chunk),
+    });
+
+    expect(text).toBe('Hello world');
+    expect(streamedChunks).toEqual(['Hello ', 'world']);
+  });
 });

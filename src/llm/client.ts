@@ -23,6 +23,8 @@ export type RunLlmQueryOptions = {
   label?: string;
   onTrace?: (event: LlmTraceEvent) => void;
   retryCount?: number;
+  stream?: boolean;
+  onToken?: (chunk: string) => void;
 };
 
 const MAX_RETRY_BACKOFF_MS = 5 * 60 * 1000;
@@ -121,6 +123,92 @@ function getRetryBackoffMs(attempt: number): number {
   return Math.min(MAX_RETRY_BACKOFF_MS, 1000 * (2 ** Math.max(0, attempt - 1)));
 }
 
+function extractStreamDelta(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const record = payload as Record<string, unknown>;
+
+  const direct = extractText(record.output_text);
+  if (direct) return direct;
+
+  const choices = record.choices;
+  if (Array.isArray(choices) && choices.length > 0) {
+    const first = choices[0] as Record<string, unknown>;
+    const deltaText = extractText(first.delta) || extractText(first.message) || extractText(first.text);
+    if (deltaText) return deltaText;
+  }
+
+  return extractText(record.delta) || extractText(record.output) || extractText(record.message);
+}
+
+async function readStreamedCompletion(
+  response: Response,
+  options: RunLlmQueryOptions,
+): Promise<{ content: string; responseBody: unknown }> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    const payload = await response.json();
+    return { content: extractCompletionText(payload).trim(), responseBody: payload };
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let content = '';
+  let eventCount = 0;
+  let lastPayload: unknown = null;
+
+  const handleEvent = (rawEvent: string) => {
+    const data = rawEvent
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n')
+      .trim();
+
+    if (!data || data === '[DONE]') return;
+
+    const payload = JSON.parse(data);
+    lastPayload = payload;
+    eventCount += 1;
+
+    const payloadError = explainPayloadError(payload);
+    if (payloadError) {
+      throw new Error(payloadError);
+    }
+
+    const delta = extractStreamDelta(payload);
+    if (delta) {
+      content += delta;
+      options.onToken?.(delta);
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+
+    let boundaryIndex = buffer.search(/\r?\n\r?\n/);
+    while (boundaryIndex !== -1) {
+      const rawEvent = buffer.slice(0, boundaryIndex);
+      const separatorMatch = buffer.slice(boundaryIndex).match(/^\r?\n\r?\n/);
+      const separatorLength = separatorMatch ? separatorMatch[0].length : 2;
+      buffer = buffer.slice(boundaryIndex + separatorLength);
+      handleEvent(rawEvent);
+      boundaryIndex = buffer.search(/\r?\n\r?\n/);
+    }
+
+    if (done) break;
+  }
+
+  if (buffer.trim()) {
+    handleEvent(buffer);
+  }
+
+  return {
+    content: content.trim(),
+    responseBody: { streamed: true, eventCount, lastPayload },
+  };
+}
+
 export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOptions: string | RunLlmQueryOptions = 'cli'): Promise<string> {
   if (!config.llm.apiKey) {
     throw new Error('No LLM API key configured. Set llm.apiKey in config.yaml or pass --llm-api-key for this session.');
@@ -132,10 +220,12 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
   const channel = options.channel ?? 'cli';
   const maxRetries = options.retryCount ?? config.llm.retryCount ?? 3;
   const endpoint = `${config.llm.baseUrl.replace(/\/$/, '')}/chat/completions`;
+  const shouldStream = Boolean(options.stream);
   const requestBody = {
     model: config.llm.model,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.2,
+    ...(shouldStream ? { stream: true } : {}),
   } satisfies Record<string, unknown>;
 
   for (let attempt = 1; ; attempt += 1) {
@@ -199,12 +289,20 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
       throw err;
     }
 
+    const contentType = response.headers?.get?.('content-type') ?? '';
+    const streamedResponse = shouldStream && contentType.includes('text/event-stream');
+    const { content, responseBody } = streamedResponse
+      ? await readStreamedCompletion(response, options)
+      : await (async () => {
+          const payload = await response.json();
+          return { content: extractCompletionText(payload).trim(), responseBody: payload };
+        })();
+
     recordLlmResponse(channel, Date.now() - start);
 
-    const payload = await response.json();
-    const payloadError = explainPayloadError(payload);
+    const payloadError = explainPayloadError(responseBody);
     if (payloadError) {
-      const payloadErrorInfo = getPayloadErrorInfo(payload);
+      const payloadErrorInfo = getPayloadErrorInfo(responseBody);
       const err = new Error(payloadError);
       const shouldRetry = isRetriablePayloadCode(payloadErrorInfo?.code) && attempt <= maxRetries;
       options.onTrace?.({
@@ -215,7 +313,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
         label: options.label,
         requestBody,
         responseStatus: response.status,
-        responseBody: payload,
+        responseBody,
         error: err.message,
         attempt,
         maxRetries,
@@ -230,7 +328,7 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
           label: options.label,
           error: err.message,
           responseStatus: response.status,
-          responseBody: payload,
+          responseBody,
           attempt,
           maxRetries,
           backoffMs,
@@ -242,7 +340,6 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
       throw err;
     }
 
-    const content = extractCompletionText(payload).trim();
     options.onTrace?.({
       phase: 'response',
       channel,
@@ -251,13 +348,13 @@ export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOp
       label: options.label,
       requestBody,
       responseStatus: response.status,
-      responseBody: payload,
+      responseBody,
       extractedText: content,
       attempt,
       maxRetries,
     });
     if (!content) {
-      const preview = JSON.stringify(payload).slice(0, 400);
+      const preview = JSON.stringify(responseBody).slice(0, 400);
       const err = new Error(`LLM query returned no message content. Response preview: ${preview}`);
       recordLlmError(channel, err.message);
       throw err;

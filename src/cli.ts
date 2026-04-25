@@ -429,6 +429,7 @@ const program = new Command();
 
 program
   .option('--timestamps', 'prefix human-readable CLI log lines with a timestamp')
+  .option('--no-stream', 'disable streamed LLM output for CLI commands that support it')
   .option('--llm-base-url <url>', 'override LLM base URL for this CLI session only')
   .option('--llm-api-key <key>', 'override LLM API key for this CLI session only')
   .option('--llm-model <model>', 'override LLM model for this CLI session only')
@@ -884,7 +885,7 @@ program
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
-    await runChatSession({ title: options.title, sessionId: options.sessionId, config });
+    await runChatSession({ title: options.title, sessionId: options.sessionId, config, stream: Boolean(globalOpts.stream) });
   });
 
 program
@@ -1769,8 +1770,22 @@ program
     });
     try {
       const verboseRenderer = options.verbose ? createVerboseLlmRenderer({ timestamps: Boolean(globalOpts.timestamps) }) : undefined;
-      const response = await runLlmQuery(config, options.prompt, verboseRenderer ? { channel: 'cli', label: 'llm-query', onTrace: (event) => verboseRenderer.render(event) } : 'cli');
-      console.log(response);
+      let streamed = false;
+      const response = await runLlmQuery(config, options.prompt, {
+        channel: 'cli',
+        label: 'llm-query',
+        onTrace: verboseRenderer ? (event) => verboseRenderer.render(event) : undefined,
+        stream: Boolean(globalOpts.stream),
+        onToken: globalOpts.stream ? ((chunk) => {
+          streamed = true;
+          process.stdout.write(chunk);
+        }) : undefined,
+      });
+      if (streamed) {
+        process.stdout.write('\n');
+      } else {
+        console.log(response);
+      }
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;

@@ -263,6 +263,7 @@ Imported skill listings now show update-related metadata such as last action and
 
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
 - `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "custom-model" llm-query --prompt "Say hello"`
+- `rocketclaw2 --no-stream --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
 
 
 LLM query errors now explain likely causes such as wrong API key, wrong provider URL, or model mismatch, and suggest an explicit retry command.
@@ -547,6 +548,8 @@ When an inbound WhatsApp message matches a supported dispatcher command, RocketC
 `harness-run` now emits concise progress points during each iteration so operators can see live execution progress instead of waiting only for the final report.
 
 Long LLM requests now also emit periodic `AI is thinking... (<elapsed>s elapsed, press Ctrl+C to cancel)` updates, which helps slow provider/model combinations feel less frozen.
+
+`llm-query` and interactive `chat` now stream model text by default when the provider supports streaming, so you can see the answer arrive gradually instead of waiting for the full body. Use global `--no-stream` when you want the older buffered behavior.
 
 When you want deeper troubleshooting, add `--verbose` to `harness-run`, `auto-code`, or `llm-query` to print formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you also want every human-readable log entry prefixed with time.
 

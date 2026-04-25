@@ -21,7 +21,12 @@ function buildFallbackReply(userText: string, recalled: Awaited<ReturnType<typeo
   return [`I heard: ${userText}`, 'Relevant memory:', ...top.map((item) => `- ${item}`)].join('\n');
 }
 
-async function buildAssistantReply(config: AppConfig, userText: string, recalled: Awaited<ReturnType<typeof recallMemory>>): Promise<string> {
+async function buildAssistantReply(
+  config: AppConfig,
+  userText: string,
+  recalled: Awaited<ReturnType<typeof recallMemory>>,
+  llmOptions?: { stream?: boolean; onToken?: (chunk: string) => void },
+): Promise<string> {
   if (!config.llm.apiKey) {
     return buildFallbackReply(userText, recalled);
   }
@@ -45,10 +50,15 @@ async function buildAssistantReply(config: AppConfig, userText: string, recalled
     userText,
   ].join('\n');
 
-  return runLlmQuery(config, prompt);
+  return runLlmQuery(config, prompt, {
+    channel: 'cli',
+    label: 'chat reply',
+    stream: llmOptions?.stream,
+    onToken: llmOptions?.onToken,
+  });
 }
 
-export async function runChatSession(options: { title?: string; sessionId?: string; config: AppConfig }): Promise<void> {
+export async function runChatSession(options: { title?: string; sessionId?: string; config: AppConfig; stream?: boolean }): Promise<void> {
   const session = options.sessionId
     ? await loadSession(options.sessionId)
     : await createSession(options.title ?? 'Interactive Session');
@@ -111,9 +121,25 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
 
       await appendMessage(session.id, 'user', line);
       const recalled = await recallMemory(line);
-      const reply = await buildAssistantReply(options.config, line, recalled);
+      let streamed = false;
+      const reply = await buildAssistantReply(options.config, line, recalled, options.config.llm.apiKey
+        ? {
+            stream: options.stream,
+            onToken: options.stream ? ((chunk) => {
+              if (!streamed) {
+                process.stdout.write(pc.green('assistant> '));
+                streamed = true;
+              }
+              process.stdout.write(chunk);
+            }) : undefined,
+          }
+        : undefined);
       await appendMessage(session.id, 'assistant', reply);
-      console.log(pc.green('assistant> ') + reply);
+      if (streamed) {
+        process.stdout.write('\n');
+      } else {
+        console.log(pc.green('assistant> ') + reply);
+      }
     }
   } finally {
     rl.close();

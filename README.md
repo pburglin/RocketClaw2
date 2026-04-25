@@ -592,6 +592,7 @@ RocketClaw2 now includes a real LLM query command.
 
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
 - `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "custom-model" llm-query --prompt "Say hello"`
+- `rocketclaw2 --no-stream --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
 
 
 LLM query failures now produce friendlier diagnostics for common provider/auth/config mistakes instead of only raw error text.
@@ -791,6 +792,8 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 ### Interactive harness progress
 
 `harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. Long LLM requests also emit periodic `AI is thinking... (<elapsed>s elapsed, press Ctrl+C to cancel)` updates so the CLI feels alive during slower provider/model combinations.
+
+`llm-query` and interactive `chat` now stream model text by default when the provider supports streaming, so the CLI feels live instead of waiting for the full body. Use global `--no-stream` when you want the older buffered behavior.
 
 For deeper troubleshooting, `harness-run`, `auto-code`, and `llm-query` now support `--verbose`, which prints formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you want those human-readable log entries time-prefixed too.
 

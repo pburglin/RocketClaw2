@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - harness planning/execution logs now show the same animated LLM wait state, use `AI is thinking...`, support optional `--timestamps`, and color/marker-code success vs error output more clearly
 - verbose LLM inspection now preserves human-readable multiline prompt content instead of collapsing it into escaped `\\n` sequences
 - autonomous-coding timeout recovery steps now favor more actionable override-based LLM checks
+- `llm-query` and interactive `chat` now stream model text by default when supported, with global `--no-stream` to fall back to buffered output
 
 ### Changed
 - default local harness validation timeout is now disabled unless `--validate-timeout-ms` is explicitly provided

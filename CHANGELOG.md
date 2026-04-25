@@ -5,6 +5,28 @@ All notable changes will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-04-24
+
+### Added
+
+#### Autonomous coding + LLM operator ergonomics
+- `world-model` command and related roadmap/workflow documentation
+- clearer LLM troubleshooting flows across README and usage docs
+- better parsing for structured LLM response content and wrapped provider error payloads
+- `auto-code` recovery steps for model/provider/auth/timeout-style failures
+- live autonomous-coding progress updates for planning/execution phases
+- periodic “still waiting on model response … press Ctrl+C to cancel” feedback during slow model calls
+
+### Changed
+- default local harness validation timeout is now disabled unless `--validate-timeout-ms` is explicitly provided
+- governed autonomous-coding guidance now consistently prefers `auto-code --no-auto-approve` before lower-level harness-plan flows
+- recovery commands now include more copy/paste-ready LLM override flags
+
+### Fixed
+- misleading “no message content” failures for structured provider responses
+- wrapped provider timeout payloads such as code `524` now surface as timeout diagnostics instead of generic content failures
+- stricter harness and plan-gated guidance now better matches the preferred operator workflow
+
 ## [0.1.0] - 2026-04-13
 
 ### Added

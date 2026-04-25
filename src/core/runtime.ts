@@ -12,7 +12,7 @@ export async function getRuntimeSummary(root = getDefaultProjectRoot()): Promise
   const config = await loadConfigFromDisk(root);
   return {
     name: 'RocketClaw2',
-    version: '0.1.0',
+    version: '0.2.0',
     status: 'bootstrap-ready',
     recallScoring: config.recallScoring,
   };

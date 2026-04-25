@@ -14,7 +14,7 @@ describe('getRuntimeSummary', { timeout: 15000 }, () => {
   it('returns bootstrap status', async () => {
     await expect(getRuntimeSummary()).resolves.toMatchObject({
       name: 'RocketClaw2',
-      version: '0.1.0',
+      version: '0.2.0',
       status: 'bootstrap-ready',
     });
   });

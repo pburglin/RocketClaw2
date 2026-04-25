@@ -96,6 +96,119 @@ function normalizeCliArgv(argv: string[]): string[] {
   return [...prefix, ...normalized];
 }
 
+function createProgressRenderer(defaultPrefix: string) {
+  let hasActiveInlineLine = false;
+
+  const clearInlineLine = () => {
+    if (!hasActiveInlineLine) return;
+    if (process.stderr.isTTY) {
+      process.stderr.write('\r\x1b[2K');
+    } else {
+      process.stderr.write('\n');
+    }
+    hasActiveInlineLine = false;
+  };
+
+  return {
+    render(event: { stage: string; message: string; iteration?: number }) {
+      const prefix = event.iteration ? `[iter ${event.iteration}]` : defaultPrefix;
+      const line = `${prefix} ${event.message}`;
+      const useInlineUpdate = event.stage === 'llm-waiting' && Boolean(process.stderr.isTTY);
+
+      if (useInlineUpdate) {
+        process.stderr.write(`\r\x1b[2K${line}`);
+        hasActiveInlineLine = true;
+        return;
+      }
+
+      clearInlineLine();
+      process.stderr.write(`${line}\n`);
+    },
+    flush() {
+      if (hasActiveInlineLine) {
+        process.stderr.write('\n');
+        hasActiveInlineLine = false;
+      }
+    },
+  };
+}
+
+const ROCKETCLAW2_BANNER = [
+  '██████╗  ██████╗  ██████╗██╗  ██╗███████╗████████╗ ██████╗██╗      █████╗ ██╗    ██╗██████╗ ',
+  '██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝██╔════╝╚══██╔══╝██╔════╝██║     ██╔══██╗██║    ██║╚════██╗',
+  '██████╔╝██║   ██║██║     █████╔╝ █████╗     ██║   ██║     ██║     ███████║██║ █╗ ██║ █████╔╝',
+  '██╔══██╗██║   ██║██║     ██╔═██╗ ██╔══╝     ██║   ██║     ██║     ██╔══██║██║███╗██║██╔═══╝ ',
+  '██║  ██║╚██████╔╝╚██████╗██║  ██╗███████╗   ██║   ╚██████╗███████╗██║  ██║╚███╔███╔╝███████╗',
+  '╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝    ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚══════╝',
+];
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function supportsBannerColor(): boolean {
+  if (!process.stderr.isTTY) return false;
+  if (process.env.NO_COLOR) return false;
+  if ((process.env.TERM ?? '').toLowerCase() === 'dumb') return false;
+  return true;
+}
+
+function colorize(line: string, colorCode: number): string {
+  return `\x1b[38;5;${colorCode}m${line}\x1b[0m`;
+}
+
+function shouldShowStartupBanner(argv: string[]): boolean {
+  if (!process.stderr.isTTY) return false;
+  if (argv.includes('--json')) return false;
+  if (argv.includes('--help') || argv.includes('-h')) return false;
+  if (argv.includes('--version') || argv.includes('-V')) return false;
+  return true;
+}
+
+function renderStartupBanner(frameOffset = 0): string {
+  const colors = [39, 45, 51, 87, 123, 159];
+  const width = process.stderr.columns ?? 120;
+  const centered = ROCKETCLAW2_BANNER.map((line) => {
+    const pad = Math.max(0, Math.floor((width - line.length) / 2));
+    return `${' '.repeat(pad)}${line}`;
+  });
+
+  const output = centered.map((line, index) => colorize(line, colors[(index + frameOffset) % colors.length])).join('\n');
+  const subtitleText = 'guided autonomy runtime';
+  const subtitle = colorize(subtitleText, colors[(frameOffset + 2) % colors.length]);
+  const subtitlePad = ' '.repeat(Math.max(0, Math.floor((width - subtitleText.length) / 2)));
+  return `${output}\n${subtitlePad}${subtitle}\n\n`;
+}
+
+async function maybeShowStartupBanner(argv: string[]) {
+  if (!shouldShowStartupBanner(argv)) return;
+  if (!supportsBannerColor()) {
+    process.stderr.write('RocketClaw2\n\n');
+    return;
+  }
+
+  const shouldAnimate = !process.env.CI && process.env.RC2_NO_ANIMATION !== '1';
+  if (!shouldAnimate) {
+    process.stderr.write(renderStartupBanner());
+    return;
+  }
+
+  const frameCount = 3;
+  const bannerHeight = ROCKETCLAW2_BANNER.length + 2;
+  process.stderr.write('\x1b[?25l');
+  try {
+    for (let frame = 0; frame < frameCount; frame += 1) {
+      if (frame > 0) {
+        process.stderr.write(`\x1b[${bannerHeight}F`);
+      }
+      process.stderr.write(renderStartupBanner(frame));
+      await sleep(70);
+    }
+  } finally {
+    process.stderr.write('\x1b[?25h');
+  }
+}
+
 const program = new Command();
 
 program
@@ -106,7 +219,7 @@ program
 program
   .name('rocketclaw2')
   .description('RocketClaw2, a Node.js and TypeScript reimplementation of RocketClaw')
-  .version('0.1.0');
+  .version('0.2.0');
 
 
 program
@@ -912,16 +1025,21 @@ program
     if (!workspace || !task || !validateCommand) {
       throw new Error('harness-run requires either --id <plan-id> or all of --workspace, --task, and --validate');
     }
-    const result = await runCodingHarness(config, {
-      workspace,
-      task,
-      validateCommand,
-      maxIterations: Number(options.maxIterations),
-      validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
-    }, options.json ? undefined : (event) => {
-      const prefix = event.iteration ? `[iter ${event.iteration}]` : '[progress]';
-      console.error(`${prefix} ${event.message}`);
-    });
+    const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]');
+    let result;
+    try {
+      result = await runCodingHarness(config, {
+        workspace,
+        task,
+        validateCommand,
+        maxIterations: Number(options.maxIterations),
+        validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
+      }, progressRenderer ? (event) => {
+        progressRenderer.render(event);
+      } : undefined);
+    } finally {
+      progressRenderer?.flush();
+    }
     const artifact = await saveHarnessRun(result);
     const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path };
     console.log(options.json ? JSON.stringify(enriched, null, 2) : formatCodingHarnessResult(enriched));
@@ -1460,18 +1578,23 @@ program
       llmModel: globalOpts.llmModel,
     });
     const autoApprove = !options.noAutoApprove;
-    const result = await runAutoCode(
-      config,
-      options.workspace,
-      options.task,
-      options.validate,
-      Number(options.maxIterations),
-      autoApprove,
-      options.json ? undefined : (event) => {
-        const prefix = event.iteration ? `[iter ${event.iteration}]` : '[auto-code]';
-        console.error(`${prefix} ${event.message}`);
-      },
-    );
+    const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]');
+    let result;
+    try {
+      result = await runAutoCode(
+        config,
+        options.workspace,
+        options.task,
+        options.validate,
+        Number(options.maxIterations),
+        autoApprove,
+        progressRenderer ? (event) => {
+          progressRenderer.render(event);
+        } : undefined,
+      );
+    } finally {
+      progressRenderer?.flush();
+    }
     if (options.json) {
       console.log(JSON.stringify(result, null, 2));
     } else {
@@ -1502,4 +1625,6 @@ program
     }
   });
 
-program.parse(normalizeCliArgv(process.argv));
+const normalizedArgv = normalizeCliArgv(process.argv);
+await maybeShowStartupBanner(normalizedArgv);
+await program.parseAsync(normalizedArgv);

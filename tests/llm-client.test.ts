@@ -56,5 +56,6 @@ describe('runLlmQuery', () => {
 
     const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
     await expect(runLlmQuery(config, 'hello')).rejects.toThrow('LLM provider timed out');
+    await expect(runLlmQuery(config, 'hello')).rejects.toThrow('--llm-api-key "$API_KEY"');
   });
 });

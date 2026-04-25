@@ -61,7 +61,7 @@ function explainPayloadError(payload: unknown): string | null {
       message,
       'This usually means the upstream provider/model did not finish in time.',
       'Recommended next steps:',
-      '- verify the same base URL/model with `rocketclaw2 llm-query --prompt "Reply with exactly: LLM_OK"`',
+      '- verify the same base URL/model with `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-query --prompt "Reply with exactly: LLM_OK"`',
       '- retry with a faster/smaller known-good model such as `gpt-4o-mini`',
       '- if this is a gateway/provider shim, check its upstream timeout limits',
     ].join('\n');

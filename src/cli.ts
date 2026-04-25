@@ -100,6 +100,15 @@ function formatJsonBlock(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
+function parseOptionalNonNegativeInt(value: unknown, flagName: string): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${flagName} must be a non-negative integer`);
+  }
+  return parsed;
+}
+
 function createVerboseLlmRenderer() {
   const colorEnabled = Boolean(process.stderr.isTTY) && !process.env.NO_COLOR && (process.env.TERM ?? '').toLowerCase() !== 'dumb';
   const color = (code: number, text: string) => colorEnabled ? `\x1b[${code}m${text}\x1b[0m` : text;
@@ -129,6 +138,17 @@ function createVerboseLlmRenderer() {
           block('Extracted text', event.extractedText && event.extractedText.trim() ? event.extractedText : dim('(empty)')),
         ];
         process.stderr.write(`\n${header(`━━ LLM RESPONSE${context} ━━`)}\n${sections.join('\n')}\n`);
+        return;
+      }
+
+      if (event.phase === 'retry') {
+        const sections = [
+          `${label('HTTP status:')} ${String(event.responseStatus ?? 'n/a')}`,
+          `${label('Attempt:')} ${String(event.attempt ?? 'n/a')} of ${String((event.maxRetries ?? 0) + 1)}`,
+          `${label('Retrying in:')} ${String(event.backoffMs ?? 0)} ms`,
+          `${label('Reason:')} ${event.error ?? 'Retriable server-side LLM failure'}`,
+        ];
+        process.stderr.write(`\n${header(`━━ LLM RETRY${context} ━━`)}\n${sections.join('\n')}\n`);
         return;
       }
 
@@ -310,7 +330,8 @@ const program = new Command();
 program
   .option('--llm-base-url <url>', 'override LLM base URL for this CLI session only')
   .option('--llm-api-key <key>', 'override LLM API key for this CLI session only')
-  .option('--llm-model <model>', 'override LLM model for this CLI session only');
+  .option('--llm-model <model>', 'override LLM model for this CLI session only')
+  .option('--llm-retry-count <n>', 'override LLM server-error retry count for this CLI session only');
 
 program
   .name('rocketclaw2')
@@ -626,6 +647,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const summary = buildSystemSummary(config);
     console.log(options.json ? JSON.stringify(summary, null, 2) : formatSystemSummary(summary));
@@ -660,6 +682,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     await runChatSession({ title: options.title, sessionId: options.sessionId, config });
   });
@@ -676,6 +699,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     
     const tui = createRocketClawTUI(config);
@@ -1029,6 +1053,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const result = await buildHarnessPlan(config, {
       workspace: options.workspace,
@@ -1075,6 +1100,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const result = await runCodingHarnessFromPlan(config, options.id, {
       maxIterations: Number(options.maxIterations),
@@ -1106,6 +1132,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const resolved = options.id
       ? await loadHarnessRunnableInput(options.id)
@@ -1159,6 +1186,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const result = await harnessResume(config, options.id);
     const artifact = await saveHarnessRun(result);
@@ -1181,6 +1209,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const result = await runTaskLoop(config, {
       task: options.task,
@@ -1483,11 +1512,12 @@ program
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
     const globalOpts = (command as any).parent?.opts?.() ?? {};
-    const hasOverrides = Boolean(globalOpts.llmBaseUrl || globalOpts.llmApiKey || globalOpts.llmModel);
+    const hasOverrides = Boolean(globalOpts.llmBaseUrl || globalOpts.llmApiKey || globalOpts.llmModel || globalOpts.llmRetryCount !== undefined);
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const status = buildLlmStatus(config, hasOverrides);
     console.log(options.json ? JSON.stringify(status, null, 2) : formatLlmStatus(status));
@@ -1503,6 +1533,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     try {
       const result = await runLlmTest(config);
@@ -1525,6 +1556,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     try {
       const verboseRenderer = options.verbose ? createVerboseLlmRenderer() : undefined;
@@ -1559,6 +1591,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const { createHeartbeatVerifier } = await import('./heartbeat/index.js');
     const verifier = createHeartbeatVerifier(config);
@@ -1680,6 +1713,7 @@ program
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
+      llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
     });
     const autoApprove = !options.noAutoApprove;
     const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]');

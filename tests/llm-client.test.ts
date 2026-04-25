@@ -54,7 +54,7 @@ describe('runLlmQuery', () => {
       json: async () => ({ error: { message: 'Provider returned error', code: 524 } }),
     } as Response);
 
-    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model', retryCount: 0 } });
     await expect(runLlmQuery(config, 'hello')).rejects.toThrow('LLM provider timed out');
     await expect(runLlmQuery(config, 'hello')).rejects.toThrow('--llm-api-key "$API_KEY"');
   });
@@ -74,5 +74,47 @@ describe('runLlmQuery', () => {
     expect(traces).toHaveLength(2);
     expect(traces[0]).toMatchObject({ phase: 'request', label: 'unit test', model: 'demo-model' });
     expect(traces[1]).toMatchObject({ phase: 'response', label: 'unit test', responseStatus: 200, extractedText: 'hi there' });
+  });
+
+  it('retries server-side payload errors before succeeding', async () => {
+    const traces: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.spyOn(globalThis, 'fetch' as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ error: { message: 'Provider returned error', code: 502 } }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: 'recovered response' } }] }),
+      } as Response);
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: (...args: any[]) => void) => {
+      fn();
+      return 0 as any;
+    }) as any);
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model', retryCount: 3 } });
+    const text = await runLlmQuery(config, 'hello', { channel: 'cli', label: 'retry test', onTrace: (event) => traces.push(event as unknown as Record<string, unknown>) });
+
+    expect(text).toBe('recovered response');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(traces.some((event) => event.phase === 'retry' && event.backoffMs === 1000)).toBe(true);
+  });
+
+  it('does not retry server-side errors when retryCount is zero', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: async () => 'bad gateway',
+    } as Response);
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: (...args: any[]) => void) => {
+      fn();
+      return 0 as any;
+    }) as any);
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model', retryCount: 0 } });
+    await expect(runLlmQuery(config, 'hello')).rejects.toThrow('LLM query failed (502)');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

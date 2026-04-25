@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { loadConfig } from '../src/config/load-config.js';
+import { buildHarnessPlan, runCodingHarness } from '../src/harness/coding-harness.js';
 
 // Test the extractCodeBlocks logic directly without needing an LLM API key
 describe('extractCodeBlocks (harness integration)', () => {
@@ -81,6 +83,81 @@ describe('extractCodeBlocks (harness integration)', () => {
 
     const srcFiles = await fs.readdir(path.join(workspace, 'src'));
     expect(srcFiles).toContain('index.js');
+
+    await fs.rm(tmp, { recursive: true, force: true });
+  });
+});
+
+describe('workspace prompt context', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('buildHarnessPlan sends a file inventory instead of full file contents', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'harness-plan-'));
+    const workspace = path.join(tmp, 'project');
+    await fs.mkdir(path.join(workspace, 'src'), { recursive: true });
+    await fs.writeFile(path.join(workspace, 'src', 'index.ts'), 'export const secret = 42;\n', 'utf8');
+    await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"demo"}\n', 'utf8');
+
+    let requestPrompt = '';
+    vi.spyOn(globalThis, 'fetch' as any).mockImplementation(async (_url: string, init: { body?: string }) => {
+      requestPrompt = JSON.parse(String(init.body)).messages[0].content;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: 'Summary\n\nFiles to touch\n- src/index.ts\n\nValidation\n- npm test\n\nRisks\n- none' } }] }),
+      } as Response;
+    });
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const plan = await buildHarnessPlan(config, { workspace, task: 'Update code', validateCommand: 'npm test' });
+
+    expect(plan.ok).toBe(true);
+    expect(requestPrompt).toContain('Existing workspace files:\npackage.json\nsrc/index.ts');
+    expect(requestPrompt).not.toContain('export const secret = 42;');
+
+    await fs.rm(tmp, { recursive: true, force: true });
+  });
+
+  it('runCodingHarness lets the model request specific file contents', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'harness-request-files-'));
+    const workspace = path.join(tmp, 'project');
+    await fs.mkdir(path.join(workspace, 'src'), { recursive: true });
+    await fs.writeFile(path.join(workspace, 'src', 'index.ts'), 'export const importantValue = 42;\n', 'utf8');
+    await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"demo","type":"module"}\n', 'utf8');
+
+    const prompts: string[] = [];
+    vi.spyOn(globalThis, 'fetch' as any).mockImplementation(async (_url: string, init: { body?: string }) => {
+      const prompt = JSON.parse(String(init.body)).messages[0].content;
+      prompts.push(prompt);
+      if (prompts.length === 1) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ choices: [{ message: { content: '```REQUEST_FILES\nsrc/index.ts\npackage.json\n```' } }] }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: '```src/index.ts\nexport const importantValue = 43;\n```' } }] }),
+      } as Response;
+    });
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const result = await runCodingHarness(config, {
+      workspace,
+      task: 'Bump the value',
+      validateCommand: 'true',
+      maxIterations: 1,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(prompts[0]).toContain('Existing workspace files:\npackage.json\nsrc/index.ts');
+    expect(prompts[0]).not.toContain('importantValue = 42');
+    expect(prompts[1]).toContain('Requested file contents:');
+    expect(prompts[1]).toContain('--- FILE: src/index.ts ---\nexport const importantValue = 42;');
 
     await fs.rm(tmp, { recursive: true, force: true });
   });

@@ -61,6 +61,13 @@ async function applyEdits(workspace: string, edits: FileEdit[]): Promise<{ creat
   return { created, modified };
 }
 
+const MAX_REQUESTED_FILES = 8;
+const MAX_REQUESTED_FILE_BYTES = 24_000;
+
+function shouldIncludeWorkspacePath(relativePath: string): boolean {
+  return !relativePath.includes('node_modules') && !relativePath.includes('.git');
+}
+
 async function scanWorkspace(workspace: string): Promise<string> {
   try {
     const files = await fs.readdir(workspace, { recursive: true });
@@ -69,15 +76,49 @@ async function scanWorkspace(workspace: string): Promise<string> {
       const relativePath = String(f);
       const filePath = path.join(workspace, relativePath);
       const stats = await fs.stat(filePath);
-      if (stats.isFile() && !relativePath.includes('node_modules') && !relativePath.includes('.git')) {
-        const text = await fs.readFile(filePath, 'utf8');
-        context.push(`--- FILE: ${relativePath} ---\n${text}`);
+      if (stats.isFile() && shouldIncludeWorkspacePath(relativePath)) {
+        context.push(relativePath);
       }
     }
-    return context.join('\n\n');
+    context.sort((a, b) => a.localeCompare(b));
+    return context.length > 0 ? context.join('\n') : 'Workspace is empty.';
   } catch {
     return 'Workspace is empty or inaccessible.';
   }
+}
+
+function extractRequestedFiles(text: string): string[] {
+  const requestBlock = text.match(/```REQUEST_FILES\n([\s\S]*?)```/i);
+  if (!requestBlock) return [];
+  return requestBlock[1]
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith('#'))
+    .map((line) => line.replace(/^[-*]\s*/, ''))
+    .map((line) => line.replace(/^`|`$/g, ''))
+    .filter((line) => !path.isAbsolute(line) && !line.includes('..'))
+    .slice(0, MAX_REQUESTED_FILES);
+}
+
+async function readRequestedFiles(workspace: string, requestedFiles: string[]): Promise<string> {
+  const sections: string[] = [];
+  for (const relativePath of requestedFiles) {
+    if (!shouldIncludeWorkspacePath(relativePath)) continue;
+    const filePath = path.join(workspace, relativePath);
+    try {
+      const stats = await fs.stat(filePath);
+      if (!stats.isFile()) continue;
+      const text = await fs.readFile(filePath, 'utf8');
+      const content = text.length > MAX_REQUESTED_FILE_BYTES
+        ? `${text.slice(0, MAX_REQUESTED_FILE_BYTES)}\n...[truncated]`
+        : text;
+      sections.push(`--- FILE: ${relativePath} ---\n${content}`);
+    } catch {
+      sections.push(`--- FILE: ${relativePath} ---\n[unavailable]`);
+    }
+  }
+  return sections.join('\n\n');
 }
 
 async function initWorkspace(workspace: string): Promise<void> {
@@ -159,6 +200,7 @@ export async function buildHarnessPlan(
       'You are planning an autonomous coding harness task.',
       'Do not write code. Produce a concise implementation plan only.',
       'Include these sections exactly: Summary, Files to touch, Validation, Risks.',
+      'The workspace context below is a relative file inventory, not full file contents.',
       `Workspace: ${input.workspace}`,
       workspaceContext ? `Existing workspace files:\n${workspaceContext}` : '',
       `Task: ${input.task}`,
@@ -235,37 +277,59 @@ export async function runCodingHarness(
   for (let i = 1; i <= input.maxIterations; i += 1) {
     onProgress?.({ iteration: i, stage: 'iteration-start', message: `Starting iteration ${i}` });
     const workspaceContext = await scanWorkspace(input.workspace);
-    onProgress?.({ iteration: i, stage: 'llm-request', message: 'Requesting implementation guidance from the model' });
-    const llmStart = Date.now();
-    const llmHeartbeat = setInterval(() => {
-      const elapsedSeconds = Math.round((Date.now() - llmStart) / 1000);
-      onProgress?.({ iteration: i, stage: 'llm-waiting', message: `Still waiting on model response (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
-    }, 15000);
-    try {
-      lastGuidance = await runLlmQuery(
-      config,
-      [
-        'You are an autonomous coding harness. Your job is to implement the requested task.',
-        `Workspace: ${input.workspace}`,
-        workspaceContext ? `Existing workspace files:\n${workspaceContext}` : '',
-        `Task: ${input.task}`,
+    const basePrompt = [
+      'You are an autonomous coding harness. Your job is to implement the requested task.',
+      'The workspace context below is only a relative file inventory, not full file contents.',
+      'If you need file contents before writing code, respond with only a fenced block named REQUEST_FILES listing one relative path per line, for example:',
+      '```REQUEST_FILES',
+      'src/index.ts',
+      'package.json',
+      '```',
+      `Workspace: ${input.workspace}`,
+      workspaceContext ? `Existing workspace files:\n${workspaceContext}` : '',
+      `Task: ${input.task}`,
+      '',
+      'Instructions:',
+      '- Generate all necessary code to complete the task',
+      '- Use fenced code blocks with a filename on the first line: ```filename.ext',
+      '- Only output code blocks — no explanatory text outside the blocks',
+      `- Validation command that will be run: ${input.validateCommand}`,
+      '',
+      `Previous validation stdout: ${lastValidationStdout || 'n/a'}`,
+      `Previous validation stderr: ${lastValidationStderr || 'n/a'}`,
+      `Critic insight from previous failure: ${lastCriticInsight || 'n/a'}`,
+      '',
+      'If you request files, do not emit code in the same response.',
+      'Return only the files to create/update once you have enough context. The validator will run after files are written.',
+    ].filter(Boolean).join('\n');
+
+    const queryModel = async (prompt: string, label: string) => {
+      onProgress?.({ iteration: i, stage: 'llm-request', message: 'Requesting implementation guidance from the model' });
+      const llmStart = Date.now();
+      const llmHeartbeat = setInterval(() => {
+        const elapsedSeconds = Math.round((Date.now() - llmStart) / 1000);
+        onProgress?.({ iteration: i, stage: 'llm-waiting', message: `Still waiting on model response (${elapsedSeconds}s elapsed, press Ctrl+C to cancel)` });
+      }, 15000);
+      try {
+        return await runLlmQuery(config, prompt, { channel: 'cli', label, onTrace: onLlmTrace });
+      } finally {
+        clearInterval(llmHeartbeat);
+      }
+    };
+
+    lastGuidance = await queryModel(basePrompt, `implementation guidance (iteration ${i})`);
+    const requestedFiles = extractRequestedFiles(lastGuidance);
+    if (requestedFiles.length > 0) {
+      onProgress?.({ iteration: i, stage: 'workspace-context-request', message: `Model requested ${requestedFiles.length} file(s): ${requestedFiles.join(', ')}` });
+      const requestedContents = await readRequestedFiles(input.workspace, requestedFiles);
+      lastGuidance = await queryModel([
+        basePrompt,
         '',
-        'Instructions:',
-        '- Generate all necessary code to complete the task',
-        '- Use fenced code blocks with a filename on the first line: ```filename.ext',
-        '- Only output code blocks — no explanatory text outside the blocks',
-        `- Validation command that will be run: ${input.validateCommand}`,
+        'Requested file contents:',
+        requestedContents || '[no requested file contents could be loaded]',
         '',
-        `Previous validation stdout: ${lastValidationStdout || 'n/a'}`,
-        `Previous validation stderr: ${lastValidationStderr || 'n/a'}`,
-        `Critic insight from previous failure: ${lastCriticInsight || 'n/a'}`,
-        '',
-        'Return only the files to create/update. The validator will run after files are written.',
-      ].filter(Boolean).join('\n'),
-      { channel: 'cli', label: `implementation guidance (iteration ${i})`, onTrace: onLlmTrace },
-    );
-    } finally {
-      clearInterval(llmHeartbeat);
+        'Now return only code blocks for the files to create/update. Do not ask for more files unless absolutely necessary.',
+      ].join('\n'), `implementation guidance with requested files (iteration ${i})`);
     }
 
     onProgress?.({ iteration: i, stage: 'llm-response', message: 'Received implementation guidance from the model' });

@@ -405,10 +405,11 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 
 The `harness-run` command implements a full coding loop:
 
-1. Sends the task to the LLM with workspace context
-2. Parses fenced code blocks from the response and writes them to the workspace
-3. Runs the validation command
-4. Repeats on failure until validation passes or max iterations is reached
+1. Sends the task to the LLM together with a compact relative file inventory of the workspace
+2. Lets the model explicitly request a small set of file contents via a fenced `REQUEST_FILES` block when it needs deeper context
+3. Parses fenced code blocks from the response and writes them to the workspace
+4. Runs the validation command
+5. Repeats on failure until validation passes or max iterations is reached
 
 Code block format: ```filename.ext followed by file content, ending with ```
 
@@ -416,9 +417,11 @@ Code block format: ```filename.ext followed by file content, ending with ```
 ## Advanced harness behavior
 
 `harness-run` now:
-- reads existing workspace files before each iteration
-- includes workspace context in the LLM prompt
+- scans the workspace before each iteration
+- sends relative file paths by default instead of dumping full file contents into the initial prompt
+- supports an explicit `REQUEST_FILES` round-trip so the model can pull only the files it actually needs
 - supports partial file edits using `PATCH:filename` fenced blocks
+- supports `--verbose` for formatted raw LLM request/response inspection on stderr
 
 `harness-show --id <run-id> --full` prints the complete saved artifact, including the full last LLM guidance.
 
@@ -521,6 +524,8 @@ When an inbound WhatsApp message matches a supported dispatcher command, RocketC
 `harness-run` now emits concise progress points during each iteration so operators can see live execution progress instead of waiting only for the final report.
 
 Long LLM requests now also emit periodic “still waiting on model response … press Ctrl+C to cancel” updates, which helps slow provider/model combinations feel less frozen.
+
+When you want deeper troubleshooting, add `--verbose` to `harness-run`, `auto-code`, or `llm-query` to print formatted raw LLM requests, responses, and extracted text on stderr.
 
 ## Safe validation commands
 

@@ -787,6 +787,14 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 
 `harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. Long LLM requests also emit periodic “still waiting on model response … press Ctrl+C to cancel” updates so the CLI feels alive during slower provider/model combinations.
 
+For deeper troubleshooting, `harness-run`, `auto-code`, and `llm-query` now support `--verbose`, which prints formatted raw LLM requests, responses, and extracted text on stderr.
+
+
+### Leaner workspace context
+
+Autonomous harness prompts now default to a compact relative file inventory instead of embedding every file's contents into the first LLM request.
+
+If the model needs more context, it can explicitly ask for a small set of files with a fenced `REQUEST_FILES` block, and RocketClaw2 will re-prompt with only those file contents. This significantly reduces token usage and helps slower providers/models respond faster.
 
 ### Safe validation commands
 

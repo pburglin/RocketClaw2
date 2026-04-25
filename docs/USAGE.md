@@ -520,15 +520,16 @@ When an inbound WhatsApp message matches a supported dispatcher command, RocketC
 
 `harness-run` now emits concise progress points during each iteration so operators can see live execution progress instead of waiting only for the final report.
 
+Long LLM requests now also emit periodic “still waiting on model response … press Ctrl+C to cancel” updates, which helps slow provider/model combinations feel less frozen.
 
 ## Safe validation commands
 
 Prefer short-lived validation commands such as `npm test` or `npm run build`.
 
-`harness-run` now applies a default validation timeout and supports:
+RocketClaw2 now defaults to no local validation timeout. If you want a local guardrail for long-running commands like `npm run dev`, pass:
 - `--validate-timeout-ms <n>`
 
-This prevents long-running commands like `npm run dev` from hanging the CLI forever.
+Otherwise let the command run and use Ctrl+C when you intentionally want to stop it.
 
 
 ## WhatsApp session profile

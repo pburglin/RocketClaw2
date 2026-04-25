@@ -785,12 +785,14 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 
 ### Interactive harness progress
 
-`harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. This makes long-running autonomous work inspectable while it is happening, not just at the end.
+`harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. Long LLM requests also emit periodic “still waiting on model response … press Ctrl+C to cancel” updates so the CLI feels alive during slower provider/model combinations.
 
 
 ### Safe validation commands
 
-`harness-run` now applies a timeout to validation commands by default so long-running processes like `npm run dev` do not wedge the CLI forever. Use `--validate-timeout-ms` to tune the limit.
+RocketClaw2 now defaults to no local validation timeout, so long-running validation can continue until completion unless the operator cancels with Ctrl+C.
+
+When you do want a local guardrail for commands like `npm run dev`, pass `--validate-timeout-ms <n>` explicitly.
 
 
 ### Simple local WhatsApp session profile

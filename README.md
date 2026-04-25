@@ -742,7 +742,7 @@ RocketClaw2 also supports iteration-specific inspection with `harness-iterations
 
 ### Plan-gated autonomous execution
 
-RocketClaw2 supports executing an approved harness plan artifact through a governed path: plan first, approve it, then execute that approved plan with `harness-run --id <plan-id> --require-approved-plan`.
+RocketClaw2 supports executing an approved harness plan artifact through a governed path. Preferred operator flow: create the plan with `auto-code --no-auto-approve`, inspect it, approve it, then execute that approved plan with `harness-run --id <plan-id> --require-approved-plan`. Lower-level path: `harness-plan`, `harness-approve`, then `harness-run --id <plan-id> --require-approved-plan`.
 
 
 ### Plan lineage in run artifacts

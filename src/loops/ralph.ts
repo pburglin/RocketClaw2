@@ -5,6 +5,9 @@ export function resolveRalphPreset(preset: string | undefined): { command?: stri
   if (preset === 'lint') return { command: 'npm run lint', until: 'exit-0' };
   if (preset === 'docs') return { command: 'npm run build', until: 'exit-0' };
   if (preset === 'pack') return { command: 'npm run verify:pack', until: 'exit-0' };
+  if (preset === 'typecheck') return { command: 'npm run typecheck', until: 'exit-0' };
+  if (preset === 'security') return { command: 'npm audit', until: 'exit-0' };
+  if (preset === 'format') return { command: 'npx prettier --check .', until: 'exit-0' };
   return {};
 }
 

@@ -60,7 +60,8 @@
 
 - Add memory decay strategy so stale episodic details lose salience unless reinforced.
 - Add handoff artifact generation for context resets and long-running work. ✅ (done)
-- Add plan mode artifacts for implementation tasks.
+- Add plan mode artifacts for implementation tasks. ✅ (done)
+- Persist and resume interrupted autonomous coding runs so Ctrl+C does not discard prior harness state. ✅ (done)
 - Add sub-agent orchestration briefs with least-privilege context isolation.
 - Add closed-loop quality gates and critic/self-reflection fix loops. ✅ (done)
 - Add vector retrieval / embedding compaction in a future memory phase.

@@ -34,6 +34,9 @@ rocketclaw2 ralph-loop --command "npm test" --until exit-0 --max-iterations 5
 - `validate` → repeat until tests pass
 - `build` → repeat until project build passes
 - `lint` → repeat until lint/typecheck passes
+- `typecheck` → repeat until type checking passes (tsc --noEmit)
+- `security` → repeat until no new security vulnerabilities (npm audit)
+- `format` → repeat until code is properly formatted (prettier --check)
 - `docs` → repeat until the documentation quality gate passes
 - `pack` → repeat until package verification passes
 

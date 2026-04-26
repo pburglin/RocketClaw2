@@ -7,10 +7,11 @@
 - [x] Advanced TUI with real-time health monitoring and controls
 - [x] Enhanced autonomous coding flows with progress tracking
 - [x] Improved heartbeat mechanism for health checking and task queue triggering
-- [x] All tests passing (209/209)
+- [x] All tests passing (237/237)
+- [x] Enhanced Ralph Loop with 'typecheck', 'security', and 'format' presets
 
 ## Current Status
-- RocketClaw2 core functionality: Complete with all tests passing (209/209)
+- RocketClaw2 core functionality: Complete with all tests passing (237/237)
 - WhatsApp gateway: Stable native transport with QR-based authorization
 - TUI: Advanced interface with health monitoring, queue status, and coding harness integration
 - Heartbeat: Continuous verification system that monitors health, processes queues, and executes scheduled tasks
@@ -37,6 +38,6 @@
 ## Recent Milestones
 - Fixed TUI ESM import issue (changed from require to import * as blessed from 'blessed')
 - Implemented advanced TUI with real-time updates and interactive controls
-- Enhanced autonomous coding flows with better progress visualization
-- Improved heartbeat mechanism for proactive system monitoring
-- All tests passing - build, pack verification, and 209-test suite fully green
+- Enhanced Ralph Loop with 'typecheck', 'security', and 'format' presets
+- Improved Ralph Loop result formatter with failure hints
+- All tests passing - build, pack verification, and 237-test suite fully green

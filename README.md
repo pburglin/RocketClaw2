@@ -686,11 +686,13 @@ This first milestone provides the full outer loop: workspace selection, task des
 
 `auto-code --no-auto-approve` now saves a real plan artifact and prints the exact follow-up commands for the governed path: inspect the plan, approve it, then execute it with `harness-run --id <plan-id> --require-approved-plan`.
 
+If you interrupt `auto-code` mid-run with Ctrl+C, rerunning the same workspace/task now resumes from the latest incomplete saved run instead of starting from zero. If there is no incomplete run but there is an approved saved plan for the same workspace/task, `auto-code` reuses that approved plan before creating a brand new one.
+
 If autonomous coding fails before any files are written, start with `llm-status` and an override-based `llm-query` check so you can separate provider/config problems from harness behavior. Use `llm-test` when you specifically want the compact connectivity/auth smoke test.
 
 ### Harness run artifacts
 
-Each `harness-run` now writes a persistent JSON artifact so autonomous runs are inspectable after the fact. This is the first step toward more resumable and auditable autonomous coding workflows.
+Each `harness-run` now writes a persistent JSON artifact so autonomous runs are inspectable after the fact. Those artifacts now persist running/interrupted state too, which lets `auto-code` resume interrupted work and pick the latest matching saved state reliably.
 
 
 ## Harness run inspection
@@ -724,26 +726,40 @@ Harness list and show views now include a recommended **Next** action for draft 
 
 ### How the autonomous coding harness works
 
-The `harness-run` command parses LLM responses for fenced code blocks with a filename on the first line, then writes those files to the target workspace before running the validation command. This is the core loop:
+The `harness-run` command parses LLM responses into either full-file writes or targeted SEARCH/REPLACE edits, then applies them before running the validation command. This is the core loop:
 
-1. LLM generates code files (as fenced blocks with filenames)
-2. Harness writes the files to the workspace
+1. LLM generates implementation output for the chosen edit mode
+2. Harness applies either full-file blocks or targeted SEARCH/REPLACE edits
 3. Validation command runs in the workspace
 4. If validation fails, the loop repeats with failure context
 
-```
+Full-file format:
+
 ```package.json
 { "name": "my-app" }
 ```
+
 ```src/index.js
 console.log("hello");
 ```
+
+Targeted diff format:
+
+```SEARCH_REPLACE src/index.js
+<<<<<<< SEARCH
+console.log("helo");
+=======
+console.log("hello");
+>>>>>>> REPLACE
 ```
 
 
 ### Workspace-aware autonomous coding
 
-The harness now reads the current workspace before each LLM iteration and includes existing file contents in the prompt. It also supports partial edits using `PATCH:filename` fenced blocks with SEARCH/REPLACE sections, so the harness can evolve existing files instead of only overwriting entire files.
+The harness now reads the current workspace before each LLM iteration and includes existing file contents in the prompt. It supports three edit strategies through `--edit-mode <full-file|diff|mixed>`:
+- `full-file` — force complete file rewrites
+- `diff` — prefer targeted SEARCH/REPLACE edits for existing files, using full-file blocks only for brand new files
+- `mixed` — default mode; prefer diffs for small fixes and full-file output for new files or intentional rewrites
 
 Use `rocketclaw2 harness-show --id <run-id> --full` to inspect full stored guidance for a run.
 

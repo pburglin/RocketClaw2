@@ -342,6 +342,8 @@ Commands:
 
 `auto-code --no-auto-approve` now creates a real saved plan artifact and prints the exact review/approve/run commands to continue through the governed path.
 
+If you stop `auto-code` with Ctrl+C during execution, rerunning the same workspace/task now resumes from the latest incomplete saved run instead of discarding prior progress. If no incomplete run exists but an approved saved plan matches, `auto-code` reuses that plan before creating a fresh one.
+
 If autonomous coding fails before any files are written, start with `llm-status` and an override-based `llm-query` check so you can separate provider/config problems from harness behavior. Use `llm-test` only when you specifically want the compact connectivity/auth smoke test.
 
 ## Evaluator-Optimizer operator flow
@@ -433,6 +435,7 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 - `rocketclaw2 harness-iterations --id <run-id> --iteration 2`
 - `rocketclaw2 harness-iterations --id <run-id> --latest --guidance`
 - `rocketclaw2 auto-code --workspace <path> --task "..." --validate "<cmd>" --max-iterations 5 --no-auto-approve` — fast path to create a saved plan artifact and print the next review commands
+- `rocketclaw2 auto-code --workspace <path> --task "..." --validate "<cmd>" --edit-mode diff` — prefer targeted SEARCH/REPLACE edits for existing files
 - `rocketclaw2 harness-plan --workspace <path> --task "..." --validate "<cmd>" --request-approval` — lower-level plan creation path when you want tighter manual control
 - `rocketclaw2 harness-approve --id <plan-id>` — mark a saved plan as approved
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan` — execute a reviewed and approved plan artifact
@@ -445,11 +448,14 @@ The `harness-run` command implements a full coding loop:
 
 1. Sends the task to the LLM together with a compact relative file inventory of the workspace
 2. Lets the model explicitly request a small set of file contents via a fenced `REQUEST_FILES` block when it needs deeper context
-3. Parses fenced code blocks from the response and writes them to the workspace
-4. Runs the validation command
-5. Repeats on failure until validation passes or max iterations is reached
+3. Parses either full-file fenced blocks or targeted SEARCH/REPLACE blocks from the response
+4. Applies the edits to the workspace
+5. Runs the validation command
+6. Repeats on failure until validation passes or max iterations is reached
 
-Code block format: ```filename.ext followed by file content, ending with ```
+Edit formats:
+- full file: ```filename.ext followed by file content, ending with ```
+- targeted diff: ```SEARCH_REPLACE path/to/file followed by SEARCH/REPLACE hunks, ending with ```
 
 
 ## Advanced harness behavior
@@ -458,7 +464,8 @@ Code block format: ```filename.ext followed by file content, ending with ```
 - scans the workspace before each iteration
 - sends relative file paths by default instead of dumping full file contents into the initial prompt
 - supports an explicit `REQUEST_FILES` round-trip so the model can pull only the files it actually needs
-- supports partial file edits using `PATCH:filename` fenced blocks
+- supports three edit strategies with `--edit-mode <full-file|diff|mixed>`
+- supports targeted SEARCH/REPLACE edits for existing files and full-file blocks for new files or deliberate rewrites
 - supports `--verbose` for formatted raw LLM request/response inspection on stderr
 - supports global `--timestamps` to prefix human-readable progress / verbose log lines with the current time
 

@@ -29,6 +29,10 @@ export type RunLlmQueryOptions = {
 };
 
 const MAX_RETRY_BACKOFF_MS = 5 * 60 * 1000;
+const MOCK_ENDPOINT = 'mock://llm/chat/completions';
+const MOCK_INITIAL_DELAY_MS = Math.max(0, Number(process.env.RC2_MOCK_LLM_INITIAL_DELAY_MS ?? 0) || 0);
+const MOCK_CHUNK_DELAY_MS = Math.max(0, Number(process.env.RC2_MOCK_LLM_CHUNK_DELAY_MS ?? 0) || 0);
+const MOCK_CHUNK_SIZE = Math.max(1, Number(process.env.RC2_MOCK_LLM_CHUNK_SIZE ?? 18) || 18);
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -183,6 +187,125 @@ function extractStreamDelta(payload: unknown): string {
   return extractText(record.delta) || extractText(record.output) || extractText(record.message);
 }
 
+function buildMockLlmResponse(prompt: string, options: RunLlmQueryOptions): string {
+  const normalizedPrompt = prompt.trim();
+  const normalizedLabel = (options.label ?? '').toLowerCase();
+
+  if (/reply with exactly:\s*llm_ok/i.test(normalizedPrompt)) {
+    return 'LLM_OK';
+  }
+
+  if (normalizedLabel.includes('plan generation') || normalizedPrompt.includes('Include these sections exactly: Summary, Files to touch, Validation, Risks.')) {
+    return [
+      'Summary',
+      '',
+      'Files to touch',
+      '- package.json',
+      '',
+      'Validation',
+      '- npm test',
+      '',
+      'Risks',
+      '- none',
+    ].join('\n');
+  }
+
+  if (normalizedLabel.includes('implementation guidance')) {
+    return [
+      '```package.json',
+      '{',
+      '  "name": "demo",',
+      '  "version": "1.0.0",',
+      '  "scripts": {',
+      '    "test": "echo \\"mock test\\""',
+      '  }',
+      '}',
+      '```',
+    ].join('\n');
+  }
+
+  if (normalizedLabel.includes('critic insight')) {
+    return 'Root cause: validation failed because package.json did not define a passing test script. Next: update package.json with a test command that exits successfully.';
+  }
+
+  if (normalizedPrompt.includes('First line\nSecond line')) {
+    return 'LLM_OK\nsecond line';
+  }
+
+  return 'LLM_OK';
+}
+
+function chunkMockResponse(text: string): string[] {
+  const chunks: string[] = [];
+  for (let index = 0; index < text.length; index += MOCK_CHUNK_SIZE) {
+    chunks.push(text.slice(index, index + MOCK_CHUNK_SIZE));
+  }
+  return chunks.length > 0 ? chunks : [''];
+}
+
+async function runMockLlmQuery(config: AppConfig, prompt: string, options: RunLlmQueryOptions): Promise<string> {
+  const channel = options.channel ?? 'cli';
+  const sessionId = options.sessionId;
+  const requestBody = {
+    model: config.llm.model,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.2,
+    ...(options.stream ? { stream: true } : {}),
+  } satisfies Record<string, unknown>;
+
+  recordLlmRequest(channel, sessionId);
+  options.onTrace?.({
+    phase: 'request',
+    channel,
+    endpoint: MOCK_ENDPOINT,
+    model: config.llm.model,
+    label: options.label,
+    requestBody,
+    attempt: 1,
+    maxRetries: 0,
+  });
+
+  const startedAt = Date.now();
+  if (MOCK_INITIAL_DELAY_MS > 0) {
+    await sleep(MOCK_INITIAL_DELAY_MS);
+  }
+
+  const content = buildMockLlmResponse(prompt, options);
+  const chunks = options.stream ? chunkMockResponse(content) : [content];
+  if (options.stream) {
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index] ?? '';
+      if (chunk) options.onToken?.(chunk);
+      if (MOCK_CHUNK_DELAY_MS > 0 && index < chunks.length - 1) {
+        await sleep(MOCK_CHUNK_DELAY_MS);
+      }
+    }
+  }
+
+  const durationMs = Date.now() - startedAt;
+  const responseBody = {
+    mocked: true,
+    streamed: Boolean(options.stream),
+    chunkCount: chunks.filter(Boolean).length,
+    content,
+  };
+  recordLlmResponse(channel, durationMs, sessionId, buildLlmMetrics(prompt, content, durationMs, responseBody));
+  options.onTrace?.({
+    phase: 'response',
+    channel,
+    endpoint: MOCK_ENDPOINT,
+    model: config.llm.model,
+    label: options.label,
+    requestBody,
+    responseStatus: 200,
+    responseBody,
+    extractedText: content,
+    attempt: 1,
+    maxRetries: 0,
+  });
+  return content;
+}
+
 async function readStreamedCompletion(
   response: Response,
   options: RunLlmQueryOptions,
@@ -253,13 +376,18 @@ async function readStreamedCompletion(
 }
 
 export async function runLlmQuery(config: AppConfig, prompt: string, channelOrOptions: string | RunLlmQueryOptions = 'cli'): Promise<string> {
+  const options = typeof channelOrOptions === 'string'
+    ? { channel: channelOrOptions }
+    : channelOrOptions;
+
+  if (config.llm.mode === 'mock') {
+    return runMockLlmQuery(config, prompt, options);
+  }
+
   if (!config.llm.apiKey) {
     throw new Error('No LLM API key configured. Set llm.apiKey in config.yaml or pass --llm-api-key for this session.');
   }
 
-  const options = typeof channelOrOptions === 'string'
-    ? { channel: channelOrOptions }
-    : channelOrOptions;
   const channel = options.channel ?? 'cli';
   const sessionId = options.sessionId;
   const maxRetries = options.retryCount ?? config.llm.retryCount ?? 3;

@@ -12,6 +12,19 @@ describe('runLlmQuery', () => {
     await expect(runLlmQuery(config, 'hello')).rejects.toThrow('No LLM API key configured');
   });
 
+  it('can return simulated responses in mock mode without an api key', async () => {
+    const streamedChunks: string[] = [];
+    const config = loadConfig({ llm: { mode: 'mock', model: 'demo-model' } });
+    const text = await runLlmQuery(config, 'Reply with exactly: LLM_OK', {
+      stream: true,
+      onToken: (chunk) => streamedChunks.push(chunk),
+      label: 'mock unit test',
+    });
+
+    expect(text).toBe('LLM_OK');
+    expect(streamedChunks.join('')).toBe('LLM_OK');
+  });
+
   it('returns model content when the provider responds successfully', async () => {
     vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
       ok: true,

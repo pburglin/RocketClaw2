@@ -597,6 +597,16 @@ RocketClaw2 now includes a real LLM query command.
 
 LLM query failures now produce friendlier diagnostics for common provider/auth/config mistakes instead of only raw error text.
 
+## Mock LLM mode
+
+RocketClaw2 now also supports a built-in mock LLM mode for CLI testing and UX debugging.
+
+- `rocketclaw2 --llm-mode mock llm-test`
+- `rocketclaw2 --llm-mode mock llm-query --prompt "Say hello"`
+- `rocketclaw2 --llm-mode mock auto-code --workspace /path/to/repo --task "Draft a plan" --validate "npm test" --no-auto-approve`
+
+Mock mode does not require a real API key. It is mainly intended for automated tests, reproducing terminal UX bugs, and exercising harness flows without depending on an external provider.
+
 
 ## LLM connectivity test
 
@@ -637,6 +647,7 @@ When `auto-code`, `harness-run`, or `chat` fails in a way that looks LLM-related
 4. only then retry `auto-code` or `harness-run`
 
 Notes:
+- `--llm-mode mock` is useful when you want to validate CLI behavior without touching a live provider.
 - RocketClaw2 now accepts both plain string completions and newer structured text-part responses from OpenAI-compatible providers.
 - Wrapped provider payload errors such as timeout code `524` are now surfaced as provider timeout diagnostics instead of a misleading no-content failure.
 - Server-side LLM failures now retry by default up to 3 times with exponential backoff, capped at 5 minutes between attempts.

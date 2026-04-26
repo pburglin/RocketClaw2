@@ -61,6 +61,7 @@ import { runLlmTest } from './llm/test.js';
 import { runTaskLoop } from './loops/task-loop.js';
 import { formatTaskLoopResult } from './loops/task-loop-formatters.js';
 import { buildLlmStatus, formatLlmStatus } from './llm/status.js';
+import { buildFloatingFooterClear, buildFloatingFooterRender } from './cli-output.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
 import { loadImportedSkills } from './skills/store.js';
@@ -189,14 +190,15 @@ function parseOptionalNonNegativeInt(value: unknown, flagName: string): number |
 }
 
 function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void }) {
-  const colorEnabled = supportsColor(process.stderr);
+  const verboseStream = process.stdout;
+  const colorEnabled = supportsColor(verboseStream);
   const color = (code: number, text: string) => colorEnabled ? `\x1b[${code}m${text}\x1b[0m` : text;
   const header = (text: string) => color(95, text);
   const label = (text: string) => color(36, text);
   const dim = (text: string) => color(90, text);
   const block = (title: string, content: string) => `${header(title)}\n${content}\n`;
   const writeBlock = (text: string, kind: CliMessageKind = 'info') => {
-    process.stderr.write(`\n${formatCliLine(text, kind, options)}\n`);
+    verboseStream.write(`\n${formatCliLine(text, kind, options)}\n`);
   };
   let activeStreamLabel: string | undefined;
   let streamOpen = false;
@@ -204,7 +206,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
     if (streamOpen) {
-      process.stderr.write('\n');
+      verboseStream.write('\n');
     }
     activeStreamLabel = streamLabel;
     const context = streamLabel ? ` (${streamLabel})` : '';
@@ -214,7 +216,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
 
   const endStream = () => {
     if (!streamOpen) return;
-    process.stderr.write('\n');
+    verboseStream.write('\n');
     streamOpen = false;
     activeStreamLabel = undefined;
   };
@@ -222,9 +224,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      // Write to stdout so streamed content stays permanently on screen,
-      // completely independent from stderr status/footer lines
-      process.stdout.write(chunk);
+      verboseStream.write(chunk);
     },
     finishStream() {
       endStream();
@@ -249,7 +249,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
           block('Prompt text', promptText || dim('(unavailable)')),
         ];
         writeBlock(header(`━━ LLM REQUEST${context} ━━`));
-        process.stderr.write(`${sections.join('\n')}\n`);
+        verboseStream.write(`${sections.join('\n')}\n`);
         return;
       }
 
@@ -260,7 +260,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
           block('Extracted text', event.extractedText && event.extractedText.trim() ? event.extractedText : dim('(empty)')),
         ];
         writeBlock(header(`━━ LLM RESPONSE${context} ━━`), 'success');
-        process.stderr.write(`${sections.join('\n')}\n`);
+        verboseStream.write(`${sections.join('\n')}\n`);
         return;
       }
 
@@ -272,7 +272,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
           `${label('Reason:')} ${event.error ?? 'Retriable server-side LLM failure'}`,
         ];
         writeBlock(header(`━━ LLM RETRY${context} ━━`), 'warn');
-        process.stderr.write(`${sections.join('\n')}\n`);
+        verboseStream.write(`${sections.join('\n')}\n`);
         return;
       }
 
@@ -284,7 +284,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
         sections.push(block('Raw error payload', typeof event.responseBody === 'string' ? event.responseBody : formatJsonBlock(event.responseBody)));
       }
       writeBlock(header(`━━ LLM ERROR${context} ━━`), 'error');
-      process.stderr.write(`${sections.join('\n')}\n`);
+      verboseStream.write(`${sections.join('\n')}\n`);
     },
   };
 }
@@ -348,9 +348,9 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       hasActiveInlineLine = false;
       return;
     }
-    // Floating footer approach: save cursor, move down 1 (or newline), clear/write, restore cursor
-    // This keeps the status line positioned below the streaming content
-    process.stderr.write('\x1b[s\n\r\x1b[2K' + line + '\x1b[u');
+    // Floating footer approach: save cursor, clear line, write, restore cursor
+    // This keeps the status line positioned on the current line
+    process.stderr.write(buildFloatingFooterRender(line));
     hasActiveInlineLine = true;
   };
 
@@ -394,7 +394,7 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     if (!hasActiveInlineLine) return;
     if (process.stderr.isTTY) {
       // Clear the floating footer line
-      process.stderr.write('\x1b[s\n\r\x1b[2K\x1b[u');
+      process.stderr.write(buildFloatingFooterClear());
     } else {
       process.stderr.write('\n');
     }
@@ -521,6 +521,7 @@ program
   .option('--llm-base-url <url>', 'override LLM base URL for this CLI session only')
   .option('--llm-api-key <key>', 'override LLM API key for this CLI session only')
   .option('--llm-model <model>', 'override LLM model for this CLI session only')
+  .option('--llm-mode <mode>', 'override LLM mode for this CLI session only (live|mock)')
   .option('--llm-retry-count <n>', 'override LLM server-error retry count for this CLI session only');
 
 program
@@ -838,6 +839,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const summary = buildSystemSummary(config);
     console.log(options.json ? JSON.stringify(summary, null, 2) : formatSystemSummary(summary));
@@ -855,6 +857,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const model = await buildWorldModel(undefined, config);
     console.log(options.json ? JSON.stringify(model, null, 2) : formatWorldModel(model));
@@ -877,6 +880,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const preset = resolveHandoffPreset(typeof options.preset === 'string' ? options.preset : undefined);
     const artifact = await createHandoffArtifact(config, undefined, {
@@ -972,6 +976,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     await runChatSession({ title: options.title, sessionId: options.sessionId, config, stream: Boolean(globalOpts.stream) });
   });
@@ -989,6 +994,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     
     const tui = createRocketClawTUI(config);
@@ -1344,6 +1350,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', renderOptions);
@@ -1410,6 +1417,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan-run]', renderOptions);
@@ -1463,6 +1471,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const resolved = options.id
       ? await loadHarnessRunnableInput(options.id)
@@ -1523,6 +1532,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const result = await harnessResume(config, options.id);
     const artifact = await saveHarnessRun(result);
@@ -1546,6 +1556,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const result = await runTaskLoop(config, {
       task: options.task,
@@ -1848,12 +1859,13 @@ program
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
     const globalOpts = (command as any).parent?.opts?.() ?? {};
-    const hasOverrides = Boolean(globalOpts.llmBaseUrl || globalOpts.llmApiKey || globalOpts.llmModel || globalOpts.llmRetryCount !== undefined);
+    const hasOverrides = Boolean(globalOpts.llmBaseUrl || globalOpts.llmApiKey || globalOpts.llmModel || globalOpts.llmMode || globalOpts.llmRetryCount !== undefined);
     const config = applySessionOverrides(rootConfig, {
       llmBaseUrl: globalOpts.llmBaseUrl,
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const status = buildLlmStatus(config, hasOverrides);
     console.log(options.json ? JSON.stringify(status, null, 2) : formatLlmStatus(status));
@@ -1886,6 +1898,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     try {
       const result = await runLlmTest(config);
@@ -1909,6 +1922,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     try {
       const verboseRenderer = options.verbose ? createVerboseLlmRenderer({ timestamps: Boolean(globalOpts.timestamps) }) : undefined;
@@ -1958,6 +1972,7 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
     const { createHeartbeatVerifier } = await import('./heartbeat/index.js');
     const verifier = createHeartbeatVerifier(config);
@@ -2080,8 +2095,9 @@ program
       llmApiKey: globalOpts.llmApiKey,
       llmModel: globalOpts.llmModel,
       llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+      llmMode: globalOpts.llmMode,
     });
-    const autoApprove = !options.noAutoApprove;
+    const autoApprove = options.autoApprove !== false;
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;

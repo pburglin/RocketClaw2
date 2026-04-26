@@ -237,6 +237,10 @@ Approval list and summary views now surface recommended next steps directly in t
 
 - `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" doctor`
 - `rocketclaw2 --llm-model "custom-model" system-summary`
+- `rocketclaw2 --llm-mode mock llm-test`
+- `rocketclaw2 --llm-mode mock llm-query --prompt "Say hello"`
+
+`--llm-mode mock` is useful for automated testing, CLI UX debugging, and reproducing harness flows without depending on a live provider or API key.
 
 ## Skill management
 
@@ -562,7 +566,7 @@ Long LLM requests now also emit periodic `AI is thinking... (<elapsed>s elapsed,
 
 `llm-query` and interactive `chat` now stream model text by default when the provider supports streaming, so you can see the answer arrive gradually instead of waiting for the full body. Use global `--no-stream` when you want the older buffered behavior.
 
-By default, `harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now stream model text as it arrives; use global `--no-stream` if you want buffered behavior instead. When you want deeper troubleshooting, add `--verbose` to those commands to also print formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you also want every human-readable log entry prefixed with time.
+By default, `harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now stream model text as it arrives; use global `--no-stream` if you want buffered behavior instead. When you want deeper troubleshooting, add `--verbose` to those commands to also print formatted raw LLM requests, responses, and extracted text. Add global `--timestamps` if you also want every human-readable log entry prefixed with time.
 
 ## Safe validation commands
 

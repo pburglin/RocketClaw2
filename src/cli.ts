@@ -204,8 +204,18 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   const label = (text: string) => color(36, text);
   const dim = (text: string) => color(90, text);
   const block = (title: string, content: string) => `${header(title)}\n${content}\n`;
+  const withSuspendedFooter = (fn: () => void) => {
+    progressRenderer?.temporarilyClear?.();
+    try {
+      fn();
+    } finally {
+      progressRenderer?.redrawWaiting?.();
+    }
+  };
   const writeBlock = (text: string, kind: CliMessageKind = 'info') => {
-    verboseStream.write(`\n${formatCliLine(text, kind, options)}\n`);
+    withSuspendedFooter(() => {
+      verboseStream.write(`\n${formatCliLine(text, kind, options)}\n`);
+    });
   };
   let activeStreamLabel: string | undefined;
   let streamOpen = false;
@@ -213,7 +223,9 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
     if (streamOpen) {
-      verboseStream.write('\n');
+      withSuspendedFooter(() => {
+        verboseStream.write('\n');
+      });
     }
     activeStreamLabel = streamLabel;
     const context = streamLabel ? ` (${streamLabel})` : '';
@@ -223,7 +235,9 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
 
   const endStream = () => {
     if (!streamOpen) return;
-    verboseStream.write('\n');
+    withSuspendedFooter(() => {
+      verboseStream.write('\n');
+    });
     streamOpen = false;
     activeStreamLabel = undefined;
   };
@@ -231,7 +245,9 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      verboseStream.write(chunk);
+      withSuspendedFooter(() => {
+        verboseStream.write(chunk);
+      });
     },
     finishStream() {
       endStream();
@@ -256,7 +272,9 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
           block('Prompt text', promptText || dim('(unavailable)')),
         ];
         writeBlock(header(`━━ LLM REQUEST${context} ━━`));
-        verboseStream.write(`${sections.join('\n')}\n`);
+        withSuspendedFooter(() => {
+          verboseStream.write(`${sections.join('\n')}\n`);
+        });
         return;
       }
 
@@ -267,7 +285,9 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
           block('Extracted text', event.extractedText && event.extractedText.trim() ? event.extractedText : dim('(empty)')),
         ];
         writeBlock(header(`━━ LLM RESPONSE${context} ━━`), 'success');
-        verboseStream.write(`${sections.join('\n')}\n`);
+        withSuspendedFooter(() => {
+          verboseStream.write(`${sections.join('\n')}\n`);
+        });
         return;
       }
 
@@ -279,7 +299,9 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
           `${label('Reason:')} ${event.error ?? 'Retriable server-side LLM failure'}`,
         ];
         writeBlock(header(`━━ LLM RETRY${context} ━━`), 'warn');
-        verboseStream.write(`${sections.join('\n')}\n`);
+        withSuspendedFooter(() => {
+          verboseStream.write(`${sections.join('\n')}\n`);
+        });
         return;
       }
 
@@ -291,7 +313,9 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
         sections.push(block('Raw error payload', typeof event.responseBody === 'string' ? event.responseBody : formatJsonBlock(event.responseBody)));
       }
       writeBlock(header(`━━ LLM ERROR${context} ━━`), 'error');
-      verboseStream.write(`${sections.join('\n')}\n`);
+      withSuspendedFooter(() => {
+        verboseStream.write(`${sections.join('\n')}\n`);
+      });
     },
   };
 }
@@ -299,22 +323,35 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
 function createStreamTextRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void }) {
   let activeStreamLabel: string | undefined;
   let streamOpen = false;
-  let pending = '';
+  const withSuspendedFooter = (fn: () => void) => {
+    progressRenderer?.temporarilyClear?.();
+    try {
+      fn();
+    } finally {
+      progressRenderer?.redrawWaiting?.();
+    }
+  };
 
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
     if (streamOpen) {
+      progressRenderer?.temporarilyClear?.();
       process.stderr.write('\n');
+      progressRenderer?.redrawWaiting?.();
     }
     activeStreamLabel = streamLabel;
     const context = streamLabel ? ` (${streamLabel})` : '';
+    progressRenderer?.temporarilyClear?.();
     process.stderr.write(`\n${formatCliLine(`Streaming model output${context}`, 'success', options)}\n`);
+    progressRenderer?.redrawWaiting?.();
     streamOpen = true;
   };
 
   const endStream = () => {
     if (!streamOpen) return;
+    progressRenderer?.temporarilyClear?.();
     process.stderr.write('\n');
+    progressRenderer?.redrawWaiting?.();
     streamOpen = false;
     activeStreamLabel = undefined;
   };
@@ -324,7 +361,9 @@ function createStreamTextRenderer(options: CliRenderOptions = {}, progressRender
       startStream(streamLabel);
       // Write to stdout so streamed content stays permanently on screen,
       // completely independent from stderr status/footer lines
-      process.stdout.write(chunk);
+      withSuspendedFooter(() => {
+        process.stdout.write(chunk);
+      });
     },
     finishStream() {
       endStream();

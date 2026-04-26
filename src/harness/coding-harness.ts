@@ -345,6 +345,8 @@ export async function buildHarnessPlan(
         workspaceContext ? `Existing workspace files:\n${workspaceContext}` : '',
         `Task: ${input.task}`,
         `Validation command: ${input.validateCommand}`,
+        `Edit mode: ${input.editMode ?? 'mixed'}`,
+        ...buildEditInstructions(input.editMode ?? 'mixed'),
       ].filter(Boolean).join('\n'),
       { channel: 'cli', label: 'plan generation', onTrace: onLlmTrace, stream: Boolean(onLlmToken), onToken: onLlmToken ? (chunk) => onLlmToken(chunk, 'plan generation') : undefined },
     );

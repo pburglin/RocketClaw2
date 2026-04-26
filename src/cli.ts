@@ -61,7 +61,14 @@ import { runLlmTest } from './llm/test.js';
 import { runTaskLoop } from './loops/task-loop.js';
 import { formatTaskLoopResult } from './loops/task-loop-formatters.js';
 import { buildLlmStatus, formatLlmStatus } from './llm/status.js';
-import { buildFloatingFooterClear, buildFloatingFooterRender } from './cli-output.js';
+import {
+  buildBottomFooterClear,
+  buildBottomFooterRender,
+  buildFloatingFooterClear,
+  buildFloatingFooterRender,
+  buildFooterReserveEnd,
+  buildFooterReserveStart,
+} from './cli-output.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
 import { loadImportedSkills } from './skills/store.js';
@@ -327,6 +334,7 @@ function createStreamTextRenderer(options: CliRenderOptions = {}, progressRender
 
 function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions = {}) {
   let hasActiveInlineLine = false;
+  let footerReserved = false;
   let spinnerTimer: NodeJS.Timeout | undefined;
   let spinnerIndex = 0;
   let waitingLine = '';
@@ -348,9 +356,16 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       hasActiveInlineLine = false;
       return;
     }
-    // Floating footer approach: save cursor, clear line, write, restore cursor
-    // This keeps the status line positioned on the current line
-    process.stderr.write(buildFloatingFooterRender(line));
+
+    if ((process.stderr.rows ?? 0) > 1) {
+      if (!footerReserved) {
+        process.stderr.write(buildFooterReserveStart(process.stderr.rows ?? 2));
+        footerReserved = true;
+      }
+      process.stderr.write(buildBottomFooterRender(process.stderr.rows ?? 2, line));
+    } else {
+      process.stderr.write(buildFloatingFooterRender(line));
+    }
     hasActiveInlineLine = true;
   };
 
@@ -393,8 +408,11 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     stopSpinner(preserveWaiting);
     if (!hasActiveInlineLine) return;
     if (process.stderr.isTTY) {
-      // Clear the floating footer line
-      process.stderr.write(buildFloatingFooterClear());
+      if (footerReserved && (process.stderr.rows ?? 0) > 1) {
+        process.stderr.write(buildBottomFooterClear(process.stderr.rows ?? 2));
+      } else {
+        process.stderr.write(buildFloatingFooterClear());
+      }
     } else {
       process.stderr.write('\n');
     }
@@ -430,7 +448,13 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     flush() {
       stopSpinner();
       if (hasActiveInlineLine) {
-        process.stderr.write('\n');
+        clearInlineLine();
+      }
+      if (footerReserved && process.stderr.isTTY) {
+        process.stderr.write(buildFooterReserveEnd());
+        footerReserved = false;
+      }
+      if (hasActiveInlineLine) {
         hasActiveInlineLine = false;
       }
     },

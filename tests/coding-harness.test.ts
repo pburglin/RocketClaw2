@@ -199,6 +199,50 @@ describe('workspace prompt context', () => {
     await fs.rm(tmp, { recursive: true, force: true });
   });
 
+  it('runCodingHarness supports diff-style SEARCH_REPLACE edits in diff mode', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'harness-diff-mode-'));
+    const workspace = path.join(tmp, 'project');
+    await fs.mkdir(path.join(workspace, 'src'), { recursive: true });
+    await fs.writeFile(path.join(workspace, 'src', 'index.ts'), 'export const importantValue = 42;\n', 'utf8');
+
+    const prompts: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (...args: Parameters<typeof fetch>) => {
+      const [, init] = args;
+      const prompt = JSON.parse(String(init?.body)).messages[0].content;
+      prompts.push(prompt);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: [
+          '```SEARCH_REPLACE src/index.ts',
+          '<<<<<<< SEARCH',
+          'export const importantValue = 42;',
+          '=======',
+          'export const importantValue = 43;',
+          '>>>>>>> REPLACE',
+          '```',
+        ].join('\n') } }] }),
+      } as Response;
+    });
+
+    const config = loadConfig({ llm: { baseUrl: 'https://example.com/v1', apiKey: 'secret', model: 'demo-model' } });
+    const result = await runCodingHarness(config, {
+      workspace,
+      task: 'Bump the value',
+      validateCommand: 'true',
+      maxIterations: 1,
+      editMode: 'diff',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(prompts[0]).toContain('Edit mode to use: diff');
+    expect(prompts[0]).toContain('```SEARCH_REPLACE src/index.ts');
+    const content = await fs.readFile(path.join(workspace, 'src', 'index.ts'), 'utf8');
+    expect(content).toContain('importantValue = 43');
+
+    await fs.rm(tmp, { recursive: true, force: true });
+  });
+
   it('buildHarnessPlan emits AI is thinking progress updates while waiting on the model', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'harness-plan-progress-'));
     const workspace = path.join(tmp, 'project');

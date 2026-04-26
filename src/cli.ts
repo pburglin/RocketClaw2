@@ -196,7 +196,7 @@ function parseOptionalNonNegativeInt(value: unknown, flagName: string): number |
   return parsed;
 }
 
-function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void }) {
+function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void; suspend?: () => void; resume?: () => void }) {
   const verboseStream = process.stdout;
   const colorEnabled = supportsColor(verboseStream);
   const color = (code: number, text: string) => colorEnabled ? `\x1b[${code}m${text}\x1b[0m` : text;
@@ -223,31 +223,27 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
     if (streamOpen) {
-      withSuspendedFooter(() => {
-        verboseStream.write('\n');
-      });
+      verboseStream.write('\n');
     }
     activeStreamLabel = streamLabel;
     const context = streamLabel ? ` (${streamLabel})` : '';
+    progressRenderer?.suspend?.();
     writeBlock(header(`━━ LLM STREAM${context} ━━`), 'success');
     streamOpen = true;
   };
 
   const endStream = () => {
     if (!streamOpen) return;
-    withSuspendedFooter(() => {
-      verboseStream.write('\n');
-    });
+    verboseStream.write('\n');
     streamOpen = false;
     activeStreamLabel = undefined;
+    progressRenderer?.resume?.();
   };
 
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      withSuspendedFooter(() => {
-        verboseStream.write(chunk);
-      });
+      verboseStream.write(chunk);
     },
     finishStream() {
       endStream();
@@ -320,7 +316,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   };
 }
 
-function createStreamTextRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void }) {
+function createStreamTextRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void; suspend?: () => void; resume?: () => void }) {
   let activeStreamLabel: string | undefined;
   let streamOpen = false;
   const withSuspendedFooter = (fn: () => void) => {
@@ -335,35 +331,27 @@ function createStreamTextRenderer(options: CliRenderOptions = {}, progressRender
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
     if (streamOpen) {
-      progressRenderer?.temporarilyClear?.();
       process.stderr.write('\n');
-      progressRenderer?.redrawWaiting?.();
     }
     activeStreamLabel = streamLabel;
     const context = streamLabel ? ` (${streamLabel})` : '';
-    progressRenderer?.temporarilyClear?.();
+    progressRenderer?.suspend?.();
     process.stderr.write(`\n${formatCliLine(`Streaming model output${context}`, 'success', options)}\n`);
-    progressRenderer?.redrawWaiting?.();
     streamOpen = true;
   };
 
   const endStream = () => {
     if (!streamOpen) return;
-    progressRenderer?.temporarilyClear?.();
     process.stderr.write('\n');
-    progressRenderer?.redrawWaiting?.();
     streamOpen = false;
     activeStreamLabel = undefined;
+    progressRenderer?.resume?.();
   };
 
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      // Write to stdout so streamed content stays permanently on screen,
-      // completely independent from stderr status/footer lines
-      withSuspendedFooter(() => {
-        process.stdout.write(chunk);
-      });
+      process.stdout.write(chunk);
     },
     finishStream() {
       endStream();
@@ -374,6 +362,7 @@ function createStreamTextRenderer(options: CliRenderOptions = {}, progressRender
 function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions = {}) {
   let hasActiveInlineLine = false;
   let footerReserved = false;
+  let suspended = false;
   let spinnerTimer: NodeJS.Timeout | undefined;
   let spinnerIndex = 0;
   let waitingLine = '';
@@ -381,6 +370,10 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
   const spinnerFrames = ['|', '/', '-', '\\'];
   const colorEnabled = supportsColor(process.stderr);
   const spinnerColors = [39, 45, 51, 87, 123, 159];
+  const getTtyRows = () => {
+    const candidates = [process.stderr.rows, process.stdout.rows, Number(process.env.LINES)];
+    return candidates.find((value) => Number.isInteger(value) && Number(value) > 1) as number | undefined;
+  };
 
   const resolveKind = (stage: string): CliMessageKind => {
     if (/error|failed|timeout/i.test(stage)) return 'error';
@@ -396,12 +389,13 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       return;
     }
 
-    if ((process.stderr.rows ?? 0) > 1) {
+    const ttyRows = getTtyRows();
+    if (ttyRows && ttyRows > 1) {
       if (!footerReserved) {
-        process.stderr.write(buildFooterReserveStart(process.stderr.rows ?? 2));
+        process.stderr.write(buildFooterReserveStart(ttyRows));
         footerReserved = true;
       }
-      process.stderr.write(buildBottomFooterRender(process.stderr.rows ?? 2, line));
+      process.stderr.write(buildBottomFooterRender(ttyRows, line));
     } else {
       process.stderr.write(buildFloatingFooterRender(line));
     }
@@ -428,7 +422,7 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
   };
 
   const drawWaitingLine = () => {
-    if (!waitingLine) return;
+    if (!waitingLine || suspended) return;
     renderInlineLine(`${formatSpinner()} ${waitingLine}`);
   };
 
@@ -447,8 +441,9 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     stopSpinner(preserveWaiting);
     if (!hasActiveInlineLine) return;
     if (process.stderr.isTTY) {
-      if (footerReserved && (process.stderr.rows ?? 0) > 1) {
-        process.stderr.write(buildBottomFooterClear(process.stderr.rows ?? 2));
+      const ttyRows = getTtyRows();
+      if (footerReserved && ttyRows && ttyRows > 1) {
+        process.stderr.write(buildBottomFooterClear(ttyRows));
       } else {
         process.stderr.write(buildFloatingFooterClear());
       }
@@ -467,6 +462,9 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       if (useInlineUpdate) {
         preservedWaitingLine = line;
         waitingLine = line;
+        if (suspended) {
+          return;
+        }
         drawWaitingLine();
         startSpinner();
         return;
@@ -484,7 +482,19 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       drawWaitingLine();
       startSpinner();
     },
+    suspend() {
+      suspended = true;
+      stopSpinner(true);
+    },
+    resume() {
+      suspended = false;
+      if (!preservedWaitingLine) return;
+      waitingLine = preservedWaitingLine;
+      drawWaitingLine();
+      startSpinner();
+    },
     flush() {
+      suspended = false;
       stopSpinner();
       if (hasActiveInlineLine) {
         clearInlineLine();
@@ -1403,6 +1413,7 @@ program
   .requiredOption('--task <text>', 'task description')
   .requiredOption('--validate <cmd>', 'validation command that would be used during execution')
   .option('--request-approval', 'also create a persistent approval request for this plan')
+  .option('--edit-mode <mode>', 'edit format for implementation artifacts (full-file|diff|mixed)', 'mixed')
   .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
@@ -1425,13 +1436,12 @@ program
         workspace: options.workspace,
         task: options.task,
         validateCommand: options.validate,
+        editMode: options.editMode,
       }, verboseRenderer ? (event) => {
-        progressRenderer?.flush();
         verboseRenderer.render(event);
       } : undefined, progressRenderer ? (event) => {
         progressRenderer.render(event);
       } : undefined, streamRenderer ? (chunk, label) => {
-        progressRenderer?.flush();
         streamRenderer.streamChunk(chunk, label);
       } : undefined);
     } finally {
@@ -1470,6 +1480,7 @@ program
   .requiredOption('--id <id>', 'approved harness plan id')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds (default: no timeout)')
+  .option('--edit-mode <mode>', 'edit format for implementation artifacts (full-file|diff|mixed)')
   .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
@@ -1491,15 +1502,14 @@ program
       result = await runCodingHarnessFromPlan(config, options.id, {
         maxIterations: Number(options.maxIterations),
         validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
+        editMode: options.editMode,
         onProgress: progressRenderer ? (event) => {
           progressRenderer.render(event);
         } : undefined,
         onLlmTrace: verboseRenderer ? (event) => {
-          progressRenderer?.flush();
           verboseRenderer.render(event);
         } : undefined,
         onLlmToken: streamRenderer ? (chunk, label) => {
-          progressRenderer?.flush();
           streamRenderer.streamChunk(chunk, label);
         } : undefined,
       });
@@ -1520,6 +1530,7 @@ program
   .option('--validate <cmd>', 'validation command to run in the workspace')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--validate-timeout-ms <n>', 'validation timeout in milliseconds (default: no timeout)')
+  .option('--edit-mode <mode>', 'edit format for implementation artifacts (full-file|diff|mixed)', 'mixed')
   .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--require-approved-plan', 'refuse direct execution unless --id references an approved plan artifact')
   .option('--json', 'output raw JSON')
@@ -1548,6 +1559,7 @@ program
     const workspace = resolved?.workspace ?? options.workspace;
     const task = resolved?.task ?? options.task;
     const validateCommand = resolved?.validateCommand ?? options.validate;
+    const editMode = resolved?.editMode ?? options.editMode;
     if (!workspace || !task || !validateCommand) {
       throw new Error('harness-run requires either --id <plan-id> or all of --workspace, --task, and --validate');
     }
@@ -1563,13 +1575,12 @@ program
         validateCommand,
         maxIterations: Number(options.maxIterations),
         validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
+        editMode,
       }, progressRenderer ? (event) => {
         progressRenderer.render(event);
       } : undefined, verboseRenderer ? (event) => {
-        progressRenderer?.flush();
         verboseRenderer.render(event);
       } : undefined, streamRenderer ? (chunk, label) => {
-        progressRenderer?.flush();
         streamRenderer.streamChunk(chunk, label);
       } : undefined);
     } finally {
@@ -2148,6 +2159,7 @@ program
   .option('--validate <cmd>', 'validation command to run in the workspace', 'echo "Task completed"')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--no-auto-approve', 'do not auto-approve the plan; require manual approval')
+  .option('--edit-mode <mode>', 'edit format for implementation artifacts (full-file|diff|mixed)', 'mixed')
   .option('--verbose', 'show formatted raw LLM requests and responses on stderr')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
@@ -2178,13 +2190,12 @@ program
           progressRenderer.render(event);
         } : undefined,
         verboseRenderer ? (event) => {
-          progressRenderer?.flush();
           verboseRenderer.render(event);
         } : undefined,
         streamRenderer ? (chunk, label) => {
-          progressRenderer?.flush();
           streamRenderer.streamChunk(chunk, label);
         } : undefined,
+        options.editMode,
       );
     } finally {
       streamRenderer?.finishStream?.();

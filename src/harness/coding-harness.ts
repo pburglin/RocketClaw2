@@ -12,6 +12,8 @@ import { loadIterationEntries } from './iteration-store.js';
 const exec = promisify(execCb);
 const LLM_WAIT_UPDATE_MS = Math.max(10, Number(process.env.RC2_LLM_WAIT_UPDATE_MS ?? 15000) || 15000);
 
+export type HarnessEditMode = 'full-file' | 'diff' | 'mixed';
+
 export type CodingHarnessResult = {
   ok: boolean;
   workspace: string;
@@ -27,6 +29,7 @@ export type CodingHarnessResult = {
   resumedFrom?: string;
   executedPlanId?: string;
   status?: 'running' | 'completed' | 'failed' | 'interrupted';
+  editMode?: HarnessEditMode;
 };
 
 type RunCodingHarnessResumeState = {
@@ -38,28 +41,69 @@ type RunCodingHarnessResumeState = {
   lastValidationStdout?: string;
   lastValidationStderr?: string;
   executedPlanId?: string;
+  editMode?: HarnessEditMode;
 };
 
-interface FileEdit {
+interface FullFileEdit {
+  kind: 'full-file';
   filePath: string;
   content: string;
 }
 
-function extractCodeBlocks(text: string): FileEdit[] {
-  const edits: FileEdit[] = [];
+interface SearchReplaceEdit {
+  kind: 'search-replace';
+  filePath: string;
+  search: string;
+  replace: string;
+}
+
+type HarnessEdit = FullFileEdit | SearchReplaceEdit;
+
+function extractCodeBlocks(text: string): HarnessEdit[] {
+  const edits: HarnessEdit[] = [];
   const fenceRegex = /```([^\s][^\n]*)\n([\s\S]*?)```/g;
   let match;
   while ((match = fenceRegex.exec(text)) !== null) {
     const filePath = match[1] ?? '';
     const content = match[2] ?? '';
+    if (filePath.trim().startsWith('SEARCH_REPLACE')) continue;
     if (filePath && content.trim()) {
-      edits.push({ filePath: filePath.trim(), content: content.trim() });
+      edits.push({ kind: 'full-file', filePath: filePath.trim(), content: content.trim() });
     }
   }
+
+  const replaceRegex = /```SEARCH_REPLACE\s+([^\n]+)\n([\s\S]*?)```/g;
+  while ((match = replaceRegex.exec(text)) !== null) {
+    const filePath = (match[1] ?? '').trim();
+    const body = match[2] ?? '';
+    const hunkRegex = /<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/g;
+    let hunk;
+    while ((hunk = hunkRegex.exec(body)) !== null) {
+      edits.push({
+        kind: 'search-replace',
+        filePath,
+        search: hunk[1] ?? '',
+        replace: hunk[2] ?? '',
+      });
+    }
+  }
+
   return edits;
 }
 
-async function applyEdits(workspace: string, edits: FileEdit[]): Promise<{ created: string[]; modified: string[] }> {
+function countOccurrences(text: string, search: string): number {
+  if (!search) return 0;
+  let count = 0;
+  let index = 0;
+  while (true) {
+    const found = text.indexOf(search, index);
+    if (found === -1) return count;
+    count += 1;
+    index = found + search.length;
+  }
+}
+
+async function applyEdits(workspace: string, edits: HarnessEdit[]): Promise<{ created: string[]; modified: string[] }> {
   const created: string[] = [];
   const modified: string[] = [];
   for (const edit of edits) {
@@ -68,9 +112,35 @@ async function applyEdits(workspace: string, edits: FileEdit[]): Promise<{ creat
       : path.join(workspace, edit.filePath);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     const exists = await fs.access(filePath).then(() => true).catch(() => false);
-    await fs.writeFile(filePath, edit.content, 'utf8');
-    if (exists) modified.push(edit.filePath);
-    else created.push(edit.filePath);
+
+    if (edit.kind === 'full-file') {
+      await fs.writeFile(filePath, edit.content, 'utf8');
+      if (exists) modified.push(edit.filePath);
+      else created.push(edit.filePath);
+      continue;
+    }
+
+    if (!exists) {
+      throw new Error(`SEARCH_REPLACE target does not exist: ${edit.filePath}`);
+    }
+
+    const current = await fs.readFile(filePath, 'utf8');
+    if (!edit.search) {
+      await fs.writeFile(filePath, `${edit.replace}${current}`, 'utf8');
+      modified.push(edit.filePath);
+      continue;
+    }
+
+    const occurrences = countOccurrences(current, edit.search);
+    if (occurrences === 0) {
+      throw new Error(`SEARCH_REPLACE block not found in ${edit.filePath}`);
+    }
+    if (occurrences > 1) {
+      throw new Error(`SEARCH_REPLACE block is ambiguous in ${edit.filePath}; matched ${occurrences} times`);
+    }
+
+    await fs.writeFile(filePath, current.replace(edit.search, edit.replace), 'utf8');
+    modified.push(edit.filePath);
   }
   return { created, modified };
 }
@@ -171,9 +241,53 @@ export type HarnessPlan = {
   task: string;
   validateCommand: string;
   planText: string;
+  editMode?: HarnessEditMode;
   runId?: string;
   artifactPath?: string;
 };
+
+function buildEditInstructions(editMode: HarnessEditMode): string[] {
+  if (editMode === 'full-file') {
+    return [
+      'Return only complete file contents in fenced blocks where the fence label is the relative file path, for example:',
+      '```src/index.ts',
+      'export const value = 1;',
+      '```',
+      'When changing an existing file, rewrite the full file content in that block.',
+    ];
+  }
+
+  if (editMode === 'diff') {
+    return [
+      'Prefer targeted SEARCH_REPLACE edit blocks for existing files, and use full-file fenced blocks only for brand new files.',
+      'For existing-file edits, return blocks exactly like this:',
+      '```SEARCH_REPLACE src/index.ts',
+      '<<<<<<< SEARCH',
+      'const value = 1;',
+      '=======',
+      'const value = 2;',
+      '>>>>>>> REPLACE',
+      '```',
+      'SEARCH text must match exactly once in the target file.',
+    ];
+  }
+
+  return [
+    'Prefer targeted SEARCH_REPLACE edit blocks for small changes in existing files, and use full-file fenced blocks for brand new files or intentional full rewrites.',
+    'SEARCH_REPLACE format for existing files:',
+    '```SEARCH_REPLACE src/index.ts',
+    '<<<<<<< SEARCH',
+    'const value = 1;',
+    '=======',
+    'const value = 2;',
+    '>>>>>>> REPLACE',
+    '```',
+    'Full-file format for new files or complete rewrites:',
+    '```src/index.ts',
+    'export const value = 2;',
+    '```',
+  ];
+}
 
 async function buildCriticInsight(
   config: AppConfig,
@@ -204,7 +318,7 @@ async function buildCriticInsight(
 
 export async function buildHarnessPlan(
   config: AppConfig,
-  input: { workspace: string; task: string; validateCommand: string },
+  input: { workspace: string; task: string; validateCommand: string; editMode?: HarnessEditMode },
   onLlmTrace?: (event: LlmTraceEvent) => void,
   onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
   onLlmToken?: (chunk: string, label?: string) => void,
@@ -247,6 +361,7 @@ export async function buildHarnessPlan(
     workspace: input.workspace,
     task: input.task,
     validateCommand: input.validateCommand,
+    editMode: input.editMode ?? 'mixed',
     planText: planText.trim(),
   };
 }
@@ -292,7 +407,7 @@ export async function replayHarnessValidation(
 
 export async function runCodingHarness(
   config: AppConfig,
-  input: { workspace: string; task: string; validateCommand: string; maxIterations: number; validateTimeoutMs?: number },
+  input: { workspace: string; task: string; validateCommand: string; maxIterations: number; validateTimeoutMs?: number; editMode?: HarnessEditMode },
   onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
   onLlmTrace?: (event: LlmTraceEvent) => void,
   onLlmToken?: (chunk: string, label?: string) => void,
@@ -307,6 +422,7 @@ export async function runCodingHarness(
 
   const runId = resumeState?.runId ?? `run-${Date.now()}`;
   const completedIterations = resumeState?.previousIterations ?? 0;
+  const editMode = resumeState?.editMode ?? input.editMode ?? 'mixed';
 
   await saveHarnessRun({
     ok: false,
@@ -319,6 +435,7 @@ export async function runCodingHarness(
     lastValidationStdout,
     lastValidationStderr,
     validateCommand: input.validateCommand,
+    editMode,
     resumedFrom: resumeState?.resumedFrom,
     executedPlanId: resumeState?.executedPlanId,
     runId,
@@ -341,9 +458,10 @@ export async function runCodingHarness(
       '',
       'Instructions:',
       '- Generate all necessary code to complete the task',
-      '- Use fenced code blocks with a filename on the first line: ```filename.ext',
-      '- Only output code blocks — no explanatory text outside the blocks',
+      '- Only output edit blocks — no explanatory text outside the blocks',
       `- Validation command that will be run: ${input.validateCommand}`,
+      `- Edit mode to use: ${editMode}`,
+      ...buildEditInstructions(editMode),
       '',
       `Previous validation stdout: ${lastValidationStdout || 'n/a'}`,
       `Previous validation stderr: ${lastValidationStderr || 'n/a'}`,
@@ -384,7 +502,8 @@ export async function runCodingHarness(
         'Requested file contents:',
         requestedContents || '[no requested file contents could be loaded]',
         '',
-        'Now return only code blocks for the files to create/update. Do not ask for more files unless absolutely necessary.',
+        ...buildEditInstructions(editMode),
+        'Now return only edit blocks for the files to create/update. Do not ask for more files unless absolutely necessary.',
       ].join('\n'), `implementation guidance with requested files (iteration ${i})`);
     }
 
@@ -446,6 +565,7 @@ export async function runCodingHarness(
       lastValidationStdout,
       lastValidationStderr,
       validateCommand: input.validateCommand,
+      editMode,
       resumedFrom: resumeState?.resumedFrom,
       executedPlanId: resumeState?.executedPlanId,
       runId,
@@ -463,6 +583,7 @@ export async function runCodingHarness(
         lastValidationStdout,
         lastValidationStderr,
         validateCommand: input.validateCommand,
+        editMode,
       };
       const artifact = await saveHarnessRun({ ...result, runId }, undefined, runId);
       return { ...result, runId: artifact.runId, artifactPath: artifact.path };
@@ -480,6 +601,7 @@ export async function runCodingHarness(
     lastValidationStdout,
     lastValidationStderr,
     validateCommand: input.validateCommand,
+    editMode,
   };
   const artifact = await saveHarnessRun({ ...failed, runId }, undefined, runId);
   return { ...failed, runId: artifact.runId, artifactPath: artifact.path };
@@ -520,6 +642,7 @@ export async function harnessResume(
     lastValidationStdout: String(r.lastValidationStdout ?? ''),
     lastValidationStderr: String(r.lastValidationStderr ?? ''),
     lastCriticInsight: String(r.lastCriticInsight ?? ''),
+    editMode: (r.editMode as HarnessEditMode | undefined) ?? 'mixed',
   });
 
   return { ...result, resumedFrom: runId };
@@ -561,6 +684,7 @@ export async function resumeCodingHarnessRun(
     lastValidationStderr: String(r.lastValidationStderr ?? ''),
     lastCriticInsight: String(r.lastCriticInsight ?? ''),
     executedPlanId: typeof r.executedPlanId === 'string' ? r.executedPlanId : undefined,
+    editMode: (r.editMode as HarnessEditMode | undefined) ?? 'mixed',
   });
 
   return { ...result, resumedFrom: runId };
@@ -570,7 +694,7 @@ export async function resumeCodingHarnessRun(
 export async function runCodingHarnessFromPlan(
   config: AppConfig,
   runId: string,
-  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number; onProgress?: (event: { iteration: number; stage: string; message: string }) => void; onLlmTrace?: (event: LlmTraceEvent) => void; onLlmToken?: (chunk: string, label?: string) => void } = getDefaultProjectRoot(),
+  rootOrOverrides: string | { root?: string; maxIterations?: number; validateTimeoutMs?: number; editMode?: HarnessEditMode; onProgress?: (event: { iteration: number; stage: string; message: string }) => void; onLlmTrace?: (event: LlmTraceEvent) => void; onLlmToken?: (chunk: string, label?: string) => void } = getDefaultProjectRoot(),
 ): Promise<CodingHarnessResult & { executedPlanId: string }> {
   const root = typeof rootOrOverrides === 'string'
     ? rootOrOverrides
@@ -590,6 +714,9 @@ export async function runCodingHarnessFromPlan(
   const onLlmToken = typeof rootOrOverrides === 'string'
     ? undefined
     : rootOrOverrides.onLlmToken;
+  const editModeOverride = typeof rootOrOverrides === 'string'
+    ? undefined
+    : rootOrOverrides.editMode;
 
   const planned = await loadHarnessRun(runId, root);
   if (!planned) throw new Error(`Harness artifact not found: ${runId}`);
@@ -602,8 +729,10 @@ export async function runCodingHarnessFromPlan(
     validateCommand: String(planned.validateCommand ?? ''),
     maxIterations,
     validateTimeoutMs,
+    editMode: editModeOverride ?? (planned.editMode as HarnessEditMode | undefined) ?? 'mixed',
   }, onProgress, onLlmTrace, onLlmToken, {
     executedPlanId: runId,
+    editMode: editModeOverride ?? (planned.editMode as HarnessEditMode | undefined) ?? 'mixed',
   });
   return { ...result, executedPlanId: runId };
 }

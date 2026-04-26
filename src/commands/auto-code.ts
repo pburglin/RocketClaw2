@@ -1,4 +1,4 @@
-import { buildHarnessPlan, resumeCodingHarnessRun, runCodingHarnessFromPlan } from '../harness/coding-harness.js';
+import { buildHarnessPlan, resumeCodingHarnessRun, runCodingHarnessFromPlan, type HarnessEditMode } from '../harness/coding-harness.js';
 import { approveHarnessPlan, findLatestHarnessArtifact, saveHarnessRun } from '../harness/store.js';
 import type { AppConfig } from '../config/load-config.js';
 import { formatCodingHarnessResult } from '../harness/formatters.js';
@@ -39,6 +39,7 @@ export async function runAutoCode(
   onProgress?: (event: AutoCodeProgressEvent) => void,
   onLlmTrace?: (event: LlmTraceEvent) => void,
   onLlmToken?: (chunk: string, label?: string) => void,
+  editMode: HarnessEditMode = 'mixed',
 ): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
     const resumableRun = await findLatestHarnessArtifact((artifact) =>
@@ -98,6 +99,7 @@ export async function runAutoCode(
       workspace,
       task,
       validateCommand,
+      editMode,
     }, onLlmTrace, (event) => onProgress?.(event), onLlmToken);
 
     onProgress?.({ stage: 'planning-complete', message: 'Plan received from model' });

@@ -62,15 +62,16 @@ export async function findLatestHarnessArtifact(
 export async function loadHarnessRunnableInput(
   runId: string,
   root = getDefaultProjectRoot(),
-): Promise<{ workspace: string; task: string; validateCommand: string; approvalStatus?: string } | null> {
+): Promise<{ workspace: string; task: string; validateCommand: string; approvalStatus?: string; editMode?: string } | null> {
   const run = await loadHarnessRun(runId, root);
   if (!run) return null;
   const workspace = String(run.workspace ?? '');
   const task = String(run.task ?? '');
   const validateCommand = String(run.validateCommand ?? '');
   const approvalStatus = typeof run.approvalStatus === 'string' ? run.approvalStatus : undefined;
+  const editMode = typeof run.editMode === 'string' ? run.editMode : undefined;
   if (!workspace || !task || !validateCommand) return null;
-  return { workspace, task, validateCommand, approvalStatus };
+  return { workspace, task, validateCommand, approvalStatus, editMode };
 }
 
 export async function buildHarnessChain(

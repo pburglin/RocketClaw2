@@ -16,6 +16,13 @@ async function hasScriptCommand() {
   }
 }
 
+function stripTerminalNoise(text: string) {
+  return text
+    .replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '')
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '')
+    .replace(/\r/g, '\n');
+}
+
 describe('auto-code PTY footer rendering', () => {
   it('keeps streamed mock LLM text contiguous while showing waiting status in a real PTY', async () => {
     if (!(await hasScriptCommand())) {
@@ -57,11 +64,12 @@ describe('auto-code PTY footer rendering', () => {
       }
 
       const raw = await fs.readFile(transcriptPath, 'utf8');
-      expect(raw).toContain('Streaming model output');
-      expect(raw).toContain('AI is thinking');
-      expect(raw).toContain('Files to touch');
-      expect(raw).toContain('Validation');
-      expect(raw).toContain('package.json');
+      const visible = stripTerminalNoise(raw);
+      expect(visible).toContain('Streaming model output');
+      expect(visible).toContain('AI is thinking');
+      expect(visible).toContain('Summary\n\nFiles to touch\n- package.json\n\nValidation\n- npm test\n\nRisks\n- none');
+      expect(visible).not.toContain('F[s');
+      expect(visible).not.toContain('uiles to to');
     } finally {
       await fs.rm(workspace, { recursive: true, force: true });
       await fs.rm(transcriptPath, { force: true });

@@ -241,4 +241,42 @@ describe('runAutoCode', () => {
     expect(result.ok).toBe(true);
     expect(streamed).toEqual(['plan chunk', 'execution chunk']);
   });
+
+  it('passes edit mode through to planning when auto-code is asked to use diffs', async () => {
+    buildHarnessPlanMock.mockResolvedValue({
+      kind: 'plan',
+      ok: true,
+      approvalStatus: 'draft',
+      workspace: '/tmp/demo',
+      task: 'demo',
+      validateCommand: 'npm test',
+      planText: 'Summary',
+      editMode: 'diff',
+    });
+    saveHarnessRunMock.mockResolvedValue({ runId: 'plan-diff', path: '/tmp/plan-diff.json' });
+    approveHarnessPlanMock.mockResolvedValue({ approvalStatus: 'approved' });
+    runCodingHarnessFromPlanMock.mockResolvedValue({
+      ok: true,
+      iterations: 1,
+      validateCommand: 'npm test',
+      lastGuidance: '',
+      lastValidationStdout: 'ok',
+      lastValidationStderr: '',
+      executedPlanId: 'plan-diff',
+      workspace: '/tmp/demo',
+      task: 'demo',
+    });
+
+    const { runAutoCode } = await import('../src/commands/auto-code.js');
+    const result = await runAutoCode({} as any, '/tmp/demo', 'demo', 'npm test', 1, true, undefined, undefined, undefined, 'diff');
+
+    expect(result.ok).toBe(true);
+    expect(buildHarnessPlanMock).toHaveBeenCalledWith(
+      {} as any,
+      expect.objectContaining({ editMode: 'diff' }),
+      undefined,
+      expect.any(Function),
+      undefined,
+    );
+  });
 });

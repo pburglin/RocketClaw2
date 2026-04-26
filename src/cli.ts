@@ -496,6 +496,7 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     suspend() {
       suspended = true;
       stopSpinner(true);
+      clearInlineLine(true);
     },
     resume() {
       suspended = false;

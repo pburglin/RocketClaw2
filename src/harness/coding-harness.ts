@@ -7,6 +7,7 @@ import { runLlmQuery, type LlmTraceEvent } from '../llm/client.js';
 import { loadHarnessRun, saveHarnessRun } from './store.js';
 import { saveIterationEntry } from './iteration-store.js';
 import { getDefaultProjectRoot } from '../config/app-paths.js';
+import { loadIterationEntries } from './iteration-store.js';
 
 const exec = promisify(execCb);
 const LLM_WAIT_UPDATE_MS = Math.max(10, Number(process.env.RC2_LLM_WAIT_UPDATE_MS ?? 15000) || 15000);
@@ -24,6 +25,18 @@ export type CodingHarnessResult = {
   runId?: string;
   artifactPath?: string;
   resumedFrom?: string;
+  executedPlanId?: string;
+  status?: 'running' | 'completed' | 'failed' | 'interrupted';
+};
+
+type RunCodingHarnessResumeState = {
+  runId?: string;
+  resumedFrom?: string;
+  previousIterations?: number;
+  lastGuidance?: string;
+  lastCriticInsight?: string;
+  lastValidationStdout?: string;
+  lastValidationStderr?: string;
   executedPlanId?: string;
 };
 
@@ -283,17 +296,35 @@ export async function runCodingHarness(
   onProgress?: (event: { iteration: number; stage: string; message: string }) => void,
   onLlmTrace?: (event: LlmTraceEvent) => void,
   onLlmToken?: (chunk: string, label?: string) => void,
+  resumeState?: RunCodingHarnessResumeState,
 ): Promise<CodingHarnessResult> {
-  let lastGuidance = '';
-  let lastCriticInsight = '';
-  let lastValidationStdout = '';
-  let lastValidationStderr = '';
+  let lastGuidance = resumeState?.lastGuidance ?? '';
+  let lastCriticInsight = resumeState?.lastCriticInsight ?? '';
+  let lastValidationStdout = resumeState?.lastValidationStdout ?? '';
+  let lastValidationStderr = resumeState?.lastValidationStderr ?? '';
 
   await initWorkspace(input.workspace);
 
-  const runId = `run-${Date.now()}`;
+  const runId = resumeState?.runId ?? `run-${Date.now()}`;
+  const completedIterations = resumeState?.previousIterations ?? 0;
 
-  for (let i = 1; i <= input.maxIterations; i += 1) {
+  await saveHarnessRun({
+    ok: false,
+    status: 'running',
+    workspace: input.workspace,
+    task: input.task,
+    iterations: completedIterations,
+    lastGuidance,
+    lastCriticInsight: lastCriticInsight || undefined,
+    lastValidationStdout,
+    lastValidationStderr,
+    validateCommand: input.validateCommand,
+    resumedFrom: resumeState?.resumedFrom,
+    executedPlanId: resumeState?.executedPlanId,
+    runId,
+  }, undefined, runId);
+
+  for (let i = completedIterations + 1; i <= input.maxIterations; i += 1) {
     onProgress?.({ iteration: i, stage: 'iteration-start', message: `Starting iteration ${i}` });
     const workspaceContext = await scanWorkspace(input.workspace);
     const basePrompt = [
@@ -404,9 +435,26 @@ export async function runCodingHarness(
       validationStderr: lastValidationStderr,
     });
 
+    await saveHarnessRun({
+      ok: false,
+      status: 'running',
+      workspace: input.workspace,
+      task: input.task,
+      iterations: i,
+      lastGuidance,
+      lastCriticInsight: lastCriticInsight || undefined,
+      lastValidationStdout,
+      lastValidationStderr,
+      validateCommand: input.validateCommand,
+      resumedFrom: resumeState?.resumedFrom,
+      executedPlanId: resumeState?.executedPlanId,
+      runId,
+    }, undefined, runId);
+
     if (ok) {
       const result: CodingHarnessResult = {
         ok: true,
+        status: 'completed',
         workspace: input.workspace,
         task: input.task,
         iterations: i,
@@ -423,6 +471,7 @@ export async function runCodingHarness(
 
   const failed: CodingHarnessResult = {
     ok: false,
+    status: 'failed',
     workspace: input.workspace,
     task: input.task,
     iterations: input.maxIterations,
@@ -465,6 +514,53 @@ export async function harnessResume(
     task,
     validateCommand,
     maxIterations: 1,
+  }, undefined, undefined, undefined, {
+    resumedFrom: runId,
+    lastGuidance,
+    lastValidationStdout: String(r.lastValidationStdout ?? ''),
+    lastValidationStderr: String(r.lastValidationStderr ?? ''),
+    lastCriticInsight: String(r.lastCriticInsight ?? ''),
+  });
+
+  return { ...result, resumedFrom: runId };
+}
+
+export async function resumeCodingHarnessRun(
+  config: AppConfig,
+  runId: string,
+  options: { maxIterations?: number; validateTimeoutMs?: number; onProgress?: (event: { iteration: number; stage: string; message: string }) => void; onLlmTrace?: (event: LlmTraceEvent) => void; onLlmToken?: (chunk: string, label?: string) => void; root?: string } = {},
+): Promise<CodingHarnessResult & { resumedFrom: string }> {
+  const root = options.root ?? getDefaultProjectRoot();
+  const prev = await loadHarnessRun(runId, root);
+  if (!prev) throw new Error(`Run not found: ${runId}`);
+
+  const r = prev as Record<string, unknown>;
+  const workspace = String(r.workspace ?? '');
+  const task = String(r.task ?? '');
+  const validateCommand = String(r.validateCommand ?? '');
+  if (!workspace || !task || !validateCommand) {
+    throw new Error(`Run ${runId} is missing workspace, task, or validateCommand, cannot resume.`);
+  }
+
+  const entries = await loadIterationEntries(runId, root);
+  const previousIterations = entries.length;
+  const storedIterations = Number((r.iterations ?? previousIterations) || 1);
+  const maxIterations = options.maxIterations ?? Math.max(previousIterations + 1, storedIterations);
+
+  const result = await runCodingHarness(config, {
+    workspace,
+    task,
+    validateCommand,
+    maxIterations,
+    validateTimeoutMs: options.validateTimeoutMs,
+  }, options.onProgress, options.onLlmTrace, options.onLlmToken, {
+    resumedFrom: runId,
+    previousIterations,
+    lastGuidance: String(r.lastGuidance ?? ''),
+    lastValidationStdout: String(r.lastValidationStdout ?? ''),
+    lastValidationStderr: String(r.lastValidationStderr ?? ''),
+    lastCriticInsight: String(r.lastCriticInsight ?? ''),
+    executedPlanId: typeof r.executedPlanId === 'string' ? r.executedPlanId : undefined,
   });
 
   return { ...result, resumedFrom: runId };
@@ -506,6 +602,8 @@ export async function runCodingHarnessFromPlan(
     validateCommand: String(planned.validateCommand ?? ''),
     maxIterations,
     validateTimeoutMs,
-  }, onProgress, onLlmTrace, onLlmToken);
+  }, onProgress, onLlmTrace, onLlmToken, {
+    executedPlanId: runId,
+  });
   return { ...result, executedPlanId: runId };
 }

@@ -15,7 +15,9 @@ export async function saveHarnessRun(
   const dir = getHarnessRunsDir(root);
   await fs.mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${runId}.json`);
-  await fs.writeFile(filePath, JSON.stringify({ runId, ...result }, null, 2));
+  const existing = await loadHarnessRun(runId, root);
+  const createdAt = String((result as Record<string, unknown>).createdAt ?? existing?.createdAt ?? new Date().toISOString());
+  await fs.writeFile(filePath, JSON.stringify({ runId, createdAt, updatedAt: new Date().toISOString(), ...existing, ...result }, null, 2));
   return { runId, path: filePath };
 }
 
@@ -28,7 +30,12 @@ export async function loadHarnessRuns(root = getDefaultProjectRoot()): Promise<A
       const raw = await fs.readFile(path.join(dir, file), 'utf8');
       runs.push(JSON.parse(raw));
     }
-    return runs.sort((a, b) => String((b as any).runId).localeCompare(String((a as any).runId)));
+    return runs.sort((a, b) => {
+      const aUpdated = Date.parse(String((a as any).updatedAt ?? (a as any).createdAt ?? '')) || 0;
+      const bUpdated = Date.parse(String((b as any).updatedAt ?? (b as any).createdAt ?? '')) || 0;
+      if (aUpdated !== bUpdated) return bUpdated - aUpdated;
+      return String((b as any).runId).localeCompare(String((a as any).runId));
+    });
   } catch {
     return [];
   }
@@ -42,6 +49,14 @@ export async function loadHarnessRun(runId: string, root = getDefaultProjectRoot
   } catch {
     return null;
   }
+}
+
+export async function findLatestHarnessArtifact(
+  predicate: (artifact: Record<string, unknown>) => boolean,
+  root = getDefaultProjectRoot(),
+): Promise<Record<string, unknown> | null> {
+  const runs = await loadHarnessRuns(root);
+  return runs.find(predicate) ?? null;
 }
 
 export async function loadHarnessRunnableInput(

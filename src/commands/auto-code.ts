@@ -1,5 +1,5 @@
-import { buildHarnessPlan, runCodingHarnessFromPlan } from '../harness/coding-harness.js';
-import { approveHarnessPlan, saveHarnessRun } from '../harness/store.js';
+import { buildHarnessPlan, resumeCodingHarnessRun, runCodingHarnessFromPlan } from '../harness/coding-harness.js';
+import { approveHarnessPlan, findLatestHarnessArtifact, saveHarnessRun } from '../harness/store.js';
 import type { AppConfig } from '../config/load-config.js';
 import { formatCodingHarnessResult } from '../harness/formatters.js';
 import type { LlmTraceEvent } from '../llm/client.js';
@@ -8,6 +8,10 @@ export interface AutoCodeProgressEvent {
   stage: string;
   message: string;
   iteration?: number;
+}
+
+function matchesWorkspaceAndTask(artifact: Record<string, unknown>, workspace: string, task: string): boolean {
+  return String(artifact.workspace ?? '') === workspace && String(artifact.task ?? '') === task;
 }
 
 function buildLlmRecoverySteps(config: AppConfig): string[] {
@@ -37,6 +41,57 @@ export async function runAutoCode(
   onLlmToken?: (chunk: string, label?: string) => void,
 ): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
+    const resumableRun = await findLatestHarnessArtifact((artifact) =>
+      (artifact.kind ?? 'run') !== 'plan'
+      && matchesWorkspaceAndTask(artifact, workspace, task)
+      && artifact.ok !== true,
+    );
+
+    if (resumableRun) {
+      const resumeId = String(resumableRun.runId ?? '');
+      onProgress?.({ stage: 'resume-detected', message: `Resuming previous interrupted run ${resumeId}` });
+      const resumed = await resumeCodingHarnessRun(config, resumeId, {
+        maxIterations,
+        onProgress: (event) => onProgress?.({ stage: event.stage, message: event.message, iteration: event.iteration }),
+        onLlmTrace,
+        onLlmToken,
+      });
+      if (!resumed.ok) {
+        return { ok: false, error: `Execution failed. ${formatCodingHarnessResult(resumed)}`, artifactPath: resumed.artifactPath };
+      }
+      return {
+        ok: true,
+        result: `Autonomous coding resumed successfully.\n${formatCodingHarnessResult(resumed)}`,
+        artifactPath: resumed.artifactPath,
+      };
+    }
+
+    const approvedPlan = await findLatestHarnessArtifact((artifact) =>
+      artifact.kind === 'plan'
+      && artifact.approvalStatus === 'approved'
+      && matchesWorkspaceAndTask(artifact, workspace, task),
+    );
+
+    if (approvedPlan) {
+      const planId = String(approvedPlan.runId ?? '');
+      onProgress?.({ stage: 'resume-plan-detected', message: `Reusing approved plan ${planId}` });
+      const executionResult = await runCodingHarnessFromPlan(config, planId, {
+        maxIterations,
+        onProgress: (event) => onProgress?.({ stage: event.stage, message: event.message, iteration: event.iteration }),
+        onLlmTrace,
+        onLlmToken,
+      });
+      if (!executionResult.ok) {
+        return { ok: false, error: `Execution failed. ${formatCodingHarnessResult(executionResult)}`, planId, artifactPath: executionResult.artifactPath };
+      }
+      return {
+        ok: true,
+        result: `Autonomous coding resumed from approved plan.\n${formatCodingHarnessResult(executionResult)}`,
+        planId,
+        artifactPath: executionResult.artifactPath,
+      };
+    }
+
     onProgress?.({ stage: 'planning-start', message: 'Building implementation plan from the task prompt' });
     // Step 1: Build a plan
     const planResult = await buildHarnessPlan(config, {

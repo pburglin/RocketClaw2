@@ -2,17 +2,21 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const buildHarnessPlanMock = vi.fn();
 const runCodingHarnessFromPlanMock = vi.fn();
+const resumeCodingHarnessRunMock = vi.fn();
 const saveHarnessRunMock = vi.fn();
 const approveHarnessPlanMock = vi.fn();
+const findLatestHarnessArtifactMock = vi.fn();
 
 vi.mock('../src/harness/coding-harness.js', () => ({
   buildHarnessPlan: buildHarnessPlanMock,
   runCodingHarnessFromPlan: runCodingHarnessFromPlanMock,
+  resumeCodingHarnessRun: resumeCodingHarnessRunMock,
 }));
 
 vi.mock('../src/harness/store.js', () => ({
   saveHarnessRun: saveHarnessRunMock,
   approveHarnessPlan: approveHarnessPlanMock,
+  findLatestHarnessArtifact: findLatestHarnessArtifactMock,
 }));
 
 vi.mock('../src/harness/formatters.js', () => ({
@@ -23,8 +27,11 @@ describe('runAutoCode', () => {
   beforeEach(() => {
     buildHarnessPlanMock.mockReset();
     runCodingHarnessFromPlanMock.mockReset();
+    resumeCodingHarnessRunMock.mockReset();
     saveHarnessRunMock.mockReset();
     approveHarnessPlanMock.mockReset();
+    findLatestHarnessArtifactMock.mockReset();
+    findLatestHarnessArtifactMock.mockResolvedValue(null);
   });
 
   it('passes maxIterations through the approved-plan execution path', async () => {
@@ -58,6 +65,60 @@ describe('runAutoCode', () => {
     expect(result.planId).toBe('plan-123');
     expect(result.artifactPath).toBe('/tmp/plan-123.json');
     expect(runCodingHarnessFromPlanMock).toHaveBeenCalledWith({} as any, 'plan-123', expect.objectContaining({ maxIterations: 3 }));
+  });
+
+  it('resumes an incomplete run for the same workspace and task before rebuilding a plan', async () => {
+    findLatestHarnessArtifactMock
+      .mockResolvedValueOnce({ runId: 'run-123', workspace: '/tmp/demo', task: 'demo', ok: false })
+      .mockResolvedValueOnce(null);
+    resumeCodingHarnessRunMock.mockResolvedValue({
+      ok: true,
+      iterations: 2,
+      workspace: '/tmp/demo',
+      task: 'demo',
+      validateCommand: 'npm test',
+      lastGuidance: '',
+      lastValidationStdout: 'ok',
+      lastValidationStderr: '',
+      artifactPath: '/tmp/run-123.json',
+      resumedFrom: 'run-123',
+    });
+
+    const { runAutoCode } = await import('../src/commands/auto-code.js');
+    const result = await runAutoCode({} as any, '/tmp/demo', 'demo', 'npm test', 5, true);
+
+    expect(result.ok).toBe(true);
+    expect(result.result).toContain('resumed successfully');
+    expect(result.artifactPath).toBe('/tmp/run-123.json');
+    expect(buildHarnessPlanMock).not.toHaveBeenCalled();
+    expect(resumeCodingHarnessRunMock).toHaveBeenCalledWith({} as any, 'run-123', expect.objectContaining({ maxIterations: 5 }));
+  });
+
+  it('reuses an approved saved plan before rebuilding a fresh one', async () => {
+    findLatestHarnessArtifactMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ runId: 'plan-999', kind: 'plan', approvalStatus: 'approved', workspace: '/tmp/demo', task: 'demo' });
+    runCodingHarnessFromPlanMock.mockResolvedValue({
+      ok: true,
+      iterations: 1,
+      validateCommand: 'npm test',
+      lastGuidance: '',
+      lastValidationStdout: 'ok',
+      lastValidationStderr: '',
+      executedPlanId: 'plan-999',
+      artifactPath: '/tmp/run-from-plan.json',
+      workspace: '/tmp/demo',
+      task: 'demo',
+    });
+
+    const { runAutoCode } = await import('../src/commands/auto-code.js');
+    const result = await runAutoCode({} as any, '/tmp/demo', 'demo', 'npm test', 3, true);
+
+    expect(result.ok).toBe(true);
+    expect(result.planId).toBe('plan-999');
+    expect(result.result).toContain('resumed from approved plan');
+    expect(buildHarnessPlanMock).not.toHaveBeenCalled();
+    expect(runCodingHarnessFromPlanMock).toHaveBeenCalledWith({} as any, 'plan-999', expect.objectContaining({ maxIterations: 3 }));
   });
 
   it('returns explicit next steps when auto-approve is disabled', async () => {

@@ -196,6 +196,17 @@ function parseOptionalNonNegativeInt(value: unknown, flagName: string): number |
   return parsed;
 }
 
+function parseEditMode(value: unknown): 'full-file' | 'diff' | 'mixed' {
+  if (value === undefined || value === null || value === '') return 'mixed';
+  const normalized = String(value).toLowerCase().trim();
+  if (normalized === 'full-file' || normalized === 'diff' || normalized === 'mixed') {
+    return normalized;
+  }
+  throw new Error(
+    `--edit-mode must be one of: full-file, diff, mixed  (got "${value}")`,
+  );
+}
+
 function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void; suspend?: () => void; resume?: () => void }) {
   const verboseStream = process.stdout;
   const colorEnabled = supportsColor(verboseStream);
@@ -1436,7 +1447,7 @@ program
         workspace: options.workspace,
         task: options.task,
         validateCommand: options.validate,
-        editMode: options.editMode,
+        editMode: parseEditMode(options.editMode),
       }, verboseRenderer ? (event) => {
         verboseRenderer.render(event);
       } : undefined, progressRenderer ? (event) => {
@@ -1502,7 +1513,7 @@ program
       result = await runCodingHarnessFromPlan(config, options.id, {
         maxIterations: Number(options.maxIterations),
         validateTimeoutMs: options.validateTimeoutMs ? Number(options.validateTimeoutMs) : undefined,
-        editMode: options.editMode,
+        editMode: parseEditMode(options.editMode),
         onProgress: progressRenderer ? (event) => {
           progressRenderer.render(event);
         } : undefined,
@@ -1559,7 +1570,7 @@ program
     const workspace = resolved?.workspace ?? options.workspace;
     const task = resolved?.task ?? options.task;
     const validateCommand = resolved?.validateCommand ?? options.validate;
-    const editMode = resolved?.editMode ?? options.editMode;
+    const editMode = parseEditMode(resolved?.editMode ?? options.editMode);
     if (!workspace || !task || !validateCommand) {
       throw new Error('harness-run requires either --id <plan-id> or all of --workspace, --task, and --validate');
     }
@@ -2195,7 +2206,7 @@ program
         streamRenderer ? (chunk, label) => {
           streamRenderer.streamChunk(chunk, label);
         } : undefined,
-        options.editMode,
+        parseEditMode(options.editMode),
       );
     } finally {
       streamRenderer?.finishStream?.();

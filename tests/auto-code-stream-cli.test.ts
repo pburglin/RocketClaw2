@@ -129,4 +129,44 @@ describe('auto-code CLI streaming', () => {
       await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     }
   }, 20000);
+
+  it('keeps waiting-status lines separate from streamed content in verbose mode too', async () => {
+    const { server, baseUrl } = await startMockLlmServer({ chunkDelayMs: 120 });
+    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), 'rocketclaw2-auto-code-verbose-status-'));
+    try {
+      await fs.writeFile(path.join(workspace, 'package.json'), '{"name":"demo"}\n', 'utf8');
+
+      let stderr = '';
+      try {
+        await execFileAsync('./node_modules/.bin/tsx', [
+          'src/cli.ts',
+          '--llm-base-url', baseUrl,
+          '--llm-api-key', 'demo-key',
+          '--llm-model', 'demo-model',
+          'auto-code',
+          '--workspace', workspace,
+          '--task', 'Draft a plan',
+          '--validate', 'npm test',
+          '--no-auto-approve',
+          '--verbose',
+        ], {
+          cwd: process.cwd(),
+          env: { ...process.env, RC2_LLM_WAIT_UPDATE_MS: '30' },
+        });
+      } catch (error) {
+        stderr = (error as { stderr?: string }).stderr ?? '';
+      }
+
+      const lines = stripAnsi(stderr).split('\n').map((line) => line.trim()).filter(Boolean);
+      const mixedLine = lines.find((line) => line.includes('AI is thinking') && (line.includes('Summary') || line.includes('Files to touch') || line.includes('Validation') || line.includes('Risks')));
+
+      expect(lines.some((line) => line.includes('LLM REQUEST'))).toBe(true);
+      expect(lines.some((line) => line.includes('AI is thinking'))).toBe(true);
+      expect(lines.some((line) => line === 'Summary' || line.includes('Files to touch'))).toBe(true);
+      expect(mixedLine).toBeUndefined();
+    } finally {
+      await fs.rm(workspace, { recursive: true, force: true });
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
+  }, 20000);
 });

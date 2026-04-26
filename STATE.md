@@ -62,7 +62,7 @@ Create a Node.js successor to RocketClaw with modern runtime ergonomics, strong 
 - Verbose LLM inspection is more readable for multiline prompts/responses, and auto-code now highlights success vs failure output more clearly with markers/colors.
 - `llm-query` and interactive `chat` now stream model text by default when the provider supports it, with global `--no-stream` available for the older buffered behavior.
 - RocketClaw2 now tracks session-friendly LLM performance stats and exposes them via `llm-stats` plus chat `/llm`, including successes, errors, response time, tokens/second, and tokens/response.
-- `harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now stream LLM text by default with `--no-stream` opt-out; harness/auto-code also keep waiting-status lines separate from streamed text so the footer remains readable, while `--verbose` layers formatted request/response inspection on top.
+- `harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now stream LLM text by default with `--no-stream` opt-out; harness/auto-code also keep waiting-status lines separate from streamed text in both normal and `--verbose` modes so the footer remains readable, while `--verbose` layers formatted request/response inspection on top.
 - The CLI now includes `recall-explain` for human-readable explanations of recall scoring fields and their effect on ranking behavior.
 - The CLI now includes `recall-set` so operators can tune persisted recall scoring values by dot path without manually editing YAML.
 - Recall tuning now exposes valid dot paths and returns clearer invalid-path errors, reducing guesswork when editing scoring values.

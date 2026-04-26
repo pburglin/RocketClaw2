@@ -188,7 +188,7 @@ function parseOptionalNonNegativeInt(value: unknown, flagName: string): number |
   return parsed;
 }
 
-function createVerboseLlmRenderer(options: CliRenderOptions = {}) {
+function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRenderer?: { temporarilyClear?: () => void; redrawWaiting?: () => void }) {
   const colorEnabled = supportsColor(process.stderr);
   const color = (code: number, text: string) => colorEnabled ? `\x1b[${code}m${text}\x1b[0m` : text;
   const header = (text: string) => color(95, text);
@@ -200,6 +200,7 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}) {
   };
   let activeStreamLabel: string | undefined;
   let streamOpen = false;
+  let pending = '';
 
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
@@ -222,9 +223,24 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}) {
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      process.stderr.write(chunk);
+      pending += chunk;
+      let newlineIndex = pending.indexOf('\n');
+      while (newlineIndex !== -1) {
+        const complete = pending.slice(0, newlineIndex + 1);
+        pending = pending.slice(newlineIndex + 1);
+        progressRenderer?.temporarilyClear?.();
+        process.stderr.write(complete);
+        progressRenderer?.redrawWaiting?.();
+        newlineIndex = pending.indexOf('\n');
+      }
     },
     finishStream() {
+      if (pending) {
+        progressRenderer?.temporarilyClear?.();
+        process.stderr.write(`${pending}\n`);
+        pending = '';
+        progressRenderer?.redrawWaiting?.();
+      }
       endStream();
     },
     render(event: LlmTraceEvent) {
@@ -1355,7 +1371,7 @@ program
     });
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', renderOptions);
-    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
     const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {
@@ -1421,7 +1437,7 @@ program
     });
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan-run]', renderOptions);
-    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
     const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {
@@ -1489,7 +1505,7 @@ program
     }
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]', renderOptions);
-    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
     const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {
@@ -2092,7 +2108,7 @@ program
     const autoApprove = !options.noAutoApprove;
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]', renderOptions);
-    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions) : undefined;
+    const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
     const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
     let result;
     try {

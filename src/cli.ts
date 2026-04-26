@@ -200,7 +200,6 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   };
   let activeStreamLabel: string | undefined;
   let streamOpen = false;
-  let pending = '';
 
   const startStream = (streamLabel?: string) => {
     if (streamOpen && activeStreamLabel === streamLabel) return;
@@ -223,24 +222,11 @@ function createVerboseLlmRenderer(options: CliRenderOptions = {}, progressRender
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      pending += chunk;
-      let newlineIndex = pending.indexOf('\n');
-      while (newlineIndex !== -1) {
-        const complete = pending.slice(0, newlineIndex + 1);
-        pending = pending.slice(newlineIndex + 1);
-        progressRenderer?.temporarilyClear?.();
-        process.stderr.write(complete);
-        progressRenderer?.redrawWaiting?.();
-        newlineIndex = pending.indexOf('\n');
-      }
+      // Write to stdout so streamed content stays permanently on screen,
+      // completely independent from stderr status/footer lines
+      process.stdout.write(chunk);
     },
     finishStream() {
-      if (pending) {
-        progressRenderer?.temporarilyClear?.();
-        process.stderr.write(`${pending}\n`);
-        pending = '';
-        progressRenderer?.redrawWaiting?.();
-      }
       endStream();
     },
     render(event: LlmTraceEvent) {
@@ -329,24 +315,11 @@ function createStreamTextRenderer(options: CliRenderOptions = {}, progressRender
   return {
     streamChunk(chunk: string, streamLabel?: string) {
       startStream(streamLabel);
-      pending += chunk;
-      let newlineIndex = pending.indexOf('\n');
-      while (newlineIndex !== -1) {
-        const complete = pending.slice(0, newlineIndex + 1);
-        pending = pending.slice(newlineIndex + 1);
-        progressRenderer?.temporarilyClear?.();
-        process.stderr.write(complete);
-        progressRenderer?.redrawWaiting?.();
-        newlineIndex = pending.indexOf('\n');
-      }
+      // Write to stdout so streamed content stays permanently on screen,
+      // completely independent from stderr status/footer lines
+      process.stdout.write(chunk);
     },
     finishStream() {
-      if (pending) {
-        progressRenderer?.temporarilyClear?.();
-        process.stderr.write(`${pending}\n`);
-        pending = '';
-        progressRenderer?.redrawWaiting?.();
-      }
       endStream();
     },
   };
@@ -375,7 +348,9 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       hasActiveInlineLine = false;
       return;
     }
-    process.stderr.write(`\r\x1b[2K${line}`);
+    // Floating footer approach: save cursor, move down 1 (or newline), clear/write, restore cursor
+    // This keeps the status line positioned below the streaming content
+    process.stderr.write('\x1b[s\n\r\x1b[2K' + line + '\x1b[u');
     hasActiveInlineLine = true;
   };
 
@@ -418,7 +393,8 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
     stopSpinner(preserveWaiting);
     if (!hasActiveInlineLine) return;
     if (process.stderr.isTTY) {
-      process.stderr.write('\r\x1b[2K');
+      // Clear the floating footer line
+      process.stderr.write('\x1b[s\n\r\x1b[2K\x1b[u');
     } else {
       process.stderr.write('\n');
     }

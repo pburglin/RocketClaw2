@@ -82,7 +82,7 @@ describe('auto-code CLI streaming', () => {
         stderr = err.stderr ?? '';
       }
 
-      expect(stdout).toBe('');
+      expect(stdout).toContain('Files to touch');
       expect(stderr).toContain('Streaming model output (plan generation)');
       expect(stderr).toContain('Files to touch');
       expect(requests.some((request) => request.stream === true)).toBe(true);

@@ -378,6 +378,7 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
   let spinnerIndex = 0;
   let waitingLine = '';
   let preservedWaitingLine = '';
+  let neverResume = false;
   const spinnerFrames = ['|', '/', '-', '\\'];
   const colorEnabled = supportsColor(process.stderr);
   const spinnerColors = [39, 45, 51, 87, 123, 159];
@@ -488,7 +489,7 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       clearInlineLine(true);
     },
     redrawWaiting() {
-      if (!preservedWaitingLine) return;
+      if (!preservedWaitingLine || neverResume) return;
       waitingLine = preservedWaitingLine;
       drawWaitingLine();
       startSpinner();
@@ -497,13 +498,10 @@ function createProgressRenderer(defaultPrefix: string, options: CliRenderOptions
       suspended = true;
       stopSpinner(true);
       clearInlineLine(true);
+      neverResume = true;
     },
     resume() {
-      suspended = false;
-      if (!preservedWaitingLine) return;
-      waitingLine = preservedWaitingLine;
-      drawWaitingLine();
-      startSpinner();
+      // Do nothing - streaming has taken over, footer stays gone
     },
     flush() {
       suspended = false;

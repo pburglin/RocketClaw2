@@ -5,8 +5,8 @@
 npm install
 npm run build
 npm test
-rocketclaw2 doctor
-rocketclaw2 init --profile default
+node dist/src/cli.js doctor
+node dist/src/cli.js init --profile default
 ```
 
 What this demonstrates:
@@ -16,11 +16,11 @@ What this demonstrates:
 
 ## 2. Persistent session workflow
 ```bash
-rocketclaw2 session-create --title "Demo Session"
-rocketclaw2 session-list
-rocketclaw2 session-show --id <session-id>
-rocketclaw2 session-append --id <session-id> --role user --text "Pedro prefers WhatsApp updates"
-rocketclaw2 session-stats
+node dist/src/cli.js session-create --title "Demo Session"
+node dist/src/cli.js session-list
+node dist/src/cli.js session-show --id <session-id>
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers WhatsApp updates"
+node dist/src/cli.js session-stats
 ```
 
 What this demonstrates:
@@ -30,12 +30,12 @@ What this demonstrates:
 
 ## 3. Retrieval and semantic memory workflow
 ```bash
-rocketclaw2 search --query WhatsApp
-rocketclaw2 dream
-rocketclaw2 dream-run --dry-run
-rocketclaw2 dream-run
-rocketclaw2 memory-list
-rocketclaw2 recall --query WhatsApp
+node dist/src/cli.js search --query WhatsApp
+node dist/src/cli.js dream
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js dream-run
+node dist/src/cli.js memory-list
+node dist/src/cli.js recall --query WhatsApp
 ```
 
 What this demonstrates:
@@ -48,7 +48,7 @@ What this demonstrates:
 
 ## 4. Interactive chat with memory-aware replies
 ```bash
-rocketclaw2 chat --title "Interactive Demo"
+node dist/src/cli.js chat --title "Interactive Demo"
 ```
 
 Suggested prompt during the session:
@@ -66,13 +66,13 @@ What this demonstrates:
 
 ## 5. WhatsApp native-session operator workflow
 ```bash
-rocketclaw2 whatsapp-config --mode session --self-chat-only true
-rocketclaw2 whatsapp-session --set-token demo-token --phone-number +15551234567
-rocketclaw2 messaging-summary
-rocketclaw2 workspace-status
-rocketclaw2 doctor
-rocketclaw2 next-actions
-rocketclaw2 whatsapp-outbox
+node dist/src/cli.js whatsapp-config --mode session --self-chat-only true
+node dist/src/cli.js whatsapp-session --set-token demo-token --phone-number +15551234567
+node dist/src/cli.js messaging-summary
+node dist/src/cli.js workspace-status
+node dist/src/cli.js doctor
+node dist/src/cli.js next-actions
+node dist/src/cli.js whatsapp-outbox
 ```
 
 What this demonstrates:
@@ -83,11 +83,11 @@ What this demonstrates:
 
 ## 6. Operator JSON mode
 ```bash
-rocketclaw2 session-list --json
-rocketclaw2 session-stats --json
-rocketclaw2 memory-list --json
-rocketclaw2 messaging-summary --json
-rocketclaw2 workspace-status --json
+node dist/src/cli.js session-list --json
+node dist/src/cli.js session-stats --json
+node dist/src/cli.js memory-list --json
+node dist/src/cli.js messaging-summary --json
+node dist/src/cli.js workspace-status --json
 ```
 
 What this demonstrates:
@@ -97,10 +97,10 @@ What this demonstrates:
 
 ## 7. Ralph Loop demo
 ```bash
-rocketclaw2 ralph-loop --preset validate --max-iterations 5
-rocketclaw2 ralph-loop --preset lint --max-iterations 5
-rocketclaw2 ralph-loop --preset pack --max-iterations 3
-rocketclaw2 ralph-loop --command "npm test" --until exit-0 --max-iterations 5
+node dist/src/cli.js ralph-loop --preset validate --max-iterations 5
+node dist/src/cli.js ralph-loop --preset lint --max-iterations 5
+node dist/src/cli.js ralph-loop --preset pack --max-iterations 3
+node dist/src/cli.js ralph-loop --command "npm test" --until exit-0 --max-iterations 5
 ```
 
 What this demonstrates:
@@ -111,12 +111,12 @@ What this demonstrates:
 
 ## 8. Evaluator-Optimizer demo
 ```bash
-rocketclaw2 auto-code --workspace . --task "Draft a small feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
-rocketclaw2 harness-show --id <plan-id> --plan
-rocketclaw2 harness-approve --id <plan-id>
-rocketclaw2 harness-run --id <plan-id> --require-approved-plan
-rocketclaw2 harness-show --id <run-id> --full
-rocketclaw2 harness-iterations --id <run-id> --latest --guidance
+node dist/src/cli.js auto-code --workspace . --task "Draft a small feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js harness-approve --id <plan-id>
+node dist/src/cli.js harness-run --id <plan-id> --require-approved-plan
+node dist/src/cli.js harness-show --id <run-id> --full
+node dist/src/cli.js harness-iterations --id <run-id> --latest --guidance
 ```
 
 What this demonstrates:
@@ -128,14 +128,14 @@ What this demonstrates:
 
 ## 9. Second Brain demo
 ```bash
-rocketclaw2 session-create --title "Second Brain Demo"
-rocketclaw2 session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates"
-rocketclaw2 session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates during work hours"
-rocketclaw2 dream --summary
-rocketclaw2 dream-run --dry-run
-rocketclaw2 remember
-rocketclaw2 recall --query "WhatsApp updates"
-rocketclaw2 memory-list --summary
+node dist/src/cli.js session-create --title "Second Brain Demo"
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates"
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates during work hours"
+node dist/src/cli.js dream --summary
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js remember
+node dist/src/cli.js recall --query "WhatsApp updates"
+node dist/src/cli.js memory-list --summary
 ```
 
 What this demonstrates:
@@ -146,13 +146,13 @@ What this demonstrates:
 
 ## 10. Multi-Agent Teams roadmap demo
 ```bash
-rocketclaw2 team-role-template --role pm --goal "Define acceptance criteria and implementation plan"
-rocketclaw2 team-role-template --role architect --goal "Design the implementation approach"
-rocketclaw2 team-role-template --role reviewer --from-handoff-id <handoff-id>
-rocketclaw2 auto-code --workspace . --task "Define acceptance criteria and implementation plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
-rocketclaw2 harness-show --id <plan-id> --plan
-rocketclaw2 next-actions
-rocketclaw2 workspace-status
+node dist/src/cli.js team-role-template --role pm --goal "Define acceptance criteria and implementation plan"
+node dist/src/cli.js team-role-template --role architect --goal "Design the implementation approach"
+node dist/src/cli.js team-role-template --role reviewer --from-handoff-id <handoff-id>
+node dist/src/cli.js auto-code --workspace . --task "Define acceptance criteria and implementation plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js next-actions
+node dist/src/cli.js workspace-status
 ```
 
 What this demonstrates:
@@ -163,15 +163,15 @@ What this demonstrates:
 
 ## 11. World Model roadmap demo
 ```bash
-rocketclaw2 world-model
-rocketclaw2 handoff-create --preset qa --related-harness-id <run-id> --related-approval-id <approval-id>
-rocketclaw2 handoff-create --preset reviewer --related-harness-id <run-id> --related-approval-id <approval-id>
-rocketclaw2 handoff-create --owner qa --notes "Verify before merge" --related-harness-id <run-id> --related-approval-id <approval-id>
-rocketclaw2 handoff-list
-rocketclaw2 handoff-show --id <handoff-id>
-rocketclaw2 system-summary
-rocketclaw2 next-actions
-rocketclaw2 workspace-status
+node dist/src/cli.js world-model
+node dist/src/cli.js handoff-create --preset qa --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-create --preset reviewer --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-create --owner qa --notes "Verify before merge" --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-list
+node dist/src/cli.js handoff-show --id <handoff-id>
+node dist/src/cli.js system-summary
+node dist/src/cli.js next-actions
+node dist/src/cli.js workspace-status
 ```
 
 What this demonstrates:
@@ -184,9 +184,9 @@ What this demonstrates:
 
 ## 12. Karpathian Loop roadmap demo
 ```bash
-rocketclaw2 telemetry
-rocketclaw2 doctor
-rocketclaw2 next-actions
+node dist/src/cli.js telemetry
+node dist/src/cli.js doctor
+node dist/src/cli.js next-actions
 ```
 
 What this demonstrates:
@@ -196,14 +196,14 @@ What this demonstrates:
 
 ## 13. RocketClaw2 continuous self-improvement demo
 ```bash
-rocketclaw2 system-summary
-rocketclaw2 workspace-status
-rocketclaw2 next-actions
-rocketclaw2 telemetry --period 7 --perf
-rocketclaw2 auto-code --workspace . --task "Implement the next highest-value RocketClaw2 improvement" --validate "npm run build" --max-iterations 5 --no-auto-approve
-rocketclaw2 harness-show --id <plan-id> --plan
-rocketclaw2 harness-approve --id <plan-id>
-rocketclaw2 harness-run --id <plan-id> --require-approved-plan
+node dist/src/cli.js system-summary
+node dist/src/cli.js workspace-status
+node dist/src/cli.js next-actions
+node dist/src/cli.js telemetry --period 7 --perf
+node dist/src/cli.js auto-code --workspace . --task "Implement the next highest-value RocketClaw2 improvement" --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js harness-approve --id <plan-id>
+node dist/src/cli.js harness-run --id <plan-id> --require-approved-plan
 ```
 
 What this demonstrates:

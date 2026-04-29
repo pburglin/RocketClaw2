@@ -63,15 +63,15 @@ rocketclaw2 memory-list --json
 ```bash
 npm run build
 npm test
-rocketclaw2 session-create --title "Demo"
-rocketclaw2 session-list
-rocketclaw2 session-append --id <session-id> --role user --text "Pedro prefers WhatsApp"
-rocketclaw2 recall-profile
-rocketclaw2 search --query WhatsApp
-rocketclaw2 dream
-rocketclaw2 remember
-rocketclaw2 recall --query WhatsApp
-rocketclaw2 chat --session-id <session-id>
+node dist/src/cli.js session-create --title "Demo"
+node dist/src/cli.js session-list
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers WhatsApp"
+node dist/src/cli.js recall-profile
+node dist/src/cli.js search --query WhatsApp
+node dist/src/cli.js dream
+node dist/src/cli.js remember
+node dist/src/cli.js recall --query WhatsApp
+node dist/src/cli.js chat --session-id <session-id>
 ```
 
 ## Built-in agentic skill patterns (roadmap)

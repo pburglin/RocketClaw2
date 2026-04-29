@@ -14,11 +14,11 @@ npm test
 
 ## First local run
 ```bash
-rocketclaw2 doctor
-rocketclaw2 init --profile default
-rocketclaw2 recall-profile
-rocketclaw2 session-create --title "First Session"
-rocketclaw2 session-list
+node dist/src/cli.js doctor
+node dist/src/cli.js init --profile default
+node dist/src/cli.js recall-profile
+node dist/src/cli.js session-create --title "First Session"
+node dist/src/cli.js session-list
 ```
 
 ## Recall scoring config
@@ -26,11 +26,11 @@ rocketclaw2 session-list
 
 You can inspect and tune the active profile with:
 ```bash
-rocketclaw2 recall-profile
-rocketclaw2 recall-explain
-rocketclaw2 recall-set --path sessionSalienceMultiplier --value 4
-rocketclaw2 doctor
-rocketclaw2 config-show
+node dist/src/cli.js recall-profile
+node dist/src/cli.js recall-explain
+node dist/src/cli.js recall-set --path sessionSalienceMultiplier --value 4
+node dist/src/cli.js doctor
+node dist/src/cli.js config-show
 ```
 
 This is the current tuning surface for:
@@ -65,7 +65,7 @@ There is also now a tag-triggered GitHub Actions release workflow for `v*` tags.
 
 If you do not want to link globally, run commands with:
 ```bash
-rocketclaw2 doctor
+node dist/src/cli.js doctor
 ```
 - session recency decay
 - semantic recency decay
@@ -154,11 +154,11 @@ The intent is for future setup flows to help users enable these patterns with sa
 ## Second Brain quick start
 For the most practical built-in memory workflow, start here:
 ```bash
-rocketclaw2 session-create --title "Second Brain Demo"
-rocketclaw2 dream --summary
-rocketclaw2 dream-run --dry-run
-rocketclaw2 remember
-rocketclaw2 recall --query "preference"
+node dist/src/cli.js session-create --title "Second Brain Demo"
+node dist/src/cli.js dream --summary
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js remember
+node dist/src/cli.js recall --query "preference"
 ```
 
 This is the current closest thing to a built-in personal-RAG onboarding path in RocketClaw2.

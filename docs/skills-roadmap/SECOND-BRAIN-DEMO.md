@@ -7,14 +7,14 @@ Capture a preference or recurring fact, promote it into semantic memory, and ret
 
 ## Demo flow
 ```bash
-rocketclaw2 session-create --title "Second Brain Demo"
-rocketclaw2 session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates"
-rocketclaw2 session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates during work hours"
-rocketclaw2 dream --summary
-rocketclaw2 dream-run --dry-run
-rocketclaw2 remember
-rocketclaw2 memory-list --summary
-rocketclaw2 recall --query "WhatsApp updates"
+node dist/src/cli.js session-create --title "Second Brain Demo"
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates"
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates during work hours"
+node dist/src/cli.js dream --summary
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js remember
+node dist/src/cli.js memory-list --summary
+node dist/src/cli.js recall --query "WhatsApp updates"
 ```
 
 ## What this demonstrates

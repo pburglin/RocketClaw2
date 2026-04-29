@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import QRCode from 'qrcode';
 import { saveWhatsAppSession } from './whatsapp-session.js';
 import { getDefaultProjectRoot } from '../config/app-paths.js';
 import { syncWhatsAppOwnPhoneNumber } from './whatsapp-config.js';
@@ -7,22 +6,14 @@ import { syncWhatsAppOwnPhoneNumber } from './whatsapp-config.js';
 export type WhatsAppQrSession = {
   qrToken: string;
   qrText: string;
-  qrDataUrl: string;
   createdAt: string;
 };
 
-export async function createWhatsAppQrSession(): Promise<WhatsAppQrSession> {
+export function createWhatsAppQrSession(): WhatsAppQrSession {
   const qrToken = randomUUID();
-  const qrText = `whatsapp://link-device?token=${qrToken}`;
-  const qrDataUrl = await QRCode.toDataURL(qrText, {
-    margin: 2,
-    width: 256,
-    color: { dark: '#000000', light: '#FFFFFF' },
-  });
   return {
     qrToken,
-    qrText,
-    qrDataUrl,
+    qrText: `whatsapp://link-device?token=${qrToken}`,
     createdAt: new Date().toISOString(),
   };
 }

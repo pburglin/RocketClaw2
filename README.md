@@ -84,9 +84,10 @@ flowchart TD
 npm install
 npm run build
 npm run verify:build
+npm link          # enables "rocketclaw2" as the executable CLI
 npm test
-node dist/src/cli.js doctor
-node dist/src/cli.js run --profile default
+rocketclaw2 doctor
+rocketclaw2 run --profile default
 ```
 
 `npm run build` now also sets executable permissions on `dist/src/cli.js`, so `npm link` produces a runnable `rocketclaw2` command without a manual chmod step.
@@ -557,14 +558,18 @@ Examples:
 
 ## Skill management
 
-RocketClaw2 now includes local skill management commands so operators can manage imported skills in their local agent instance.
+RocketClaw2 includes two categories of skills:
+- **Built-in skills** (Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, Evaluator-Optimizer) — documented in `docs/skills-roadmap/` and available as runtime patterns/features, not importable packages
+- **Imported skills** — external skill packs installed via `skill-import` from URLs like GitHub
 
-### Current commands
+### Commands for imported skills
 - `rocketclaw2 skill-import --url "https://github.com/example/demo-skill.git"`
 - `rocketclaw2 skill-list`
 - `rocketclaw2 skill-update --id demo-skill`
 - `rocketclaw2 skill-update`
 - `rocketclaw2 skill-remove --id demo-skill`
+
+`skill-list` shows skills imported via `skill-import`. Built-in skills are documented and usable but are not listed by `skill-list` since they ship with the runtime.
 
 Imported skills persist their original source URL metadata so later updates know where the skill came from.
 

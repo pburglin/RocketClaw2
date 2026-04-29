@@ -6,15 +6,16 @@ import { loadWhatsAppSession } from '../src/messaging/whatsapp-session.js';
 import { loadAppConfig } from '../src/tools/config-store.js';
 
 describe('whatsapp qr bootstrap', () => {
-  it('creates a qr bootstrap token', () => {
-    const qr = createWhatsAppQrSession();
+  it('creates a qr bootstrap token', async () => {
+    const qr = await createWhatsAppQrSession();
     expect(qr.qrToken.length).toBeGreaterThan(10);
     expect(qr.qrText).toContain('whatsapp://link-device?token=');
+    expect(qr.qrDataUrl).toContain('data:image/png;base64,');
   });
 
   it('authorizes a qr token into a persisted whatsapp session and syncs own phone number into config', async () => {
     const root = path.join(os.tmpdir(), `rocketclaw2-wa-qr-${Date.now()}`);
-    const qr = createWhatsAppQrSession();
+    const qr = await createWhatsAppQrSession();
     await authorizeWhatsAppQrToken({ qrToken: qr.qrToken, phoneNumber: '+15551234567' }, root);
     const session = await loadWhatsAppSession(root);
     const config = await loadAppConfig(root);

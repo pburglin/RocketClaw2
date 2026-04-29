@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import QRCode from 'qrcode';
 import { computeSummary, getLlmPerformanceStats } from './telemetry/store.js';
 import { formatTelemetrySummary, formatPerfReport, formatDeprecationReport, formatLlmPerformanceStats } from './telemetry/formatters.js';
 import { getQueueStats, clearDoneItems } from './queue/store.js';
@@ -1171,7 +1172,7 @@ program
 
 program
   .command('whatsapp-qr')
-  .description('Generate or authorize a simple WhatsApp QR bootstrap session')
+  .description('Generate or authorize a WhatsApp QR bootstrap session')
   .option('--authorize <token>', 'authorize a previously generated QR token')
   .option('--phone-number <number>', 'phone number for the authorized WhatsApp session')
   .action(async (options) => {
@@ -1182,8 +1183,16 @@ program
         : 'Authorized WhatsApp QR session.');
       return;
     }
-    const qr = createWhatsAppQrSession();
-    console.log(JSON.stringify(qr, null, 2));
+    const qr = await createWhatsAppQrSession();
+    console.log('Scan this QR code with your WhatsApp app:');
+    console.log();
+    const ansiQr = await QRCode.toString(qr.qrText, { type: 'terminal', margin: 2 });
+    console.log(ansiQr);
+    console.log();
+    console.log('Or open this URL in a browser to see the QR image:');
+    console.log(`  ${qr.qrDataUrl}`);
+    console.log();
+    console.log('Token:', qr.qrToken);
   });
 
 program

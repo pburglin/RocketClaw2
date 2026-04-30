@@ -21,12 +21,17 @@ if (fs.existsSync(staleLegacyCliPath)) {
   throw new Error('Stale legacy CLI artifact detected at dist/cli.js. Build output should only expose dist/src/cli.js.');
 }
 
+const mode = fs.statSync(builtCliPath).mode & 0o777;
+if ((mode & 0o111) === 0) {
+  throw new Error(`Built CLI entrypoint is not executable: ${expectedBinPath} (mode ${mode.toString(8)})`);
+}
+
 const helpOutput = execFileSync('node', [builtCliPath, '--help'], {
   cwd: root,
   encoding: 'utf8',
 });
 
-for (const command of ['workspace-status', 'config-show', 'whatsapp-session', 'harness-run']) {
+for (const command of ['workspace-status', 'config-show', 'whatsapp-session', 'harness-run', 'harness-run-plan', 'auto-code']) {
   if (!helpOutput.includes(command)) {
     throw new Error(`Built CLI help is missing expected command: ${command}`);
   }

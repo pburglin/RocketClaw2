@@ -3,11 +3,18 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import type { TelemetryEvent, TelemetrySummary } from './schema.js';
 
-const TELEMETRY_PATH = new URL('../../../.telemetry.json', import.meta.url);
+function getTelemetryPath(): URL {
+  const override = process.env.ROCKETCLAW2_TELEMETRY_PATH;
+  if (override) {
+    return new URL(`file://${override}`);
+  }
+  return new URL('../../../.telemetry.json', import.meta.url);
+}
 
 export async function loadTelemetryEvents(): Promise<TelemetryEvent[]> {
+  const telemetryPath = getTelemetryPath();
   try {
-    const raw = await fs.readFile(TELEMETRY_PATH, 'utf8');
+    const raw = await fs.readFile(telemetryPath, 'utf8');
     const parsed = JSON.parse(raw);
     // Parse with zod to validate structure, cast eventType via coerce
     const EventRowSchema = z.object({
@@ -29,8 +36,9 @@ export async function loadTelemetryEvents(): Promise<TelemetryEvent[]> {
 }
 
 export async function saveTelemetryEvents(events: TelemetryEvent[]): Promise<void> {
-  await fs.mkdir(new URL('.', TELEMETRY_PATH).pathname, { recursive: true });
-  await fs.writeFile(TELEMETRY_PATH, JSON.stringify(events, null, 2));
+  const telemetryPath = getTelemetryPath();
+  await fs.mkdir(new URL('.', telemetryPath).pathname, { recursive: true });
+  await fs.writeFile(telemetryPath, JSON.stringify(events, null, 2));
 }
 
 export async function recordEvent(event: Omit<TelemetryEvent, 'id' | 'timestamp'>): Promise<TelemetryEvent> {
@@ -143,4 +151,91 @@ export async function getDeprecationCandidates(threshold = 0.02, lookbackDays = 
     .map(([command, count]) => ({ command, count, proportion: count / total }))
     .filter((c) => c.proportion < threshold)
     .sort((a, b) => a.proportion - b.proportion);
+}
+
+export type LlmPerformanceStats = {
+  periodStart: string;
+  periodEnd: string;
+  sessionId?: string;
+  channel?: string;
+  requestCount: number;
+  successCount: number;
+  errorCount: number;
+  successRate: number;
+  avgResponseTimeMs: number;
+  avgCompletionTokensPerResponse: number;
+  avgTotalTokensPerResponse: number;
+  tokensPerSecond: number;
+  totalCompletionTokens: number;
+  totalPromptTokens: number;
+  totalTokens: number;
+  estimatedResponseCount: number;
+  firstRequestAt?: string;
+  lastResponseAt?: string;
+};
+
+function average(values: number[]): number {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+export function computeLlmPerformanceStatsFromEvents(
+  events: TelemetryEvent[],
+  options: { periodStart?: string; periodEnd?: string; sessionId?: string; channel?: string } = {},
+): LlmPerformanceStats {
+  const end = options.periodEnd ? new Date(options.periodEnd) : new Date();
+  const start = options.periodStart ? new Date(options.periodStart) : new Date(end.getTime() - 7 * 86400 * 1000);
+
+  const window = events.filter((event) => {
+    const t = new Date(event.timestamp);
+    if (t < start || t > end) return false;
+    if (options.sessionId && event.sessionId !== options.sessionId) return false;
+    if (options.channel && event.channel !== options.channel) return false;
+    return ['llm_request', 'llm_response', 'llm_error'].includes(event.eventType);
+  });
+
+  const requests = window.filter((event) => event.eventType === 'llm_request');
+  const responses = window.filter((event) => event.eventType === 'llm_response');
+  const errors = window.filter((event) => event.eventType === 'llm_error');
+
+  const responseDurations = responses
+    .map((event) => event.durationMs ?? 0)
+    .filter((value) => value > 0);
+  const completionTokens = responses.map((event) => Number((event.metadata as Record<string, unknown> | undefined)?.completionTokens ?? 0));
+  const totalTokens = responses.map((event) => Number((event.metadata as Record<string, unknown> | undefined)?.totalTokens ?? 0));
+  const promptTokens = responses.map((event) => Number((event.metadata as Record<string, unknown> | undefined)?.promptTokens ?? 0));
+  const estimatedCount = responses.filter((event) => Boolean((event.metadata as Record<string, unknown> | undefined)?.estimatedTokens)).length;
+
+  const totalCompletion = completionTokens.reduce((sum, value) => sum + value, 0);
+  const totalPrompt = promptTokens.reduce((sum, value) => sum + value, 0);
+  const totalAllTokens = totalTokens.reduce((sum, value) => sum + value, 0);
+  const totalDurationSeconds = responseDurations.reduce((sum, value) => sum + value, 0) / 1000;
+
+  return {
+    periodStart: start.toISOString(),
+    periodEnd: end.toISOString(),
+    sessionId: options.sessionId,
+    channel: options.channel,
+    requestCount: requests.length,
+    successCount: responses.length,
+    errorCount: errors.length,
+    successRate: requests.length > 0 ? responses.length / requests.length : 0,
+    avgResponseTimeMs: average(responseDurations),
+    avgCompletionTokensPerResponse: responses.length > 0 ? totalCompletion / responses.length : 0,
+    avgTotalTokensPerResponse: responses.length > 0 ? totalAllTokens / responses.length : 0,
+    tokensPerSecond: totalDurationSeconds > 0 ? totalCompletion / totalDurationSeconds : 0,
+    totalCompletionTokens: totalCompletion,
+    totalPromptTokens: totalPrompt,
+    totalTokens: totalAllTokens,
+    estimatedResponseCount: estimatedCount,
+    firstRequestAt: requests[0]?.timestamp,
+    lastResponseAt: responses.at(-1)?.timestamp,
+  };
+}
+
+export async function getLlmPerformanceStats(
+  options: { periodStart?: string; periodEnd?: string; sessionId?: string; channel?: string } = {},
+): Promise<LlmPerformanceStats> {
+  const events = await loadTelemetryEvents();
+  return computeLlmPerformanceStatsFromEvents(events, options);
 }

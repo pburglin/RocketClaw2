@@ -44,7 +44,10 @@ To make `rocketclaw2` available as a shell command from this checkout:
 npm install
 npm run build
 npm link
+rocketclaw2 --help
 ```
+
+`npm run build` now also fixes executable permissions on `dist/src/cli.js`, so linked CLI installs work without a manual `chmod +x` step.
 
 Packaging now also runs build verification automatically through `prepack`, so `npm pack` and publish-style workflows re-check the canonical CLI entrypoint before shipping.
 
@@ -118,6 +121,51 @@ rocketclaw2 setup-wizard
 ```
 
 This prints the current runtime posture and recommended next configuration actions.
+
+## Built-in skill setup roadmap
+
+RocketClaw2 v0.2.0 now includes a built-in skills roadmap/doc set for reusable agentic patterns, even though some runtime surfaces are still partial.
+
+Current documented skill packs:
+- Ralph Loop
+- Second Brain
+- Evaluator-Optimizer
+- Multi-Agent Teams
+- World Model
+- Karpathian Loop
+
+Start with these references:
+- `docs/skills-roadmap/BUILT-IN-SKILLS.md`
+- `docs/skills-roadmap/RALPH-LOOP.md`
+- `docs/skills-roadmap/KARPATHIAN-LOOP.md`
+- `docs/skills-roadmap/SECOND-BRAIN.md`
+- `docs/skills-roadmap/SECOND-BRAIN-DEMO.md`
+- `docs/skills-roadmap/EVALUATOR-OPTIMIZER.md`
+- `docs/skills-roadmap/MULTI-AGENT-TEAMS.md`
+- `docs/skills-roadmap/WORLD-MODEL.md`
+
+Recommended operator path:
+- use `rocketclaw2 setup-wizard` to orient on runtime readiness
+- inspect the maturity snapshot with `rocketclaw2 built-in-skills`
+- optionally drill into one pattern with `rocketclaw2 built-in-skills --skill second-brain`
+- for metric-driven improvement, start with `rocketclaw2 karpathian-loop --period 7`
+- for explicit artifact review loops, try `rocketclaw2 evaluator-optimizer --id <run-or-plan-id>`
+- for staged specialist-role workflows, start with `rocketclaw2 team-orchestrate --goal "..."`
+- follow the linked doc flow and demo before trying to generalize the pattern
+
+The intent is for future setup flows to help users enable these patterns with sane defaults instead of manual prompt engineering.
+
+## Second Brain quick start
+For the most practical built-in memory workflow, start here:
+```bash
+node dist/src/cli.js session-create --title "Second Brain Demo"
+node dist/src/cli.js dream --summary
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js remember
+node dist/src/cli.js recall --query "preference"
+```
+
+This is the current closest thing to a built-in personal-RAG onboarding path in RocketClaw2.
 
 ## Readiness check
 

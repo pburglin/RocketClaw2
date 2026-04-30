@@ -20,3 +20,7 @@ export function getMemoryDir(root = getDefaultProjectRoot()): string {
 export function getHarnessRunsDir(root = getDefaultProjectRoot()): string {
   return path.join(root, 'harness-runs');
 }
+
+export function getHandoffsDir(root = getDefaultProjectRoot()): string {
+  return path.join(root, 'handoffs');
+}

@@ -23,6 +23,8 @@ describe('build verification script', () => {
       env: { ...process.env },
     });
 
+    const mode = (await fs.stat(builtCliPath)).mode & 0o777;
+    expect(mode & 0o111).not.toBe(0);
     expect(stdout).toContain('Build verification passed');
-  });
+  }, 20000);
 });

@@ -94,3 +94,132 @@ What this demonstrates:
 - scriptable inspection output
 - parity between machine-readable and human-readable operator flows
 - combined messaging config plus persisted session-state inspection
+
+## 7. Ralph Loop demo
+```bash
+node dist/src/cli.js ralph-loop --preset validate --max-iterations 5
+node dist/src/cli.js ralph-loop --preset lint --max-iterations 5
+node dist/src/cli.js ralph-loop --preset pack --max-iterations 3
+node dist/src/cli.js ralph-loop --command "npm test" --until exit-0 --max-iterations 5
+```
+
+What this demonstrates:
+- autonomous verify-and-fix loops
+- preset-driven operator ergonomics
+- common workflows for validate, lint, and release verification
+- how RocketClaw2 can keep iterating until a validation condition is satisfied
+
+## 8. Evaluator-Optimizer demo
+```bash
+node dist/src/cli.js auto-code --workspace . --task "Draft a small feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js evaluator-optimizer --id <plan-id> --criterion "Plan is reviewable and approved" --decision needs-review --note "Clarify acceptance criteria before approval"
+node dist/src/cli.js harness-approve --id <plan-id>
+node dist/src/cli.js harness-run --id <plan-id> --require-approved-plan
+node dist/src/cli.js evaluator-optimizer --id <run-id> --criterion "Validation passes cleanly" --criterion "No unresolved critic insight remains" --decision rejected --note "Still failing validation"
+node dist/src/cli.js harness-iterations --id <run-id> --latest --guidance
+```
+
+What this demonstrates:
+- producer/evaluator style autonomous refinement
+- using `auto-code` as the fast path to create a governed plan artifact
+- explicit plan-review-run governance
+- explicit criteria-based evaluation plus revision summaries
+- persisted evaluator decisions that stay attached to the reviewed artifact
+- inspection of guidance, critic feedback, and validation outcomes
+- a visible revise-after-critique workflow instead of opaque retries
+
+## 9. Second Brain demo
+```bash
+node dist/src/cli.js session-create --title "Second Brain Demo"
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates"
+node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro prefers short WhatsApp updates during work hours"
+node dist/src/cli.js dream --summary
+node dist/src/cli.js dream-run --dry-run
+node dist/src/cli.js remember
+node dist/src/cli.js recall --query "WhatsApp updates"
+node dist/src/cli.js memory-list --summary
+```
+
+What this demonstrates:
+- ingesting personal context into episodic memory
+- previewing consolidation candidates before promotion
+- promotion into curated semantic memory
+- practical personal-RAG style retrieval for future sessions
+
+## 10. Multi-Agent Teams roadmap demo
+```bash
+node dist/src/cli.js team-orchestrate --goal "Define acceptance criteria and implementation plan" --save-handoffs
+node dist/src/cli.js team-role-template --role pm --goal "Define acceptance criteria and implementation plan"
+node dist/src/cli.js team-role-template --role architect --goal "Design the implementation approach"
+node dist/src/cli.js team-role-template --role reviewer --from-handoff-id <handoff-id>
+node dist/src/cli.js auto-code --workspace . --from-handoff-id <handoff-id> --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js harness-plan --workspace . --from-handoff-id <handoff-id> --validate "npm run build" --request-approval
+node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js harness-list --source-handoff-id <handoff-id>
+node dist/src/cli.js harness-list --source-handoff-any <ancestor-handoff-id>
+node dist/src/cli.js next-actions
+node dist/src/cli.js workspace-status
+```
+
+What this demonstrates:
+- a staged PM → architect → implementer → reviewer workflow
+- immediate emission of durable handoff artifacts for each staged role, linked as a sequential chain
+- first-class scoped brief templates for specialist-role workflows
+- ability to turn a saved handoff directly into a reviewer/QA brief
+- using chained handoff artifacts as first-class inputs to planning/execution flows
+- preserving source handoff lineage on downstream harness plan/run artifacts for later inspection
+- using `auto-code` as the fast path to create a reviewable planning artifact
+- runtime posture inspection before delegating work to future specialist agents
+
+## 11. World Model roadmap demo
+```bash
+node dist/src/cli.js world-model
+node dist/src/cli.js handoff-create --preset qa --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-create --preset reviewer --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-create --owner qa --notes "Verify before merge" --related-harness-id <run-id> --related-approval-id <approval-id>
+node dist/src/cli.js handoff-list
+node dist/src/cli.js handoff-show --id <handoff-id>
+node dist/src/cli.js system-summary
+node dist/src/cli.js next-actions
+node dist/src/cli.js workspace-status
+```
+
+What this demonstrates:
+- a first-class world-model snapshot for planning and handoff
+- persisted handoff artifacts for later review or delegation
+- role-aware PM / architect / implementer / QA handoff presets for faster delegation
+- explicit owner/notes/linked-artifact context for cleaner multi-step handoffs
+- runtime posture inspection before taking action
+- the base layer that future context-modeling workflows will build on
+
+## 12. Karpathian Loop roadmap demo
+```bash
+node dist/src/cli.js karpathian-loop --period 7
+node dist/src/cli.js telemetry
+node dist/src/cli.js doctor
+node dist/src/cli.js next-actions
+```
+
+What this demonstrates:
+- metric- and diagnostics-driven improvement loops
+- using system signals to decide what to improve next
+- the foundation for future data-driven self-improvement workflows
+
+## 13. RocketClaw2 continuous self-improvement demo
+```bash
+node dist/src/cli.js system-summary
+node dist/src/cli.js workspace-status
+node dist/src/cli.js next-actions
+node dist/src/cli.js telemetry --period 7 --perf
+node dist/src/cli.js auto-code --workspace . --task "Implement the next highest-value RocketClaw2 improvement" --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js harness-approve --id <plan-id>
+node dist/src/cli.js harness-run --id <plan-id> --require-approved-plan
+```
+
+What this demonstrates:
+- using World Model commands to orient before acting
+- using Karpathian signals to choose the next improvement target
+- using `auto-code` as the fast path to create a governed improvement plan
+- continuing through explicit review/approval before execution
+- treating RocketClaw2 itself as a system that can improve through its own skill patterns

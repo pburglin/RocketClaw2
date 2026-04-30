@@ -13,6 +13,8 @@ describe('harness plan storage', () => {
       approvalStatus: 'draft',
       workspace: '/tmp/demo',
       approvalRequestId: 'appr-1',
+      sourceHandoffId: 'handoff-5',
+      sourceHandoffChain: ['handoff-1', 'handoff-3', 'handoff-5'],
       task: 'review before write',
       validateCommand: 'npm test',
       planText: 'Summary\n- Do the thing',
@@ -24,6 +26,8 @@ describe('harness plan storage', () => {
     expect(loaded?.kind).toBe('plan');
     expect(loaded?.approvalStatus).toBe('draft');
     expect(loaded?.approvalRequestId).toBe('appr-1');
+    expect(loaded?.sourceHandoffId).toBe('handoff-5');
+    expect(loaded?.sourceHandoffChain).toEqual(['handoff-1', 'handoff-3', 'handoff-5']);
     await fs.rm(root, { recursive: true, force: true });
   });
 });

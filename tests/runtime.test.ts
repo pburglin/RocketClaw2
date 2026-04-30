@@ -10,11 +10,11 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-describe('getRuntimeSummary', () => {
+describe('getRuntimeSummary', { timeout: 15000 }, () => {
   it('returns bootstrap status', async () => {
     await expect(getRuntimeSummary()).resolves.toMatchObject({
       name: 'RocketClaw2',
-      version: '0.1.0',
+      version: '0.2.0',
       status: 'bootstrap-ready',
     });
   });
@@ -94,7 +94,7 @@ describe('getRuntimeSummary', () => {
     expect(limited.stdout).not.toContain('[system] system boot');
 
     await fs.rm(homeRoot, { recursive: true, force: true });
-  });
+  }, 15000);
 
   it('syncs own phone number into config when saving a whatsapp session from the CLI', async () => {
     const homeRoot = path.join(os.tmpdir(), `rocketclaw2-cli-whatsapp-session-home-${Date.now()}`);

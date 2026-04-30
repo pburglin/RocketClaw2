@@ -1,0 +1,204 @@
+# Built-in Skills Roadmap
+
+RocketClaw2 v0.2.0 is expanding from a runtime shell into a guided operator platform with built-in skills for popular agentic patterns.
+
+## Goals
+- make advanced autonomy patterns usable without custom prompt engineering
+- provide opinionated setup guidance and safe defaults
+- teach operators when to use each pattern and when not to
+- bundle demos so new users can try each pattern quickly
+
+## Planned built-in skills
+
+### 1. Ralph Loop
+**Purpose:** verify-and-fix loops for code, configs, and operator tasks.
+
+**Operator value:**
+- repeat until build/test/validation passes
+- make autonomous retries feel predictable instead of magical
+- offer bounded self-correction with visible iteration counts
+
+**Expected product surface:**
+- presets for build, test, lint, docs, migration validation
+- clear stop conditions
+- iteration transcript and summary output
+
+### 2. Karpathian Loop
+**Purpose:** metric-driven iterative self-improvement based on observed outcomes.
+
+**Operator value:**
+- compare runs over time
+- use telemetry, diagnostics, and eval scores to decide what to improve next
+- support slower, deliberate improvement loops instead of one-shot retries
+
+**Expected product surface:**
+- run/eval/adjust cycle
+- scorecards and change summaries
+- prompts that explicitly ask what improved and what regressed
+
+### 3. World Model
+**Purpose:** maintain a structured model of user context, environment, constraints, and task state.
+
+**Operator value:**
+- improve planning quality
+- reduce repeated re-explanation of goals and constraints
+- give future agents a more stable representation of the situation they are working in
+
+**Expected product surface:**
+- explicit context cards
+- environment + constraint summaries
+- handoff artifacts for long-running work
+
+### 4. Second Brain
+**Purpose:** personal data ingestion, retrieval, summarization, and memory curation.
+
+**Operator value:**
+- turn notes, sessions, and personal facts into useful recall
+- bridge episodic memory and curated durable memory
+- create practical personal-RAG workflows for everyday use
+
+**Expected product surface:**
+- ingestion flows
+- promotion/collapse/summarization flows
+- retrieval demos around real personal context
+
+### 5. Multi-Agent Teams
+**Purpose:** coordinate specialized sub-agents with scoped roles and review loops.
+
+**Operator value:**
+- split complex work into smaller owned tracks
+- reduce prompt sprawl by using role-specific briefs
+- make handoffs and quality review explicit
+
+**Expected product surface:**
+- templates for PM / architect / implementer / reviewer roles
+- scoped sub-agent briefs
+- review-and-merge orchestration guidance
+
+### 6. Evaluator-Optimizer
+**Purpose:** pair generation with critique and refinement.
+
+**Operator value:**
+- improve quality for plans, code, docs, and messages
+- avoid single-pass low-quality outputs
+- create visible critique loops instead of silent retries
+
+**Expected product surface:**
+- producer/evaluator role split
+- criteria-driven scoring
+- revision history and final acceptance summary
+
+## Current doc coverage
+- `RALPH-LOOP.md`
+- `SECOND-BRAIN.md`
+- `SECOND-BRAIN-DEMO.md`
+- `EVALUATOR-OPTIMIZER.md`
+- `MULTI-AGENT-TEAMS.md`
+- `WORLD-MODEL.md`
+- `KARPATHIAN-LOOP.md`
+
+## Current maturity snapshot
+
+### Ralph Loop
+- Runtime support: available now
+- Roadmap/setup doc: yes
+- Demo coverage: yes
+- Suggested next step: add richer presets and operator-friendly reporting around common validation workflows
+
+### Karpathian Loop
+- Runtime support: first-class scorecard plus supporting signals (`karpathian-loop`, `telemetry`, `doctor`, `next-actions`, harness history)
+- Roadmap/setup doc: yes
+- Demo coverage: yes (roadmap demo)
+- Suggested next step: add persistent baselines, explicit operator-written scorecards, and richer trend history
+
+### World Model
+- Runtime support: partial building blocks plus persisted handoff artifacts (`world-model`, `handoff-create`, `handoff-list`, `handoff-show`, `system-summary`, `workspace-status`, `next-actions`, recall)
+- Handoff metadata: owner, notes, and optional linked harness/approval lineage
+- Roadmap/setup doc: yes
+- Demo coverage: yes (roadmap demo)
+- Suggested next step: add richer delegation templates beyond the new PM / architect / implementer / QA handoff presets, especially for multi-hop orchestration flows
+
+### Second Brain
+- Runtime support: available now across session memory, dreaming, promotion, and recall
+- Roadmap/setup doc: yes
+- Demo coverage: yes
+- Suggested next step: add more guided onboarding so this feels like a product flow instead of a loose command set
+
+### Multi-Agent Teams
+- Runtime support: first-class staged workflow helper plus supporting building blocks (`team-orchestrate`, chained per-stage handoff persistence, scoped role templates, plans, approvals, harness inspection)
+- Roadmap/setup doc: yes
+- Demo coverage: yes (roadmap demo)
+- Suggested next step: tighten linkage between staged orchestration, saved handoffs, and execution artifacts so later execution can consume the emitted chain directly
+
+### Evaluator-Optimizer
+- Runtime support: first-class evaluator summary plus supporting harness/critic/review loops (`evaluator-optimizer`, persisted decisions, harness plan/run/show, critic insights)
+- Roadmap/setup doc: yes
+- Demo coverage: yes
+- Suggested next step: add richer scoring models and stronger operator review semantics beyond the current heuristic criteria checks and persisted decisions
+
+## Recommended implementation order
+1. Ralph Loop
+2. Second Brain
+3. Evaluator-Optimizer
+4. Multi-Agent Teams
+5. World Model
+6. Karpathian Loop
+
+This order favors patterns that already map onto existing RocketClaw2 capabilities.
+
+## How to use these skills to continuously improve RocketClaw2 itself
+
+Yes — this is one of the strongest uses of the v0.2.0 skill set.
+
+A practical continuous-improvement loop for RocketClaw2 looks like this:
+
+1. **World Model**
+   - inspect current posture with `system-summary`, `workspace-status`, and `next-actions`
+   - capture the active goal, blockers, and constraints before changing anything
+
+2. **Karpathian Loop**
+   - review `telemetry`, `doctor`, and recent harness failures
+   - pick the next improvement target based on real signals, not hunches
+
+3. **Multi-Agent Teams**
+   - split the work into PM/architect/implementer/reviewer style responsibilities
+   - keep role briefs small and explicit
+
+4. **Evaluator-Optimizer**
+   - generate a plan or implementation attempt
+   - critique it against explicit acceptance criteria
+   - revise before treating it as done
+
+5. **Ralph Loop**
+   - run bounded verify-and-fix loops for build/test/lint/docs gates
+   - stop when validation passes or the loop stops teaching you anything useful
+
+6. **Second Brain**
+   - preserve durable lessons, repeated failure patterns, and operator preferences
+   - promote insights that should shape future runs instead of relearning them every time
+
+### Recommended operator cadence
+- daily: World Model + Karpathian Loop to choose the next highest-value fix
+- per change: Multi-Agent Teams + Evaluator-Optimizer for scoped execution and review
+- before merge/release: Ralph Loop for validation
+- periodically: Second Brain to retain lessons and prevent repeated mistakes
+
+### What this should improve over time
+- faster prioritization
+- fewer blind retries
+- clearer handoffs
+- better auditability of why a change happened
+- stronger reuse of lessons from prior runs
+
+This is the difference between having a bag of agentic features and having an actual improvement system.
+
+## Documentation standard for every built-in skill
+Each skill should ship with:
+- what it is for
+- when to use it
+- when not to use it
+- setup requirements
+- operator command flows
+- safety/guardrails
+- one quick demo
+- one realistic end-to-end demo

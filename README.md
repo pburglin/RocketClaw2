@@ -3,7 +3,7 @@
 RocketClaw2 is a Node.js and TypeScript reimplementation of RocketClaw, designed as a modern modular personal AI runtime.
 
 ## Status
-Scaffolding and architecture planning are underway.
+Core runtime, native WhatsApp transport, autonomous harness flows, and the v0.2.0 built-in skills documentation set are in place. Current work is focused on tightening operator guidance, demos, and the next layer of guided autonomy workflows.
 
 ## Goals
 - reimplement RocketClaw in Node.js with TypeScript
@@ -52,8 +52,9 @@ flowchart TD
   MemoryCmds --> SemanticMemory[semantic-memory.json]
   MessageCmds --> ChannelRegistry[Channel registry]
   ChannelRegistry --> WhatsAppPlugin[WhatsApp plugin]
-  WhatsAppPlugin --> MockMode[Mock mode]
+  WhatsAppPlugin --> NativeSession[Native session mode]
   WhatsAppPlugin --> WebhookMode[Webhook bridge mode]
+  WhatsAppPlugin --> MockMode[Mock mode]
 
   AppConfig --> Governance[Tool + channel governance]
   Governance --> MessageCmds
@@ -68,12 +69,16 @@ flowchart TD
 - `docs/SETUP.md` - setup instructions
 - `docs/USAGE.md` - CLI usage
 - `docs/DEMOS.md` - demo scenarios
+- `docs/skills-roadmap/` - built-in skill roadmap, setup guidance, and demos for agentic patterns
+  - includes Ralph Loop, Karpathian Loop, Second Brain, Evaluator-Optimizer, Multi-Agent Teams, and World Model roadmap docs
+  - `BUILT-IN-SKILLS.md` now serves as the maturity snapshot/index for which patterns are documented, demoed, or still only partially implemented
+  - `rocketclaw2 built-in-skills` exposes that maturity snapshot directly in the CLI
 
 ## Next steps
-- audit legacy RocketClaw behavior in more detail
-- bootstrap the TypeScript project
-- implement the initial CLI/runtime shell
-- add setup, usage, demos, diagrams, and screenshots
+- expand the v0.2.0 roadmap around built-in guided skills for agentic autonomy patterns
+- add setup, usage, and demo docs for Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, and Evaluator-Optimizer workflows
+- prototype built-in skill packs and operator-friendly onboarding flows
+- keep improving autonomous execution and verification ergonomics
 
 ## Bootstrap commands
 ```bash
@@ -85,11 +90,41 @@ node dist/src/cli.js doctor
 node dist/src/cli.js run --profile default
 ```
 
+`npm run build` now also sets executable permissions on `dist/src/cli.js`, so `npm link` produces a runnable `rocketclaw2` command without a manual chmod step.
+
 ## Current implementation
-- TypeScript project bootstrap
-- minimal CLI with `doctor` and `run` commands
-- basic config loader
-- initial runtime summary + test
+- TypeScript CLI/runtime with config, governance, diagnostics, and packaging verification
+- persistent sessions plus episodic/semantic memory, recall, dreaming, and promotion flows
+- interactive chat shell with LLM support, recall-aware responses, and persistent session history
+- governed tool and messaging execution with approvals, next-step guidance, and yolo posture controls
+- autonomous coding harness flows (`auto-code`, `harness-plan`, `harness-run`, resume/inspect/validate tooling, and handoff-derived task entrypoints)
+- native WhatsApp transport with QR/bootstrap flows, inbound session bridging, self-chat-only safety, and outbox inspection
+- roadmap/docs/demo coverage for Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, and Evaluator-Optimizer patterns, now surfaced by the `built-in-skills` CLI command
+- a first-class `karpathian-loop` scorecard command for compare/improve review across telemetry, doctor warnings, next actions, and harness outcomes
+- a first-class `evaluator-optimizer` command for explicit criteria checks, persisted review decisions, and revision summaries over saved harness artifacts
+- a first-class `team-orchestrate` command for staged PM → architect → implementer → reviewer workflows with handoff hints and optional chained per-stage handoff artifact persistence
+- persisted world-model handoff artifacts for planning, delegation, and later review
+- `team-role-template` for first-class scoped PM / architect / implementer / reviewer briefs
+
+## Terminal screenshots
+
+### Built-in skills roadmap
+
+<img src="assets/screenshots/built-in-skills.png" alt="Terminal screenshot of rocketclaw2 built-in-skills showing the built-in skills roadmap and operator cadence" width="900" />
+
+Shows the built-in skill maturity snapshot, recommended implementation order, and the day-to-day operator cadence behind the v0.2.0 autonomy patterns.
+
+### Multi-agent team orchestration
+
+<img src="assets/screenshots/team-orchestrate.png" alt="Terminal screenshot of rocketclaw2 team-orchestrate showing PM, architect, implementer, and reviewer stages" width="900" />
+
+Shows the staged PM → architect → implementer → reviewer workflow, including scoped briefs, checklists, and suggested handoff commands.
+
+### Autonomous coding harness planning
+
+<img src="assets/screenshots/harness-plan.png" alt="Terminal screenshot of rocketclaw2 harness-plan showing a reviewable autonomous coding plan artifact" width="900" />
+
+Shows a reviewable harness plan artifact before approval/execution, including the validation command, next step, and plan summary.
 
 ## Validation
 - `npm run build` ✅
@@ -165,6 +200,7 @@ Slack / Discord / iMessage / others]
 - plugin-aware message composer and send flows
 - setup wizard and diagnostics for local or hosted environments
 - operator-friendly terminal UX with clear progress and recovery messaging
+- guided built-in skill onboarding for popular agentic patterns and autonomy workflows
 
 
 ## Session model
@@ -205,6 +241,7 @@ RocketClaw2 now includes retrieval over persisted sessions and unified recall ac
 - `rocketclaw2 search --query "alpha"`
 - `rocketclaw2 recall --query "alpha"`
 - `rocketclaw2 recall --query "alpha" --kind semantic`
+- `rocketclaw2 recall --query "alpha" --kind semantic --limit 5`
 - `rocketclaw2 recall --query "alpha" --summary`
 
 `search` focuses on persisted session messages. `recall` searches both episodic session memory and curated semantic memory together.
@@ -227,6 +264,7 @@ RocketClaw2 now has a first semantic memory store for promoted durable insights.
 ### Current commands
 - `rocketclaw2 memory-list`
 - `rocketclaw2 memory-list --tag preference`
+- `rocketclaw2 memory-list --query "WhatsApp" --limit 5`
 - `rocketclaw2 memory-list --min-salience 40 --summary`
 - `rocketclaw2 remember`
 
@@ -257,6 +295,7 @@ RocketClaw2 now includes more human-readable operator views for sessions and sem
 - `rocketclaw2 session-stats`
 - `rocketclaw2 memory-list`
 - `rocketclaw2 memory-list --tag preference`
+- `rocketclaw2 memory-list --query "WhatsApp" --limit 5`
 - `rocketclaw2 memory-list --min-salience 40 --summary`
 - add `--json` when raw structured output is preferred
 
@@ -316,6 +355,18 @@ RocketClaw2 roadmap now explicitly includes:
 - parent/child task orchestration with isolated sub-agent briefs
 - closed-loop validation with quality gates and self-reflection
 - terminal-first plus message-based operation models
+- built-in skill packs that help operators configure and use proven agentic patterns
+
+### Planned built-in skill packs
+- **Ralph Loop**: autonomous verify-and-fix loops for build/test/lint style workflows
+- **Karpathian Loop**: iterative improvement loops driven by metrics, evaluation, and learning from prior runs
+- **World Model**: structured context modeling so the runtime can reason about user, environment, constraints, and likely next actions
+- **Second Brain**: personal knowledge ingestion, retrieval, summarization, and memory curation workflows
+- **Multi-Agent Teams**: orchestrated specialist roles with scoped briefs, `team-role-template`, handoffs, and review steps
+- **World Model**: explicit tracking of goals, environment state, constraints, blockers, and next actions
+- **Evaluator-Optimizer**: generator/critic workflows where one agent produces work and another scores or refines it
+
+These built-in skills are intended to ship with setup guidance, operator commands, and end-to-end demos so new users can adopt advanced patterns without custom prompt engineering first.
 
 
 Tool access is now configurable in RocketClaw2 config, with explicit risk acknowledgement required before enabling riskier write-capable access levels.
@@ -568,9 +619,20 @@ RocketClaw2 now includes a real LLM query command.
 
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
 - `rocketclaw2 --llm-base-url "https://example.com/v1" --llm-api-key "$API_KEY" --llm-model "custom-model" llm-query --prompt "Say hello"`
+- `rocketclaw2 --no-stream --llm-api-key "$API_KEY" llm-query --prompt "Say hello"`
 
 
 LLM query failures now produce friendlier diagnostics for common provider/auth/config mistakes instead of only raw error text.
+
+## Mock LLM mode
+
+RocketClaw2 now also supports a built-in mock LLM mode for CLI testing and UX debugging.
+
+- `rocketclaw2 --llm-mode mock llm-test`
+- `rocketclaw2 --llm-mode mock llm-query --prompt "Say hello"`
+- `rocketclaw2 --llm-mode mock auto-code --workspace /path/to/repo --task "Draft a plan" --validate "npm test" --no-auto-approve`
+
+Mock mode does not require a real API key. It is mainly intended for automated tests, reproducing terminal UX bugs, and exercising harness flows without depending on an external provider.
 
 
 ## LLM connectivity test
@@ -582,11 +644,43 @@ RocketClaw2 now includes a lightweight LLM connectivity/auth test command.
 
 ## LLM status
 
-RocketClaw2 now includes a compact LLM status command for inspecting current readiness and session override state.
+RocketClaw2 now includes a compact LLM status command for inspecting current readiness, retry posture, and session override state.
 
 - `rocketclaw2 llm-status`
 - `rocketclaw2 --llm-api-key "$API_KEY" llm-status`
+- `rocketclaw2 --llm-retry-count 0 llm-status`
 
+## LLM performance stats
+
+RocketClaw2 now tracks session-friendly LLM performance telemetry, including successful responses, errors, average response time, average tokens per response, and effective completion tokens/second.
+
+- `rocketclaw2 llm-stats`
+- `rocketclaw2 llm-stats --channel cli`
+- `rocketclaw2 llm-stats --session-id <session-id>`
+- interactive `chat` also supports `/llm` for the current chat session
+
+Token counts use provider-reported usage when available and fall back to rough estimates when the provider omits usage fields.
+
+## LLM troubleshooting quick path
+
+When `auto-code`, `harness-run`, or `chat` fails in a way that looks LLM-related, use this order:
+
+1. inspect active config and overrides:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-status`
+2. verify connectivity/auth first:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-test`
+3. verify raw text generation before autonomous flows:
+   - `rocketclaw2 --llm-base-url "$BASE_URL" --llm-api-key "$API_KEY" --llm-model "$MODEL" llm-query --prompt "Reply with exactly: LLM_OK"`
+4. only then retry `auto-code` or `harness-run`
+
+Notes:
+- `--llm-mode mock` is useful when you want to validate CLI behavior without touching a live provider.
+- RocketClaw2 now accepts both plain string completions and newer structured text-part responses from OpenAI-compatible providers.
+- Wrapped provider payload errors such as timeout code `524` are now surfaced as provider timeout diagnostics instead of a misleading no-content failure.
+- Server-side LLM failures now retry by default up to 3 times with exponential backoff, capped at 5 minutes between attempts.
+- Use `--llm-retry-count <n>` to override that retry budget for a CLI session (`0` disables retries; very large values such as `9999` effectively keep retrying).
+- If `llm-query` works with `gpt-4o-mini` but not with your selected model, suspect model/provider compatibility rather than the harness itself.
+- If the provider is not compatible with `/chat/completions`, use a matching base URL or provider shim.
 
 Chat now uses the configured LLM when an API key is available, with recalled memory injected into the prompt. The old memory-listing response is now only a fallback when no LLM is configured.
 
@@ -612,13 +706,21 @@ RocketClaw2 now includes an initial autonomous coding harness command.
 Examples:
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --from-handoff-id <handoff-id> --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Draft the plan only" --validate "npm run build" --max-iterations 5 --no-auto-approve`
 
 This first milestone provides the full outer loop: workspace selection, task description, LLM-guided iteration, validation, and result reporting.
 
+`auto-code --no-auto-approve` now saves a real plan artifact and prints the exact follow-up commands for the governed path: inspect the plan, approve it, then execute it with `harness-run --id <plan-id> --require-approved-plan`.
+
+If you interrupt `auto-code` mid-run with Ctrl+C, rerunning the same workspace/task now resumes from the latest incomplete saved run instead of starting from zero. If there is no incomplete run but there is an approved saved plan for the same workspace/task, `auto-code` reuses that approved plan before creating a brand new one.
+
+If autonomous coding fails before any files are written, start with `llm-status` and an override-based `llm-query` check so you can separate provider/config problems from harness behavior. Use `llm-test` when you specifically want the compact connectivity/auth smoke test.
 
 ### Harness run artifacts
 
-Each `harness-run` now writes a persistent JSON artifact so autonomous runs are inspectable after the fact. This is the first step toward more resumable and auditable autonomous coding workflows.
+Each `harness-run` now writes a persistent JSON artifact so autonomous runs are inspectable after the fact. Those artifacts now persist running/interrupted state too, which lets `auto-code` resume interrupted work and pick the latest matching saved state reliably.
 
 
 ## Harness run inspection
@@ -628,14 +730,18 @@ RocketClaw2 now includes commands to inspect persisted autonomous harness runs.
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-list --kind plan --approval draft`
 - `rocketclaw2 harness-list --kind run --ok false`
+- `rocketclaw2 harness-list --evaluation accepted`
 - `rocketclaw2 harness-list --summary`
+- `rocketclaw2 harness-list --source-handoff-id <handoff-id>`
+- `rocketclaw2 harness-list --source-handoff-any <ancestor-handoff-id>`
+- harness list/summary output now includes source handoff provenance for handoff-launched work
 
 Harness list and show views now include a recommended **Next** action for draft plans, approved plans, successful runs, and failed runs.
 - `rocketclaw2 harness-show --id <run-id>`
 - `rocketclaw2 harness-show --id <run-id> --guidance`
 - `rocketclaw2 harness-show --id <run-id> --validation`
 - `rocketclaw2 harness-show --id <run-id> --plan`
-- `rocketclaw2 harness-show --id <run-id> --lineage`
+- `rocketclaw2 harness-show --id <run-id> --lineage` — includes source handoff provenance plus latest evaluator decision/note and evaluation-history count
 - `rocketclaw2 harness-chain --id <run-id>`
 - `rocketclaw2 harness-chain --id <run-id> --summary`
   - follows related plan plus resume-of-resume lineage, with per-node iteration/pass-fail summaries, latest failure context, and direct drill-down commands
@@ -652,26 +758,40 @@ Harness list and show views now include a recommended **Next** action for draft 
 
 ### How the autonomous coding harness works
 
-The `harness-run` command parses LLM responses for fenced code blocks with a filename on the first line, then writes those files to the target workspace before running the validation command. This is the core loop:
+The `harness-run` command parses LLM responses into either full-file writes or targeted SEARCH/REPLACE edits, then applies them before running the validation command. This is the core loop:
 
-1. LLM generates code files (as fenced blocks with filenames)
-2. Harness writes the files to the workspace
+1. LLM generates implementation output for the chosen edit mode
+2. Harness applies either full-file blocks or targeted SEARCH/REPLACE edits
 3. Validation command runs in the workspace
 4. If validation fails, the loop repeats with failure context
 
-```
+Full-file format:
+
 ```package.json
 { "name": "my-app" }
 ```
+
 ```src/index.js
 console.log("hello");
 ```
+
+Targeted diff format:
+
+```SEARCH_REPLACE src/index.js
+<<<<<<< SEARCH
+console.log("helo");
+=======
+console.log("hello");
+>>>>>>> REPLACE
 ```
 
 
 ### Workspace-aware autonomous coding
 
-The harness now reads the current workspace before each LLM iteration and includes existing file contents in the prompt. It also supports partial edits using `PATCH:filename` fenced blocks with SEARCH/REPLACE sections, so the harness can evolve existing files instead of only overwriting entire files.
+The harness now reads the current workspace before each LLM iteration and includes existing file contents in the prompt. It supports three edit strategies through `--edit-mode <full-file|diff|mixed>`:
+- `full-file` — force complete file rewrites
+- `diff` — prefer targeted SEARCH/REPLACE edits for existing files, using full-file blocks only for brand new files
+- `mixed` — default mode; prefer diffs for small fixes and full-file output for new files or intentional rewrites
 
 Use `rocketclaw2 harness-show --id <run-id> --full` to inspect full stored guidance for a run.
 
@@ -698,7 +818,7 @@ RocketClaw2 also supports iteration-specific inspection with `harness-iterations
 
 ### Plan-gated autonomous execution
 
-RocketClaw2 now supports executing an approved harness plan artifact directly with `harness-run-plan`. This makes the autonomous coding flow more governed: plan first, approve, then execute that approved plan.
+RocketClaw2 supports executing an approved harness plan artifact through a governed path. Preferred operator flow: create the plan with `auto-code --no-auto-approve`, inspect it, approve it, then execute that approved plan with `harness-run --id <plan-id> --require-approved-plan`. Lower-level path: `harness-plan`, `harness-approve`, then `harness-run --id <plan-id> --require-approved-plan`.
 
 
 ### Plan lineage in run artifacts
@@ -708,7 +828,7 @@ Runs launched from approved plans now carry explicit `executedPlanId` lineage so
 
 ### Strict execution control
 
-`harness-run` now supports `--require-approved-plan`, which refuses direct execution and forces the governed path: plan, approve, then run the approved plan with `harness-run-plan`.
+`harness-run` supports `--require-approved-plan`, which refuses direct execution unless `--id` references an approved plan artifact. Preferred governed path: `auto-code --no-auto-approve`, then inspect/approve, then `harness-run --id <plan-id> --require-approved-plan`. Lower-level path: `harness-plan`, `harness-approve`, then `harness-run --id <plan-id> --require-approved-plan`.
 
 
 ### Live WhatsApp listener path
@@ -741,12 +861,24 @@ Inbound WhatsApp commands can now trigger runtime actions and automatically send
 
 ### Interactive harness progress
 
-`harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. This makes long-running autonomous work inspectable while it is happening, not just at the end.
+`harness-run` now prints key progress milestones during execution, including iteration start, guidance retrieval, file application, validation start, and validation result. Long LLM requests also emit periodic `AI is thinking... (<elapsed>s elapsed, press Ctrl+C to cancel)` updates so the CLI feels alive during slower provider/model combinations.
 
+`llm-query` and interactive `chat` now stream model text by default when the provider supports streaming, so the CLI feels live instead of waiting for the full body. Use global `--no-stream` when you want the older buffered behavior.
+
+`harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now stream model text by default; use global `--no-stream` when you want buffered behavior instead. For deeper troubleshooting, those same commands also support `--verbose`, which prints formatted raw LLM requests, responses, and extracted text on stderr. Add global `--timestamps` if you want those human-readable log entries time-prefixed too.
+
+
+### Leaner workspace context
+
+Autonomous harness prompts now default to a compact relative file inventory instead of embedding every file's contents into the first LLM request.
+
+If the model needs more context, it can explicitly ask for a small set of files with a fenced `REQUEST_FILES` block, and RocketClaw2 will re-prompt with only those file contents. This significantly reduces token usage and helps slower providers/models respond faster.
 
 ### Safe validation commands
 
-`harness-run` now applies a timeout to validation commands by default so long-running processes like `npm run dev` do not wedge the CLI forever. Use `--validate-timeout-ms` to tune the limit.
+RocketClaw2 now defaults to no local validation timeout, so long-running validation can continue until completion unless the operator cancels with Ctrl+C.
+
+When you do want a local guardrail for commands like `npm run dev`, pass `--validate-timeout-ms <n>` explicitly.
 
 
 ### Simple local WhatsApp session profile

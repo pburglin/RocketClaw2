@@ -45,3 +45,24 @@ export async function loadIterationEntries(
     return [];
   }
 }
+
+export function filterIterationEntries(
+  entries: IterationEntry[],
+  options?: { latest?: boolean; failedOnly?: boolean; iteration?: number | null },
+): IterationEntry[] {
+  let filtered = entries;
+
+  if (typeof options?.iteration === 'number' && Number.isFinite(options.iteration)) {
+    filtered = filtered.filter((entry) => entry.iteration === options.iteration);
+  }
+
+  if (options?.failedOnly) {
+    filtered = filtered.filter((entry) => entry.validationPassed === false);
+  }
+
+  if (options?.latest && filtered.length > 0) {
+    filtered = [filtered[filtered.length - 1]!];
+  }
+
+  return filtered;
+}

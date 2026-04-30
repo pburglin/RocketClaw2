@@ -5,6 +5,8 @@ import { appendMessage, createSession, loadSession } from '../sessions/store.js'
 import { recallMemory } from '../memory/recall.js';
 import type { AppConfig } from '../config/load-config.js';
 import { runLlmQuery } from '../llm/client.js';
+import { getLlmPerformanceStats } from '../telemetry/store.js';
+import { formatLlmPerformanceStats } from '../telemetry/formatters.js';
 
 function buildFallbackReply(userText: string, recalled: Awaited<ReturnType<typeof recallMemory>>): string {
   if (recalled.length === 0) {
@@ -21,7 +23,12 @@ function buildFallbackReply(userText: string, recalled: Awaited<ReturnType<typeo
   return [`I heard: ${userText}`, 'Relevant memory:', ...top.map((item) => `- ${item}`)].join('\n');
 }
 
-async function buildAssistantReply(config: AppConfig, userText: string, recalled: Awaited<ReturnType<typeof recallMemory>>): Promise<string> {
+async function buildAssistantReply(
+  config: AppConfig,
+  userText: string,
+  recalled: Awaited<ReturnType<typeof recallMemory>>,
+  llmOptions?: { stream?: boolean; onToken?: (chunk: string) => void; sessionId?: string },
+): Promise<string> {
   if (!config.llm.apiKey) {
     return buildFallbackReply(userText, recalled);
   }
@@ -45,10 +52,16 @@ async function buildAssistantReply(config: AppConfig, userText: string, recalled
     userText,
   ].join('\n');
 
-  return runLlmQuery(config, prompt);
+  return runLlmQuery(config, prompt, {
+    channel: 'cli',
+    label: 'chat reply',
+    stream: llmOptions?.stream,
+    onToken: llmOptions?.onToken,
+    sessionId: llmOptions?.sessionId,
+  });
 }
 
-export async function runChatSession(options: { title?: string; sessionId?: string; config: AppConfig }): Promise<void> {
+export async function runChatSession(options: { title?: string; sessionId?: string; config: AppConfig; stream?: boolean }): Promise<void> {
   const session = options.sessionId
     ? await loadSession(options.sessionId)
     : await createSession(options.title ?? 'Interactive Session');
@@ -88,6 +101,7 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
         console.log(`  ${pc.yellow('/exit')}  - end this session`);
         console.log(`  ${pc.yellow('/help')} - show this message`);
         console.log(`  ${pc.yellow('/mem')}  - show recalled memory so far (last message)`);
+        console.log(`  ${pc.yellow('/llm')}  - show LLM performance stats for this chat session`);
         continue;
       }
       if (line === '/mem') {
@@ -108,12 +122,33 @@ export async function runChatSession(options: { title?: string; sessionId?: stri
         }
         continue;
       }
+      if (line === '/llm') {
+        console.log(formatLlmPerformanceStats(await getLlmPerformanceStats({ sessionId: session.id })));
+        continue;
+      }
 
       await appendMessage(session.id, 'user', line);
       const recalled = await recallMemory(line);
-      const reply = await buildAssistantReply(options.config, line, recalled);
+      let streamed = false;
+      const reply = await buildAssistantReply(options.config, line, recalled, options.config.llm.apiKey
+        ? {
+            stream: options.stream,
+            onToken: options.stream ? ((chunk) => {
+              if (!streamed) {
+                process.stdout.write(pc.green('assistant> '));
+                streamed = true;
+              }
+              process.stdout.write(chunk);
+            }) : undefined,
+            sessionId: session.id,
+          }
+        : undefined);
       await appendMessage(session.id, 'assistant', reply);
-      console.log(pc.green('assistant> ') + reply);
+      if (streamed) {
+        process.stdout.write('\n');
+      } else {
+        console.log(pc.green('assistant> ') + reply);
+      }
     }
   } finally {
     rl.close();

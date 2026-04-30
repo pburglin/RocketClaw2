@@ -1,6 +1,6 @@
 {
   "name": "rocketclaw2",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Node.js and TypeScript reimplementation of RocketClaw",
@@ -15,7 +15,7 @@
   },
   "scripts": {
     "clean": "node -e \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\"",
-    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "build": "npm run clean && tsc -p tsconfig.build.json && node scripts/fix-cli-perms.mjs",
     "verify:build": "node scripts/verify-build.mjs",
     "verify:pack": "node scripts/verify-pack.mjs",
     "prepack": "npm run build && npm run verify:build",
@@ -24,7 +24,8 @@
     "start": "node dist/src/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc -p tsconfig.json --noEmit"
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "blessed": "^0.1.81",

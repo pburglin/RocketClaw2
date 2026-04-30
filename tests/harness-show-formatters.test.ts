@@ -16,8 +16,11 @@ describe('harness show formatters', () => {
   });
 
   it('formats a plan-only view', () => {
-    const text = formatHarnessPlanView({ runId: 'plan-1', kind: 'plan', approvalStatus: 'draft', validateCommand: 'npm test', planText: 'Summary\n- do thing' });
+    const text = formatHarnessPlanView({ runId: 'plan-1', kind: 'plan', approvalStatus: 'draft', sourceHandoffId: 'handoff-3', sourceHandoffChain: ['handoff-1', 'handoff-3'], evaluationDecision: 'needs-review', validateCommand: 'npm test', planText: 'Summary\n- do thing' });
     expect(text).toContain('Approval: draft');
+    expect(text).toContain('Source handoff: handoff-3');
+    expect(text).toContain('Source handoff chain: handoff-1 -> handoff-3');
+    expect(text).toContain('Evaluation decision: needs-review');
     expect(text).toContain('Next: Approve plan: rocketclaw2 harness-approve --id plan-1');
     expect(text).toContain('Summary');
   });
@@ -28,9 +31,14 @@ describe('harness show formatters', () => {
   });
 
   it('formats a lineage view', () => {
-    const text = formatHarnessLineageView({ runId: 'run-3', executedPlanId: 'plan-9', resumedFrom: 'run-2', approvalRequestId: 'apr-1', ok: false });
+    const text = formatHarnessLineageView({ runId: 'run-3', executedPlanId: 'plan-9', resumedFrom: 'run-2', approvalRequestId: 'apr-1', approvalStatus: 'approved', sourceHandoffId: 'handoff-7', sourceHandoffChain: ['handoff-1', 'handoff-4', 'handoff-7'], evaluationDecision: 'accepted', evaluationNote: 'Looks good after review.', evaluationHistory: [{ decision: 'needs-review' }, { decision: 'accepted' }], evaluatedAt: '2026-04-29T14:45:00.000Z', ok: false });
     expect(text).toContain('Executed plan: plan-9');
     expect(text).toContain('Resumed from: run-2');
     expect(text).toContain('Approval request: apr-1');
+    expect(text).toContain('Source handoff: handoff-7');
+    expect(text).toContain('Source handoff chain: handoff-1 -> handoff-4 -> handoff-7');
+    expect(text).toContain('Evaluation decision: accepted');
+    expect(text).toContain('Evaluation note: Looks good after review.');
+    expect(text).toContain('Evaluation history entries: 2');
   });
 });

@@ -14,8 +14,10 @@ describe('harness run plan lineage formatting', () => {
       validateCommand: 'npm test',
       runId: 'run-123',
       executedPlanId: 'plan-456',
+      sourceHandoffId: 'handoff-9',
       artifactPath: '/tmp/run-123.json',
     });
     expect(text).toContain('Executed plan: plan-456');
+    expect(text).toContain('Source handoff: handoff-9');
   });
 });

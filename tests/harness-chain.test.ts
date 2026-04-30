@@ -17,6 +17,8 @@ describe('harness chain', () => {
       task: 'ship feature',
       validateCommand: 'npm test',
       planText: 'Summary',
+      sourceHandoffId: 'handoff-9',
+      sourceHandoffChain: ['handoff-1', 'handoff-4', 'handoff-9'],
       runId: 'plan-1',
     }, root, 'plan-1');
 
@@ -100,6 +102,8 @@ describe('harness chain', () => {
 
     const text = formatHarnessChain(chain);
     expect(text).toContain('PLAN: plan-1');
+    expect(text).toContain('Source handoff: handoff-9');
+    expect(text).toContain('Source handoff chain: handoff-1 -> handoff-4 -> handoff-9');
     expect(text).toContain('Inspect plan: rocketclaw2 harness-show --id plan-1 --plan');
     expect(text).toContain('Root iterations: 1');
     expect(text).toContain('Inspect root: rocketclaw2 harness-show --id run-1');
@@ -111,6 +115,8 @@ describe('harness chain', () => {
     const summary = formatHarnessChainSummary(chain);
     expect(summary).toContain('ROOT RUN: run-1 (run)');
     expect(summary).toContain('PLAN: plan-1');
+    expect(summary).toContain('Source handoff: handoff-9');
+    expect(summary).toContain('Source handoff chain: handoff-1 -> handoff-4 -> handoff-9');
     expect(summary).toContain('Resumes: 2');
     expect(summary).toContain('Inspect root: rocketclaw2 harness-show --id run-1');
     expect(summary).toContain('Inspect plan: rocketclaw2 harness-show --id plan-1 --plan');

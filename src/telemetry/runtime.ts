@@ -16,12 +16,12 @@ export async function recordLlmRequest(channel: string, sessionId?: string): Pro
   await recordEvent({ channel, eventType: 'llm_request', sessionId, ok: true });
 }
 
-export async function recordLlmResponse(channel: string, durationMs: number, sessionId?: string): Promise<void> {
-  await recordEvent({ channel, eventType: 'llm_response', durationMs, sessionId, ok: true });
+export async function recordLlmResponse(channel: string, durationMs: number, sessionId?: string, metadata?: Record<string, unknown>): Promise<void> {
+  await recordEvent({ channel, eventType: 'llm_response', durationMs, sessionId, metadata, ok: true });
 }
 
-export async function recordLlmError(channel: string, error: string, sessionId?: string): Promise<void> {
-  await recordEvent({ channel, eventType: 'llm_error', error, sessionId, ok: false });
+export async function recordLlmError(channel: string, error: string, sessionId?: string, metadata?: Record<string, unknown>): Promise<void> {
+  await recordEvent({ channel, eventType: 'llm_error', error, sessionId, metadata, ok: false });
 }
 
 export async function recordRateLimit(channel: string, sessionId?: string): Promise<void> {

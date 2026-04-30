@@ -5,6 +5,42 @@ All notable changes will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-04-24
+
+### Added
+
+#### Autonomous coding + LLM operator ergonomics
+- `world-model` command and related roadmap/workflow documentation
+- clearer LLM troubleshooting flows across README and usage docs
+- better parsing for structured LLM response content and wrapped provider error payloads
+- `auto-code` recovery steps for model/provider/auth/timeout-style failures
+- live autonomous-coding progress updates for planning/execution phases
+- periodic `AI is thinking... (<elapsed>s elapsed, press Ctrl+C to cancel)` feedback during slow model calls
+- retry-budget visibility in `llm-status`, `system-summary`, and `world-model`, including CLI override awareness
+- persisted handoff artifacts via `handoff-create`, `handoff-list`, and `handoff-show` for world-model-based planning and delegation
+- handoff metadata for owner/notes plus optional linked harness and approval lineage
+- handoff views now suggest concrete follow-up commands derived from linked approval/harness state
+- role-aware handoff presets for PM, architect, implementer, and QA delegation flows
+- first-class `team-role-template` command for scoped PM / architect / implementer / reviewer briefs
+- aligned handoff preset vocabulary so `reviewer` now works alongside `qa`
+- `team-role-template` can now derive a scoped brief directly from a saved handoff artifact
+- harness planning/execution logs now show the same animated LLM wait state, use `AI is thinking...`, support optional `--timestamps`, and color/marker-code success vs error output more clearly
+- verbose LLM inspection now preserves human-readable multiline prompt content instead of collapsing it into escaped `\\n` sequences
+- autonomous-coding timeout recovery steps now favor more actionable override-based LLM checks
+- `llm-query` and interactive `chat` now stream model text by default when supported, with global `--no-stream` to fall back to buffered output
+- added `llm-stats` plus chat `/llm` to track session-friendly LLM performance metrics like successes, errors, response time, tokens/second, and tokens/response
+- `harness-plan`, `harness-run`, `harness-run-plan`, `auto-code`, and `llm-query` now stream model text by default (with `--no-stream` opt-out), and harness/auto-code streaming now keeps waiting-status lines separate from streamed LLM text in both normal and `--verbose` modes for a cleaner footer-style UX; `--verbose` still adds live request/response inspection
+
+### Changed
+- default local harness validation timeout is now disabled unless `--validate-timeout-ms` is explicitly provided
+- governed autonomous-coding guidance now consistently prefers `auto-code --no-auto-approve` before lower-level harness-plan flows
+- recovery commands now include more copy/paste-ready LLM override flags
+
+### Fixed
+- misleading “no message content” failures for structured provider responses
+- wrapped provider timeout payloads such as code `524` now surface as timeout diagnostics instead of generic content failures
+- stricter harness and plan-gated guidance now better matches the preferred operator workflow
+
 ## [0.1.0] - 2026-04-13
 
 ### Added

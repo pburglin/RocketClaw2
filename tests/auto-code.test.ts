@@ -204,6 +204,40 @@ describe('runAutoCode', () => {
     expect(events.some((event) => event.stage === 'execution-complete')).toBe(true);
   });
 
+  it('persists source handoff lineage onto saved plans when provided', async () => {
+    buildHarnessPlanMock.mockResolvedValue({
+      kind: 'plan',
+      ok: true,
+      approvalStatus: 'draft',
+      workspace: '/tmp/demo',
+      task: 'demo',
+      validateCommand: 'npm test',
+      planText: 'Summary',
+    });
+    saveHarnessRunMock.mockResolvedValue({ runId: 'plan-321', path: '/tmp/plan-321.json' });
+
+    const { runAutoCode } = await import('../src/commands/auto-code.js');
+    const result = await runAutoCode(
+      {} as any,
+      '/tmp/demo',
+      'demo',
+      'npm test',
+      3,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      'mixed',
+      { sourceHandoffId: 'handoff-9', sourceHandoffChain: ['handoff-1', 'handoff-5', 'handoff-9'] },
+    );
+
+    expect(result.planId).toBe('plan-321');
+    expect(saveHarnessRunMock).toHaveBeenCalledWith(expect.objectContaining({
+      sourceHandoffId: 'handoff-9',
+      sourceHandoffChain: ['handoff-1', 'handoff-5', 'handoff-9'],
+    }));
+  });
+
   it('passes LLM token callbacks through planning and execution helpers', async () => {
     const streamed: string[] = [];
     buildHarnessPlanMock.mockImplementation(async (_config: unknown, _input: unknown, _onTrace: unknown, _onProgress: unknown, onToken?: (chunk: string, label?: string) => void) => {

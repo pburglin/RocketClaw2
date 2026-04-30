@@ -114,7 +114,12 @@ describe('auto-code CLI streaming', () => {
       });
 
       const stderrLines = stripAnsi(stderr).split('\n').map((line) => line.trim()).filter(Boolean);
-      const mixedLine = stderrLines.find((line) => line.includes('AI is thinking') && (line.includes('Plan received') || line.includes('Saved plan') || line.includes('Manual approval' || line.includes('LLM REQUEST'))));
+      const mixedLine = stderrLines.find((line) => line.includes('AI is thinking') && (
+        line.includes('Plan received')
+        || line.includes('Saved plan')
+        || line.includes('Manual approval')
+        || line.includes('LLM REQUEST')
+      ));
 
       expect(code).toBe(1);
       expect(stderrLines.some((line) => line.includes('AI is thinking'))).toBe(true);

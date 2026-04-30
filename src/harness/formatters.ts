@@ -48,6 +48,7 @@ export function formatHarnessPlan(plan: HarnessPlan): string {
     `Edit mode: ${plan.editMode ?? 'mixed'}`,
     `Run ID: ${plan.runId || 'n/a'}`,
     `Artifact: ${plan.artifactPath || 'n/a'}`,
+    `Source handoff: ${String((plan as unknown as Record<string, unknown>).sourceHandoffId ?? 'n/a')}`,
     `Next: ${describeHarnessNextStep(plan as unknown as Record<string, unknown>)}`,
     '',
     plan.planText || 'n/a',
@@ -58,9 +59,17 @@ export function formatHarnessChainSummary(chain: { root: Record<string, unknown>
   const root = chain.root;
   const rootId = String(root.runId ?? 'n/a');
   const rootSummary = chain.nodeSummaries[rootId];
+  const sourceHandoffId = String(root.sourceHandoffId ?? chain.plan?.sourceHandoffId ?? 'n/a');
+  const sourceHandoffChain = Array.isArray(root.sourceHandoffChain)
+    ? root.sourceHandoffChain.join(' -> ') || 'n/a'
+    : Array.isArray(chain.plan?.sourceHandoffChain)
+      ? chain.plan.sourceHandoffChain.join(' -> ') || 'n/a'
+      : 'n/a';
   return [
     `ROOT RUN: ${rootId} (${String(root.kind ?? 'run')})`,
     `PLAN: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    `Source handoff: ${sourceHandoffId}`,
+    `Source handoff chain: ${sourceHandoffChain}`,
     `Resumes: ${chain.resumes.length}`,
     `Root latest passed: ${rootSummary?.latestPassed ?? 'n/a'}`,
     `Inspect root: rocketclaw2 harness-show --id ${rootId}`,
@@ -72,6 +81,12 @@ export function formatHarnessChainSummary(chain: { root: Record<string, unknown>
 export function formatHarnessChain(chain: { root: Record<string, unknown>; plan: Record<string, unknown> | null; resumes: Record<string, unknown>[]; nodeSummaries: Record<string, { iterations: number; latestPassed: boolean | null; latestStdout: string; latestStderr: string; latestCriticInsight: string }> }): string {
   const root = chain.root;
   const rootSummary = chain.nodeSummaries[String(root.runId ?? '')];
+  const sourceHandoffId = String(root.sourceHandoffId ?? chain.plan?.sourceHandoffId ?? 'n/a');
+  const sourceHandoffChain = Array.isArray(root.sourceHandoffChain)
+    ? root.sourceHandoffChain.join(' -> ') || 'n/a'
+    : Array.isArray(chain.plan?.sourceHandoffChain)
+      ? chain.plan.sourceHandoffChain.join(' -> ') || 'n/a'
+      : 'n/a';
   const resumeLines = chain.resumes.length > 0
     ? chain.resumes.map((item, index) => {
         const runId = String(item.runId);
@@ -88,6 +103,8 @@ export function formatHarnessChain(chain: { root: Record<string, unknown>; plan:
     `ROOT RUN: ${String(root.runId ?? 'n/a')} (${String(root.kind ?? 'run')})`,
     `Task: ${String(root.task ?? 'n/a')}`,
     `PLAN: ${chain.plan ? String(chain.plan.runId ?? 'n/a') : 'n/a'}`,
+    `Source handoff: ${sourceHandoffId}`,
+    `Source handoff chain: ${sourceHandoffChain}`,
     chain.plan ? `Inspect plan: rocketclaw2 harness-show --id ${String(chain.plan.runId)} --plan` : null,
     `Root iterations: ${rootSummary?.iterations ?? 0}`,
     `Inspect root: rocketclaw2 harness-show --id ${String(root.runId ?? 'n/a')}`,
@@ -109,6 +126,12 @@ export function formatHarnessLineageView(item: Record<string, unknown>): string 
     `Resumed from: ${String(item.resumedFrom ?? 'n/a')}`,
     `Approval request: ${String(item.approvalRequestId ?? 'n/a')}`,
     `Approval status: ${String(item.approvalStatus ?? 'n/a')}`,
+    `Source handoff: ${String(item.sourceHandoffId ?? 'n/a')}`,
+    `Source handoff chain: ${Array.isArray(item.sourceHandoffChain) ? item.sourceHandoffChain.join(' -> ') || 'n/a' : 'n/a'}`,
+    `Evaluation decision: ${String(item.evaluationDecision ?? 'n/a')}`,
+    `Evaluation note: ${String(item.evaluationNote ?? 'n/a')}`,
+    `Evaluation history entries: ${Array.isArray(item.evaluationHistory) ? item.evaluationHistory.length : 0}`,
+    `Evaluated at: ${String(item.evaluatedAt ?? 'n/a')}`,
     `Next: ${describeHarnessNextStep(item)}`,
   ].join('\n');
 }
@@ -138,6 +161,9 @@ export function formatHarnessPlanView(item: Record<string, unknown>): string {
   return [
     `Run ID: ${String(item.runId ?? 'n/a')}`,
     `Approval: ${String(item.approvalStatus ?? 'n/a')}`,
+    `Source handoff: ${String(item.sourceHandoffId ?? 'n/a')}`,
+    `Source handoff chain: ${Array.isArray(item.sourceHandoffChain) ? item.sourceHandoffChain.join(' -> ') || 'n/a' : 'n/a'}`,
+    `Evaluation decision: ${String(item.evaluationDecision ?? 'n/a')}`,
     `Validate command: ${String(item.validateCommand ?? 'n/a')}`,
     `Next: ${describeHarnessNextStep(item)}`,
     '',
@@ -169,6 +195,7 @@ export function formatCodingHarnessResult(result: CodingHarnessResult): string {
     `Edit mode: ${result.editMode || 'mixed'}`,
     `Run ID: ${result.runId || 'n/a'}`,
     `Executed plan: ${result.executedPlanId || 'n/a'}`,
+    `Source handoff: ${result.sourceHandoffId || 'n/a'}`,
     `Artifact: ${result.artifactPath || 'n/a'}`,
     `Next: ${describeHarnessNextStep(result as unknown as Record<string, unknown>)}`,
   ].join('\n');

@@ -35,7 +35,9 @@ Recommended prerequisites:
 5. summarize open risks and next actions
 
 ## Current RocketClaw2 fit
-RocketClaw2 already has partial building blocks for this pattern:
+RocketClaw2 now has a first-class staged workflow helper on top of the original building blocks:
+- `team-orchestrate` for a default PM → architect → implementer → reviewer flow with scoped briefs and handoff hints
+- `team-orchestrate --save-handoffs` to persist one handoff artifact per staged role as a true PM → architect → implementer → reviewer chain when you want durable delegation objects immediately
 - scoped role templates via `team-role-template`
 - `team-role-template --from-handoff-id <handoff-id>` to derive role briefs from saved handoff context
 - harness planning
@@ -47,9 +49,10 @@ RocketClaw2 already has partial building blocks for this pattern:
 ## Good defaults
 - keep role scope narrow
 - require explicit handoff outputs
+- use `--save-handoffs` when the workflow itself should leave durable delegation artifacts behind, especially when later roles should inherit earlier context through a handoff chain
 - avoid having multiple agents modify the same artifact blindly
 - always end with reviewer or QA validation
 
 ## Demo ideas
-- PM creates acceptance criteria with `team-role-template`, implementer changes code, reviewer validates
+- PM creates acceptance criteria with `team-orchestrate`, implementer changes code, reviewer validates
 - architect writes migration plan, implementer executes, QA checks results

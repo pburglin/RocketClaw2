@@ -8,37 +8,34 @@ import YAML from 'yaml';
 
 const execFileAsync = promisify(execFile);
 
-describe('team-role-template CLI', () => {
-  it('prints a scoped reviewer template', async () => {
+describe('team-orchestrate CLI', () => {
+  it('prints a staged workflow from a direct goal', async () => {
     const { stdout } = await execFileAsync('./node_modules/.bin/tsx', [
       'src/cli.ts',
-      'team-role-template',
-      '--role', 'qa',
-      '--goal', 'Validate the release handoff flow',
-      '--scope', 'Review only release handoff UX and validation posture.',
-      '--input', 'handoff-show output', 'CHANGELOG.md',
-      '--deliverable', 'A concise QA verdict',
+      'team-orchestrate',
+      '--goal', 'Ship a scoped runtime ergonomics improvement',
+      '--input', 'README.md', 'docs/USAGE.md',
     ], {
       cwd: process.cwd(),
       env: { ...process.env },
     });
 
-    expect(stdout).toContain('RocketClaw2 Team Role Template');
-    expect(stdout).toContain('Role: Reviewer/QA');
-    expect(stdout).toContain('Goal: Validate the release handoff flow');
-    expect(stdout).toContain('Inputs: handoff-show output; CHANGELOG.md');
-    expect(stdout).toContain('A concise QA verdict');
+    expect(stdout).toContain('RocketClaw2 Multi-Agent Team Workflow');
+    expect(stdout).toContain('1. PM (pm)');
+    expect(stdout).toContain('4. REVIEWER (reviewer)');
+    expect(stdout).toContain('handoff-create --preset implementer');
+    expect(stdout).not.toContain('Saved handoff:');
   }, 15000);
 
-  it('can derive a reviewer template from a saved handoff artifact', async () => {
-    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'rocketclaw2-team-role-template-home-'));
+  it('can derive a staged workflow from a saved handoff artifact', async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'rocketclaw2-team-orchestrate-home-'));
     const root = path.join(home, '.rocketclaw2');
     await fs.mkdir(path.join(root, 'handoffs'), { recursive: true });
     await fs.writeFile(path.join(root, 'config.yaml'), YAML.stringify({ messaging: { whatsapp: { enabled: false, mode: 'mock' } } }));
-    await fs.writeFile(path.join(root, 'handoffs', 'handoff-123.json'), JSON.stringify({
-      id: 'handoff-123',
+    await fs.writeFile(path.join(root, 'handoffs', 'handoff-456.json'), JSON.stringify({
+      id: 'handoff-456',
       createdAt: '2026-04-25T20:00:00.000Z',
-      activeGoal: 'Validate the release handoff flow',
+      activeGoal: 'Coordinate a release handoff',
       environment: {
         profile: 'default',
         llmModel: 'demo-model',
@@ -57,29 +54,26 @@ describe('team-role-template CLI', () => {
       constraints: ['Review release handoff UX only.'],
       risks: ['Need to preserve packaging checks.'],
       nextActions: ['Review pending approvals with `rocketclaw2 approval-pending`.'],
+      handoffChain: [],
       source: {
         worldModelCommand: 'rocketclaw2 world-model',
         workspaceStatusCommand: 'rocketclaw2 workspace-status',
         systemSummaryCommand: 'rocketclaw2 system-summary',
       },
-      handoffChain: [],
     }, null, 2));
 
     const { stdout } = await execFileAsync('./node_modules/.bin/tsx', [
       'src/cli.ts',
-      'team-role-template',
-      '--role', 'reviewer',
-      '--from-handoff-id', 'handoff-123',
+      'team-orchestrate',
+      '--from-handoff-id', 'handoff-456',
       '--input', 'CHANGELOG.md',
     ], {
       cwd: process.cwd(),
       env: { ...process.env, HOME: home },
     });
 
-    expect(stdout).toContain('Role: Reviewer/QA');
-    expect(stdout).toContain('Goal: Validate the release handoff flow');
-    expect(stdout).toContain('Review release handoff UX only.');
-    expect(stdout).toContain('Handoff artifact handoff-123');
+    expect(stdout).toContain('Goal: Coordinate a release handoff');
+    expect(stdout).toContain('Handoff artifact handoff-456');
     expect(stdout).toContain('CHANGELOG.md');
 
     await fs.rm(home, { recursive: true, force: true });

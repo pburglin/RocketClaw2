@@ -106,10 +106,10 @@ RocketClaw2 v0.2.0 is expanding from a runtime shell into a guided operator plat
 - Suggested next step: add richer presets and operator-friendly reporting around common validation workflows
 
 ### Karpathian Loop
-- Runtime support: partial building blocks only (`telemetry`, `doctor`, `next-actions`, harness history)
+- Runtime support: first-class scorecard plus supporting signals (`karpathian-loop`, `telemetry`, `doctor`, `next-actions`, harness history)
 - Roadmap/setup doc: yes
 - Demo coverage: yes (roadmap demo)
-- Suggested next step: turn signals into a first-class compare/improve workflow with explicit scorecards
+- Suggested next step: add persistent baselines, explicit operator-written scorecards, and richer trend history
 
 ### World Model
 - Runtime support: partial building blocks plus persisted handoff artifacts (`world-model`, `handoff-create`, `handoff-list`, `handoff-show`, `system-summary`, `workspace-status`, `next-actions`, recall)
@@ -125,16 +125,16 @@ RocketClaw2 v0.2.0 is expanding from a runtime shell into a guided operator plat
 - Suggested next step: add more guided onboarding so this feels like a product flow instead of a loose command set
 
 ### Multi-Agent Teams
-- Runtime support: partial building blocks (scoped role templates, plans, approvals, harness inspection, specialist-role guidance)
+- Runtime support: first-class staged workflow helper plus supporting building blocks (`team-orchestrate`, chained per-stage handoff persistence, scoped role templates, plans, approvals, harness inspection)
 - Roadmap/setup doc: yes
 - Demo coverage: yes (roadmap demo)
-- Suggested next step: add clearer orchestration handoff artifacts and multi-hop role workflows on top of the new templates
+- Suggested next step: tighten linkage between staged orchestration, saved handoffs, and execution artifacts so later execution can consume the emitted chain directly
 
 ### Evaluator-Optimizer
-- Runtime support: available in partial form via harness plan/critic/review loops
+- Runtime support: first-class evaluator summary plus supporting harness/critic/review loops (`evaluator-optimizer`, persisted decisions, harness plan/run/show, critic insights)
 - Roadmap/setup doc: yes
 - Demo coverage: yes
-- Suggested next step: make evaluator criteria and revision summaries explicit instead of implicit in harness runs
+- Suggested next step: add richer scoring models and stronger operator review semantics beyond the current heuristic criteria checks and persisted decisions
 
 ## Recommended implementation order
 1. Ralph Loop

@@ -28,6 +28,8 @@ export type CodingHarnessResult = {
   artifactPath?: string;
   resumedFrom?: string;
   executedPlanId?: string;
+  sourceHandoffId?: string;
+  sourceHandoffChain?: string[];
   status?: 'running' | 'completed' | 'failed' | 'interrupted';
   editMode?: HarnessEditMode;
 };
@@ -41,6 +43,8 @@ type RunCodingHarnessResumeState = {
   lastValidationStdout?: string;
   lastValidationStderr?: string;
   executedPlanId?: string;
+  sourceHandoffId?: string;
+  sourceHandoffChain?: string[];
   editMode?: HarnessEditMode;
 };
 
@@ -241,6 +245,8 @@ export type HarnessPlan = {
   task: string;
   validateCommand: string;
   planText: string;
+  sourceHandoffId?: string;
+  sourceHandoffChain?: string[];
   editMode?: HarnessEditMode;
   runId?: string;
   artifactPath?: string;
@@ -570,6 +576,8 @@ export async function runCodingHarness(
       editMode,
       resumedFrom: resumeState?.resumedFrom,
       executedPlanId: resumeState?.executedPlanId,
+      sourceHandoffId: resumeState?.sourceHandoffId,
+      sourceHandoffChain: resumeState?.sourceHandoffChain,
       runId,
     }, undefined, runId);
 
@@ -586,6 +594,8 @@ export async function runCodingHarness(
         lastValidationStderr,
         validateCommand: input.validateCommand,
         editMode,
+        sourceHandoffId: resumeState?.sourceHandoffId,
+        sourceHandoffChain: resumeState?.sourceHandoffChain,
       };
       const artifact = await saveHarnessRun({ ...result, runId }, undefined, runId);
       return { ...result, runId: artifact.runId, artifactPath: artifact.path };
@@ -604,6 +614,8 @@ export async function runCodingHarness(
     lastValidationStderr,
     validateCommand: input.validateCommand,
     editMode,
+    sourceHandoffId: resumeState?.sourceHandoffId,
+    sourceHandoffChain: resumeState?.sourceHandoffChain,
   };
   const artifact = await saveHarnessRun({ ...failed, runId }, undefined, runId);
   return { ...failed, runId: artifact.runId, artifactPath: artifact.path };
@@ -734,6 +746,10 @@ export async function runCodingHarnessFromPlan(
     editMode: editModeOverride ?? (planned.editMode as HarnessEditMode | undefined) ?? 'mixed',
   }, onProgress, onLlmTrace, onLlmToken, {
     executedPlanId: runId,
+    sourceHandoffId: typeof planned.sourceHandoffId === 'string' ? planned.sourceHandoffId : undefined,
+    sourceHandoffChain: Array.isArray(planned.sourceHandoffChain)
+      ? planned.sourceHandoffChain.filter((item): item is string => typeof item === 'string')
+      : undefined,
     editMode: editModeOverride ?? (planned.editMode as HarnessEditMode | undefined) ?? 'mixed',
   });
   return { ...result, executedPlanId: runId };

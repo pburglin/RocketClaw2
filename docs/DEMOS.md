@@ -112,10 +112,10 @@ What this demonstrates:
 ## 8. Evaluator-Optimizer demo
 ```bash
 node dist/src/cli.js auto-code --workspace . --task "Draft a small feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
-node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js evaluator-optimizer --id <plan-id> --criterion "Plan is reviewable and approved" --decision needs-review --note "Clarify acceptance criteria before approval"
 node dist/src/cli.js harness-approve --id <plan-id>
 node dist/src/cli.js harness-run --id <plan-id> --require-approved-plan
-node dist/src/cli.js harness-show --id <run-id> --full
+node dist/src/cli.js evaluator-optimizer --id <run-id> --criterion "Validation passes cleanly" --criterion "No unresolved critic insight remains" --decision rejected --note "Still failing validation"
 node dist/src/cli.js harness-iterations --id <run-id> --latest --guidance
 ```
 
@@ -123,6 +123,8 @@ What this demonstrates:
 - producer/evaluator style autonomous refinement
 - using `auto-code` as the fast path to create a governed plan artifact
 - explicit plan-review-run governance
+- explicit criteria-based evaluation plus revision summaries
+- persisted evaluator decisions that stay attached to the reviewed artifact
 - inspection of guidance, critic feedback, and validation outcomes
 - a visible revise-after-critique workflow instead of opaque retries
 
@@ -146,18 +148,26 @@ What this demonstrates:
 
 ## 10. Multi-Agent Teams roadmap demo
 ```bash
+node dist/src/cli.js team-orchestrate --goal "Define acceptance criteria and implementation plan" --save-handoffs
 node dist/src/cli.js team-role-template --role pm --goal "Define acceptance criteria and implementation plan"
 node dist/src/cli.js team-role-template --role architect --goal "Design the implementation approach"
 node dist/src/cli.js team-role-template --role reviewer --from-handoff-id <handoff-id>
-node dist/src/cli.js auto-code --workspace . --task "Define acceptance criteria and implementation plan" --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js auto-code --workspace . --from-handoff-id <handoff-id> --validate "npm run build" --max-iterations 5 --no-auto-approve
+node dist/src/cli.js harness-plan --workspace . --from-handoff-id <handoff-id> --validate "npm run build" --request-approval
 node dist/src/cli.js harness-show --id <plan-id> --plan
+node dist/src/cli.js harness-list --source-handoff-id <handoff-id>
+node dist/src/cli.js harness-list --source-handoff-any <ancestor-handoff-id>
 node dist/src/cli.js next-actions
 node dist/src/cli.js workspace-status
 ```
 
 What this demonstrates:
+- a staged PM → architect → implementer → reviewer workflow
+- immediate emission of durable handoff artifacts for each staged role, linked as a sequential chain
 - first-class scoped brief templates for specialist-role workflows
 - ability to turn a saved handoff directly into a reviewer/QA brief
+- using chained handoff artifacts as first-class inputs to planning/execution flows
+- preserving source handoff lineage on downstream harness plan/run artifacts for later inspection
 - using `auto-code` as the fast path to create a reviewable planning artifact
 - runtime posture inspection before delegating work to future specialist agents
 
@@ -184,6 +194,7 @@ What this demonstrates:
 
 ## 12. Karpathian Loop roadmap demo
 ```bash
+node dist/src/cli.js karpathian-loop --period 7
 node dist/src/cli.js telemetry
 node dist/src/cli.js doctor
 node dist/src/cli.js next-actions

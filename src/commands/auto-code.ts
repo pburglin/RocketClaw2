@@ -40,6 +40,7 @@ export async function runAutoCode(
   onLlmTrace?: (event: LlmTraceEvent) => void,
   onLlmToken?: (chunk: string, label?: string) => void,
   editMode: HarnessEditMode = 'mixed',
+  sourceHandoff?: { sourceHandoffId: string; sourceHandoffChain: string[] },
 ): Promise<{ ok: boolean; result?: string; error?: string; planId?: string; artifactPath?: string; approvalRequired?: boolean; nextSteps?: string[] }> {
   try {
     const resumableRun = await findLatestHarnessArtifact((artifact) =>
@@ -105,7 +106,7 @@ export async function runAutoCode(
     onProgress?.({ stage: 'planning-complete', message: 'Plan received from model' });
 
     // Step 2: Save the plan to get a runId
-    const planArtifact = await saveHarnessRun(planResult);
+    const planArtifact = await saveHarnessRun({ ...planResult, ...sourceHandoff });
     onProgress?.({ stage: 'plan-saved', message: `Saved plan artifact ${planArtifact.runId}` });
 
     // Step 3: Approve the plan (automatically if requested)

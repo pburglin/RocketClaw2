@@ -72,6 +72,7 @@ flowchart TD
 - `docs/skills-roadmap/` - built-in skill roadmap, setup guidance, and demos for agentic patterns
   - includes Ralph Loop, Karpathian Loop, Second Brain, Evaluator-Optimizer, Multi-Agent Teams, and World Model roadmap docs
   - `BUILT-IN-SKILLS.md` now serves as the maturity snapshot/index for which patterns are documented, demoed, or still only partially implemented
+  - `rocketclaw2 built-in-skills` exposes that maturity snapshot directly in the CLI
 
 ## Next steps
 - expand the v0.2.0 roadmap around built-in guided skills for agentic autonomy patterns
@@ -96,11 +97,34 @@ node dist/src/cli.js run --profile default
 - persistent sessions plus episodic/semantic memory, recall, dreaming, and promotion flows
 - interactive chat shell with LLM support, recall-aware responses, and persistent session history
 - governed tool and messaging execution with approvals, next-step guidance, and yolo posture controls
-- autonomous coding harness flows (`auto-code`, `harness-plan`, `harness-run`, resume/inspect/validate tooling)
+- autonomous coding harness flows (`auto-code`, `harness-plan`, `harness-run`, resume/inspect/validate tooling, and handoff-derived task entrypoints)
 - native WhatsApp transport with QR/bootstrap flows, inbound session bridging, self-chat-only safety, and outbox inspection
-- roadmap/docs/demo coverage for Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, and Evaluator-Optimizer patterns
+- roadmap/docs/demo coverage for Ralph Loop, Karpathian Loop, World Model, Second Brain, Multi-Agent Teams, and Evaluator-Optimizer patterns, now surfaced by the `built-in-skills` CLI command
+- a first-class `karpathian-loop` scorecard command for compare/improve review across telemetry, doctor warnings, next actions, and harness outcomes
+- a first-class `evaluator-optimizer` command for explicit criteria checks, persisted review decisions, and revision summaries over saved harness artifacts
+- a first-class `team-orchestrate` command for staged PM → architect → implementer → reviewer workflows with handoff hints and optional chained per-stage handoff artifact persistence
 - persisted world-model handoff artifacts for planning, delegation, and later review
 - `team-role-template` for first-class scoped PM / architect / implementer / reviewer briefs
+
+## Terminal screenshots
+
+### Built-in skills roadmap
+
+<img src="assets/screenshots/built-in-skills.png" alt="Terminal screenshot of rocketclaw2 built-in-skills showing the built-in skills roadmap and operator cadence" width="900" />
+
+Shows the built-in skill maturity snapshot, recommended implementation order, and the day-to-day operator cadence behind the v0.2.0 autonomy patterns.
+
+### Multi-agent team orchestration
+
+<img src="assets/screenshots/team-orchestrate.png" alt="Terminal screenshot of rocketclaw2 team-orchestrate showing PM, architect, implementer, and reviewer stages" width="900" />
+
+Shows the staged PM → architect → implementer → reviewer workflow, including scoped briefs, checklists, and suggested handoff commands.
+
+### Autonomous coding harness planning
+
+<img src="assets/screenshots/harness-plan.png" alt="Terminal screenshot of rocketclaw2 harness-plan showing a reviewable autonomous coding plan artifact" width="900" />
+
+Shows a reviewable harness plan artifact before approval/execution, including the validation command, next step, and plan summary.
 
 ## Validation
 - `npm run build` ✅
@@ -217,6 +241,7 @@ RocketClaw2 now includes retrieval over persisted sessions and unified recall ac
 - `rocketclaw2 search --query "alpha"`
 - `rocketclaw2 recall --query "alpha"`
 - `rocketclaw2 recall --query "alpha" --kind semantic`
+- `rocketclaw2 recall --query "alpha" --kind semantic --limit 5`
 - `rocketclaw2 recall --query "alpha" --summary`
 
 `search` focuses on persisted session messages. `recall` searches both episodic session memory and curated semantic memory together.
@@ -239,6 +264,7 @@ RocketClaw2 now has a first semantic memory store for promoted durable insights.
 ### Current commands
 - `rocketclaw2 memory-list`
 - `rocketclaw2 memory-list --tag preference`
+- `rocketclaw2 memory-list --query "WhatsApp" --limit 5`
 - `rocketclaw2 memory-list --min-salience 40 --summary`
 - `rocketclaw2 remember`
 
@@ -269,6 +295,7 @@ RocketClaw2 now includes more human-readable operator views for sessions and sem
 - `rocketclaw2 session-stats`
 - `rocketclaw2 memory-list`
 - `rocketclaw2 memory-list --tag preference`
+- `rocketclaw2 memory-list --query "WhatsApp" --limit 5`
 - `rocketclaw2 memory-list --min-salience 40 --summary`
 - add `--json` when raw structured output is preferred
 
@@ -680,6 +707,7 @@ Examples:
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --from-handoff-id <handoff-id> --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Draft the plan only" --validate "npm run build" --max-iterations 5 --no-auto-approve`
 
 This first milestone provides the full outer loop: workspace selection, task description, LLM-guided iteration, validation, and result reporting.
@@ -702,14 +730,18 @@ RocketClaw2 now includes commands to inspect persisted autonomous harness runs.
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-list --kind plan --approval draft`
 - `rocketclaw2 harness-list --kind run --ok false`
+- `rocketclaw2 harness-list --evaluation accepted`
 - `rocketclaw2 harness-list --summary`
+- `rocketclaw2 harness-list --source-handoff-id <handoff-id>`
+- `rocketclaw2 harness-list --source-handoff-any <ancestor-handoff-id>`
+- harness list/summary output now includes source handoff provenance for handoff-launched work
 
 Harness list and show views now include a recommended **Next** action for draft plans, approved plans, successful runs, and failed runs.
 - `rocketclaw2 harness-show --id <run-id>`
 - `rocketclaw2 harness-show --id <run-id> --guidance`
 - `rocketclaw2 harness-show --id <run-id> --validation`
 - `rocketclaw2 harness-show --id <run-id> --plan`
-- `rocketclaw2 harness-show --id <run-id> --lineage`
+- `rocketclaw2 harness-show --id <run-id> --lineage` — includes source handoff provenance plus latest evaluator decision/note and evaluation-history count
 - `rocketclaw2 harness-chain --id <run-id>`
 - `rocketclaw2 harness-chain --id <run-id> --summary`
   - follows related plan plus resume-of-resume lineage, with per-node iteration/pass-fail summaries, latest failure context, and direct drill-down commands

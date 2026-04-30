@@ -7,8 +7,9 @@ import { saveHandoffArtifact } from './store.js';
 export async function createHandoffArtifact(
   config: AppConfig,
   root?: string,
-  options: { owner?: string; notes?: string; relatedHarnessId?: string; relatedApprovalId?: string } = {},
+  options: { owner?: string; notes?: string; relatedHarnessId?: string; relatedApprovalId?: string; parentHandoffId?: string } = {},
 ) {
+
   const worldModel = await buildWorldModel(root, config);
 
   const relatedHarness = options.relatedHarnessId
@@ -66,6 +67,7 @@ export async function createHandoffArtifact(
           }
         : {}),
     },
+    ...(options.parentHandoffId ? { parentHandoffId: options.parentHandoffId } : {}),
     constraints: worldModel.constraints,
     risks: worldModel.risks,
     nextActions: worldModel.nextActions,

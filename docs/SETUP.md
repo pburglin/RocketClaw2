@@ -146,8 +146,12 @@ Start with these references:
 
 Recommended operator path:
 - use `rocketclaw2 setup-wizard` to orient on runtime readiness
-- pick a skill from `BUILT-IN-SKILLS.md`
-- follow its command flow and demo before trying to generalize the pattern
+- inspect the maturity snapshot with `rocketclaw2 built-in-skills`
+- optionally drill into one pattern with `rocketclaw2 built-in-skills --skill second-brain`
+- for metric-driven improvement, start with `rocketclaw2 karpathian-loop --period 7`
+- for explicit artifact review loops, try `rocketclaw2 evaluator-optimizer --id <run-or-plan-id>`
+- for staged specialist-role workflows, start with `rocketclaw2 team-orchestrate --goal "..."`
+- follow the linked doc flow and demo before trying to generalize the pattern
 
 The intent is for future setup flows to help users enable these patterns with sane defaults instead of manual prompt engineering.
 

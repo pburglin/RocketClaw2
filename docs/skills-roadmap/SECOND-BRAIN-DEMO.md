@@ -13,8 +13,9 @@ node dist/src/cli.js session-append --id <session-id> --role user --text "Pedro 
 node dist/src/cli.js dream --summary
 node dist/src/cli.js dream-run --dry-run
 node dist/src/cli.js remember
+node dist/src/cli.js memory-list --query "WhatsApp" --limit 3
 node dist/src/cli.js memory-list --summary
-node dist/src/cli.js recall --query "WhatsApp updates"
+node dist/src/cli.js recall --query "WhatsApp updates" --kind semantic --limit 3
 ```
 
 ## What this demonstrates

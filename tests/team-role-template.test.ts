@@ -40,6 +40,7 @@ describe('team role templates', () => {
         },
         handoff: { owner: 'architect', notes: 'Keep release scope narrow.' },
         related: { harness: { runId: 'plan-123', kind: 'plan', approvalStatus: 'approved' } },
+        handoffChain: [],
         constraints: ['Touch release docs and CLI only.'],
         risks: ['Need to preserve packaging checks.'],
         nextActions: ['Approve the plan and execute it.'],

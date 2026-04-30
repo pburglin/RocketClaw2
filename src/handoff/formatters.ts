@@ -34,6 +34,8 @@ export function formatHandoffArtifact(item: HandoffArtifact): string {
     `Active goal: ${item.activeGoal}`,
     `Owner: ${item.handoff.owner ?? 'n/a'}`,
     `Notes: ${item.handoff.notes ?? 'n/a'}`,
+    `Parent handoff: ${item.parentHandoffId ?? 'none (root)'}`,
+    `Chain depth: ${item.handoffChain.length} ancestor${item.handoffChain.length !== 1 ? 's' : ''}${item.handoffChain.length > 0 ? ` → ${item.handoffChain.slice(-3).join(' → ')}${item.handoffChain.length > 3 ? ' → ...' : ''}` : ''}`,
     `Profile: ${item.environment.profile}`,
     `LLM: ${item.environment.llmModel} | retryCount=${item.environment.llmRetryCount} | apiKeyConfigured=${item.environment.llmApiKeyConfigured ? 'yes' : 'no'}`,
     `WhatsApp: ${item.environment.whatsappEnabled ? 'enabled' : 'disabled'} (${item.environment.whatsappMode})`,
@@ -61,6 +63,9 @@ export function formatHandoffArtifact(item: HandoffArtifact): string {
 export function formatHandoffList(items: HandoffArtifact[]): string {
   if (items.length === 0) return 'No handoff artifacts found.';
   return items
-    .map((item) => `${item.id} | ${item.createdAt} | owner=${item.handoff.owner ?? 'n/a'} | ${item.activeGoal} | next=${getHandoffFollowUpCommands(item)[0] ?? item.nextActions[0] ?? 'n/a'}`)
+    .map((item) => {
+      const chain = item.handoffChain.length > 0 ? ` [chain ${item.handoffChain.length}]` : '';
+      return `${item.id} | ${item.createdAt} | owner=${item.handoff.owner ?? 'n/a'} | depth=${item.handoffChain.length}${chain} | ${item.activeGoal} | next=${getHandoffFollowUpCommands(item)[0] ?? item.nextActions[0] ?? 'n/a'}`;
+    })
     .join('\n');
 }

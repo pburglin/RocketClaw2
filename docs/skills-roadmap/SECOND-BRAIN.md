@@ -25,13 +25,16 @@ Recommended prerequisites:
 rocketclaw2 search --query "WhatsApp"
 rocketclaw2 dream
 rocketclaw2 remember
-rocketclaw2 recall --query "WhatsApp"
+rocketclaw2 recall --query "WhatsApp" --kind semantic --limit 5
+rocketclaw2 memory-list --query "WhatsApp" --limit 5
 rocketclaw2 memory-list --summary
 ```
 
 ## Good defaults
 - keep episodic and curated memory separate
 - promote only durable, re-usable facts
+- use `recall --kind semantic --limit ...` when you want a compact personal-RAG view without session chatter
+- use `memory-list --query ... --limit ...` to inspect just the relevant high-salience semantic entries before acting on recall output
 - review summaries before large promotions
 
 ## Demo ideas

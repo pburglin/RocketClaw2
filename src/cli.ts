@@ -47,10 +47,12 @@ import { runSetupWizard } from './setup/wizard.js';
 import { formatRecommendedNextActions, getRecommendedNextActions } from './core/next-actions.js';
 import { buildWorkspaceStatus, formatWorkspaceStatus } from './core/workspace-status.js';
 import { buildWorldModel, formatWorldModel } from './core/world-model.js';
+import type { HandoffArtifact } from './handoff/store.js';
 import { formatHandoffArtifact, formatHandoffList } from './handoff/formatters.js';
 import { resolveHandoffPreset } from './handoff/presets.js';
 import { createHandoffArtifact } from './handoff/runtime.js';
-import { loadHandoffArtifact, listHandoffArtifacts } from './handoff/store.js';
+import { loadHandoffArtifact, listHandoffArtifacts, loadHandoffChain } from './handoff/store.js';
+import { deriveTaskFromHandoff } from './handoff/task-derivation.js';
 import { buildHarnessPlan, harnessResume, replayHarnessValidation, runCodingHarness, runCodingHarnessFromPlan } from './harness/coding-harness.js';
 import { formatCodingHarnessResult, formatHarnessChain, formatHarnessChainSummary, formatHarnessGuidanceView, formatHarnessIterations, formatHarnessLineageView, formatHarnessPlan, formatHarnessPlanView, formatHarnessValidationView, formatValidationResult } from './harness/formatters.js';
 import { approveHarnessPlan, buildHarnessChain, loadHarnessRun, loadHarnessRunnableInput, loadHarnessRuns, saveHarnessRun } from './harness/store.js';
@@ -71,10 +73,15 @@ import {
 } from './cli-output.js';
 import { deleteImportedSkill, importSkill, updateAllImportedSkills, updateImportedSkill } from './skills/runtime.js';
 import { formatImportedSkills, formatSkillSummary } from './skills/formatters.js';
+import { findBuiltInSkill, formatBuiltInSkillsRoadmap, getBuiltInSkillsRoadmap } from './skills/built-in-roadmap.js';
+import { buildEvaluatorOptimizerReport, formatEvaluatorOptimizerReport } from './skills/evaluator-optimizer.js';
+import { saveEvaluationDecision, type EvaluatorDecision } from './skills/evaluator-store.js';
+import { buildKarpathianLoopScorecard, formatKarpathianLoopScorecard } from './skills/karpathian-loop.js';
 import { loadImportedSkills } from './skills/store.js';
 import { getCliTuiRoadmap } from './tui/roadmap.js';
 import { formatRecallScoringExplanation, formatSemanticMemory, formatSessionDetail, formatSessionOverview, formatSessionStats, formatSessionSummary } from './tui/formatters.js';
 import { createRocketClawTUI } from './tui/index.js';
+import { buildTeamWorkflow, formatTeamWorkflow, saveTeamWorkflowHandoffs } from './teams/orchestrator.js';
 import { buildRoleTemplate, buildRoleTemplateFromHandoff, formatRoleTemplate, normalizeTeamRole } from './teams/role-templates.js';
 import { appendMessage, createSession, listSessions, loadSession } from './sessions/store.js';
 import { getSessionStats } from './sessions/stats.js';
@@ -631,11 +638,15 @@ program
   .requiredOption('--query <text>', 'text to recall')
   .option('--json', 'output raw JSON')
   .option('--kind <kind>', 'filter by semantic|session')
+  .option('--limit <n>', 'limit top results after filtering')
   .option('--summary', 'show only aggregate summary')
   .action(async (options) => {
     let hits = await recallMemory(options.query);
     if (options.kind) {
       hits = hits.filter((hit) => hit.kind === options.kind);
+    }
+    if (options.limit) {
+      hits = hits.slice(0, Math.max(0, Number(options.limit)));
     }
     if (options.json) {
       console.log(JSON.stringify(hits, null, 2));
@@ -649,16 +660,26 @@ program
   .description('List curated semantic memory entries')
   .option('--json', 'output raw JSON')
   .option('--tag <tag>', 'filter by tag')
+  .option('--query <text>', 'filter by text/tags containing the query')
   .option('--min-salience <n>', 'filter by minimum salience')
+  .option('--limit <n>', 'limit number of entries after sorting by salience desc')
   .option('--summary', 'show aggregate summary')
   .action(async (options) => {
     let entries = await loadSemanticMemory();
     if (options.tag) {
       entries = entries.filter((entry) => entry.tags.includes(options.tag));
     }
+    if (options.query) {
+      const query = String(options.query).toLowerCase();
+      entries = entries.filter((entry) => entry.text.toLowerCase().includes(query) || entry.tags.some((tag) => tag.toLowerCase().includes(query)));
+    }
     if (options.minSalience) {
       const threshold = Number(options.minSalience);
       entries = entries.filter((entry) => entry.salience >= threshold);
+    }
+    entries = [...entries].sort((a, b) => b.salience - a.salience || b.createdAt.localeCompare(a.createdAt));
+    if (options.limit) {
+      entries = entries.slice(0, Math.max(0, Number(options.limit)));
     }
     if (options.json) {
       console.log(JSON.stringify(entries, null, 2));
@@ -954,6 +975,7 @@ program
   .option('--notes <text>', 'attach operator notes to this handoff')
   .option('--related-harness-id <id>', 'link this handoff to a harness plan/run artifact')
   .option('--related-approval-id <id>', 'link this handoff to an approval request')
+  .option('--parent-handoff-id <id>', 'create this handoff as a child of a parent handoff artifact (multi-hop chain)')
   .option('--json', 'output raw JSON')
   .action(async (options, command) => {
     const rootConfig = await loadAppConfig();
@@ -971,6 +993,7 @@ program
       notes: typeof options.notes === 'string' ? options.notes : preset.notes,
       relatedHarnessId: typeof options.relatedHarnessId === 'string' ? options.relatedHarnessId : undefined,
       relatedApprovalId: typeof options.relatedApprovalId === 'string' ? options.relatedApprovalId : undefined,
+      parentHandoffId: typeof options.parentHandoffId === 'string' ? options.parentHandoffId : undefined,
     });
     console.log(options.json ? JSON.stringify(artifact, null, 2) : formatHandoffArtifact(artifact));
   });
@@ -995,6 +1018,27 @@ program
       throw new Error(`Handoff artifact not found: ${String(options.id)}`);
     }
     console.log(options.json ? JSON.stringify(artifact, null, 2) : formatHandoffArtifact(artifact));
+  });
+
+program
+  .command('handoff-chain')
+  .description('Show the full parent-child chain for a handoff artifact')
+  .requiredOption('--id <id>', 'leaf handoff artifact id')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const chain = await loadHandoffChain(String(options.id));
+    if (!chain.length) {
+      throw new Error(`Handoff artifact not found: ${String(options.id)}`);
+    }
+    console.log(options.json
+      ? JSON.stringify(chain, null, 2)
+      : [
+          `Handoff chain (${chain.length} artifact${chain.length !== 1 ? 's' : ''}, leaf: ${String(options.id)})`,
+          ...chain.flatMap((artifact, index) => [
+            `${index === chain.length - 1 ? '└' : '├'} [${artifact.id}] ${artifact.createdAt} | ${artifact.handoff.owner ?? 'unassigned'} | ${artifact.activeGoal}`,
+            `${index === chain.length - 1 ? ' ' : '│'}   notes: ${artifact.handoff.notes ?? '(none)'}`,
+          ]),
+        ].join('\n'));
   });
 
 program
@@ -1036,6 +1080,94 @@ program
     }
 
     console.log(options.json ? JSON.stringify(template, null, 2) : formatRoleTemplate(template));
+  });
+
+program
+  .command('team-orchestrate')
+  .description('Generate a staged Multi-Agent Teams workflow with scoped role briefs and handoff hints')
+  .option('--goal <text>', 'shared goal for the team workflow')
+  .option('--from-handoff-id <id>', 'derive the workflow from an existing handoff artifact')
+  .option('--input <text...>', 'shared inputs or artifacts to pass to each role')
+  .option('--save-handoffs', 'persist one handoff artifact per staged role')
+  .option('--json', 'output raw JSON')
+  .action(async (options, command) => {
+    const inputs = Array.isArray(options.input) ? options.input.map((item: unknown) => String(item)) : undefined;
+    const sourceHandoff = options.fromHandoffId
+      ? await loadHandoffArtifact(String(options.fromHandoffId)).then((handoff) => {
+          if (!handoff) {
+            throw new Error(`Handoff artifact not found: ${String(options.fromHandoffId)}`);
+          }
+          return handoff;
+        })
+      : null;
+    const workflow = sourceHandoff
+      ? buildTeamWorkflow({
+          goal: sourceHandoff.activeGoal,
+          inputs,
+          handoff: sourceHandoff,
+        })
+      : buildTeamWorkflow({
+          goal: typeof options.goal === 'string' ? options.goal : '',
+          inputs,
+        });
+
+    if (!options.fromHandoffId && !options.goal) {
+      throw new Error('Provide either --goal or --from-handoff-id');
+    }
+
+    let savedStages;
+    if (options.saveHandoffs) {
+      const seed: Pick<HandoffArtifact, 'activeGoal' | 'environment' | 'related' | 'constraints' | 'risks' | 'nextActions' | 'source'> = sourceHandoff
+        ? {
+            activeGoal: sourceHandoff.activeGoal,
+            environment: sourceHandoff.environment,
+            related: sourceHandoff.related,
+            constraints: sourceHandoff.constraints,
+            risks: sourceHandoff.risks,
+            nextActions: sourceHandoff.nextActions,
+            source: sourceHandoff.source,
+          }
+        : await (async () => {
+            const rootConfig = await loadAppConfig();
+            const globalOpts = (command as any).parent?.opts?.() ?? {};
+            const config = applySessionOverrides(rootConfig, {
+              llmBaseUrl: globalOpts.llmBaseUrl,
+              llmApiKey: globalOpts.llmApiKey,
+              llmModel: globalOpts.llmModel,
+              llmRetryCount: parseOptionalNonNegativeInt(globalOpts.llmRetryCount, '--llm-retry-count'),
+              llmMode: globalOpts.llmMode,
+            });
+            const model = await buildWorldModel(undefined, config);
+            return {
+              activeGoal: workflow.goal,
+              environment: {
+                profile: model.environment.profile,
+                llmModel: model.environment.llmModel,
+                llmRetryCount: model.environment.llmRetryCount,
+                llmApiKeyConfigured: model.environment.llmApiKeyConfigured,
+                whatsappEnabled: model.environment.whatsappEnabled,
+                whatsappMode: model.environment.whatsappMode,
+                sessionCount: model.environment.sessionCount,
+                messageCount: model.environment.messageCount,
+                semanticMemoryEntries: model.environment.semanticMemoryEntries,
+                pendingApprovals: model.environment.pendingApprovals,
+                latestSessionUpdate: model.environment.latestSessionUpdate ?? null,
+              },
+              related: {},
+              constraints: model.constraints,
+              risks: model.risks,
+              nextActions: model.nextActions,
+              source: {
+                worldModelCommand: 'rocketclaw2 world-model',
+                workspaceStatusCommand: 'rocketclaw2 workspace-status',
+                systemSummaryCommand: 'rocketclaw2 system-summary',
+              },
+            };
+          })();
+      savedStages = await saveTeamWorkflowHandoffs({ workflow, seed });
+    }
+
+    console.log(options.json ? JSON.stringify({ workflow, savedStages }, null, 2) : formatTeamWorkflow(workflow, savedStages));
   });
 
 program
@@ -1311,6 +1443,9 @@ program
   .option('--kind <kind>', 'plan|run')
   .option('--approval <status>', 'draft|approved|n/a')
   .option('--ok <value>', 'true|false')
+  .option('--evaluation <decision>', 'accepted|rejected|needs-review|n/a')
+  .option('--source-handoff-id <id>', 'filter to artifacts derived from a specific leaf/source handoff id')
+  .option('--source-handoff-any <id>', 'filter to artifacts whose source handoff chain contains a specific handoff id')
   .option('--summary', 'show aggregate artifact summary')
   .option('--json', 'output raw JSON')
   .action(async (options) => {
@@ -1324,6 +1459,20 @@ program
     if (options.ok !== undefined) {
       const wanted = options.ok === 'true';
       runs = runs.filter((item) => Boolean(item.ok) === wanted);
+    }
+    if (options.evaluation) {
+      runs = runs.filter((item) => String(item.evaluationDecision ?? 'n/a') === options.evaluation);
+    }
+    if (options.sourceHandoffId) {
+      runs = runs.filter((item) => String(item.sourceHandoffId ?? '') === options.sourceHandoffId);
+    }
+    if (options.sourceHandoffAny) {
+      runs = runs.filter((item) => {
+        const chain = Array.isArray(item.sourceHandoffChain)
+          ? item.sourceHandoffChain.filter((value): value is string => typeof value === 'string')
+          : [];
+        return chain.includes(String(options.sourceHandoffAny)) || String(item.sourceHandoffId ?? '') === String(options.sourceHandoffAny);
+      });
     }
     if (options.json) {
       console.log(JSON.stringify(runs, null, 2));
@@ -1420,7 +1569,8 @@ program
   .command('harness-plan')
   .description('Generate a reviewable implementation plan for a harness task without writing files')
   .requiredOption('--workspace <path>', 'target workspace path')
-  .requiredOption('--task <text>', 'task description')
+  .option('--task <text>', 'task description')
+  .option('--from-handoff-id <id>', 'derive the task description from a saved handoff artifact')
   .requiredOption('--validate <cmd>', 'validation command that would be used during execution')
   .option('--request-approval', 'also create a persistent approval request for this plan')
   .option('--edit-mode <mode>', 'edit format for implementation artifacts (full-file|diff|mixed)', 'mixed')
@@ -1439,12 +1589,30 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
+    const streamRenderer = !options.json && Boolean(globalOpts.stream)
+      ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer))
+      : undefined;
+    const handoff = options.fromHandoffId
+      ? await loadHandoffArtifact(String(options.fromHandoffId)).then((item) => {
+          if (!item) {
+            throw new Error(`Handoff artifact not found: ${String(options.fromHandoffId)}`);
+          }
+          return item;
+        })
+      : null;
+    const task = typeof options.task === 'string' && options.task.length > 0
+      ? options.task
+      : handoff
+        ? deriveTaskFromHandoff(handoff)
+        : null;
+    if (!task) {
+      throw new Error('Provide either --task or --from-handoff-id');
+    }
     let result;
     try {
       result = await buildHarnessPlan(config, {
         workspace: options.workspace,
-        task: options.task,
+        task,
         validateCommand: options.validate,
         editMode: parseEditMode(options.editMode),
       }, verboseRenderer ? (event) => {
@@ -1458,18 +1626,49 @@ program
       streamRenderer?.finishStream?.();
       progressRenderer?.flush();
     }
-    const artifact = await saveHarnessRun(result);
+    const artifact = await saveHarnessRun({
+      ...result,
+      ...(handoff
+        ? {
+            sourceHandoffId: handoff.id,
+            sourceHandoffChain: [...handoff.handoffChain, handoff.id],
+          }
+        : {}),
+    });
     const approval = options.requestApproval
       ? await createApprovalRequest({
           kind: 'harness-plan',
           target: artifact.runId,
-          detail: `Review harness plan for task: ${options.task}`,
+          detail: handoff
+            ? `Review harness plan derived from handoff: ${handoff.id}`
+            : `Review harness plan for task: ${task}`,
         })
       : null;
     if (approval) {
-      await saveHarnessRun({ ...result, runId: artifact.runId, approvalRequestId: approval.id }, undefined, artifact.runId);
+      await saveHarnessRun({
+        ...result,
+        runId: artifact.runId,
+        approvalRequestId: approval.id,
+        ...(handoff
+          ? {
+              sourceHandoffId: handoff.id,
+              sourceHandoffChain: [...handoff.handoffChain, handoff.id],
+            }
+          : {}),
+      }, undefined, artifact.runId);
     }
-    const enriched = { ...result, runId: artifact.runId, artifactPath: artifact.path, approvalRequestId: approval?.id };
+    const enriched = {
+      ...result,
+      ...(handoff
+        ? {
+            sourceHandoffId: handoff.id,
+            sourceHandoffChain: [...handoff.handoffChain, handoff.id],
+          }
+        : {}),
+      runId: artifact.runId,
+      artifactPath: artifact.path,
+      approvalRequestId: approval?.id,
+    };
     console.log(options.json ? JSON.stringify(enriched, null, 2) : formatHarnessPlan(enriched));
   });
 
@@ -1506,7 +1705,9 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[plan-run]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
+    const streamRenderer = !options.json && Boolean(globalOpts.stream)
+      ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer))
+      : undefined;
     let result;
     try {
       result = await runCodingHarnessFromPlan(config, options.id, {
@@ -1576,7 +1777,9 @@ program
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[progress]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
+    const streamRenderer = !options.json && Boolean(globalOpts.stream)
+      ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer))
+      : undefined;
     let result;
     try {
       result = await runCodingHarness(config, {
@@ -1933,8 +2136,66 @@ program
     console.log(JSON.stringify(getCliTuiRoadmap(), null, 2));
   });
 
+program
+  .command('built-in-skills')
+  .description('Show built-in skill roadmap and current maturity snapshot')
+  .option('--skill <id>', 'filter to a single skill id')
+  .option('--json', 'output raw JSON')
+  .action((options) => {
+    const roadmap = getBuiltInSkillsRoadmap();
+    if (options.skill) {
+      const skill = findBuiltInSkill(options.skill);
+      if (!skill) {
+        console.error(`Unknown built-in skill: ${options.skill}`);
+        process.exitCode = 1;
+        return;
+      }
+      console.log(options.json ? JSON.stringify(skill, null, 2) : formatBuiltInSkillsRoadmap(roadmap, skill));
+      return;
+    }
+    console.log(options.json ? JSON.stringify(roadmap, null, 2) : formatBuiltInSkillsRoadmap(roadmap));
+  });
 
+program
+  .command('karpathian-loop')
+  .description('Show a compare/improve scorecard for recent RocketClaw2 runtime signals')
+  .option('--period <days>', 'lookback period in days for current vs previous window', '7')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const scorecard = await buildKarpathianLoopScorecard(Number(options.period));
+    console.log(options.json ? JSON.stringify(scorecard, null, 2) : formatKarpathianLoopScorecard(scorecard));
+  });
 
+program
+  .command('evaluator-optimizer')
+  .description('Evaluate a saved harness artifact against explicit criteria and summarize revisions')
+  .requiredOption('--id <id>', 'harness plan or run id')
+  .option('--criterion <text>', 'explicit review criterion (repeatable)', (value, previous: string[] = []) => [...previous, value], [])
+  .option('--decision <decision>', 'persist an evaluator decision: accepted|rejected|needs-review')
+  .option('--note <text>', 'optional note to persist alongside a saved decision')
+  .option('--json', 'output raw JSON')
+  .action(async (options) => {
+    const report = await buildEvaluatorOptimizerReport(options.id, options.criterion ?? []);
+    if (options.decision) {
+      if (!['accepted', 'rejected', 'needs-review'].includes(options.decision)) {
+        throw new Error(`Invalid evaluator decision: ${options.decision}`);
+      }
+      const savedAt = new Date().toISOString();
+      await saveEvaluationDecision(options.id, {
+        savedAt,
+        decision: options.decision as EvaluatorDecision,
+        note: options.note,
+        sourceHandoffId: report.sourceHandoffId,
+        sourceHandoffChain: report.sourceHandoffChain,
+        criteria: report.criteria,
+        recommendedNextStep: report.recommendedNextStep,
+        revisionSummary: report.revisionSummary,
+      });
+      report.latestSavedDecision = options.decision;
+      report.latestSavedAt = savedAt;
+    }
+    console.log(options.json ? JSON.stringify(report, null, 2) : formatEvaluatorOptimizerReport(report));
+  });
 
 program
   .command('llm-status')
@@ -2165,7 +2426,8 @@ program
   .command('auto-code')
   .description('Run a streamlined autonomous coding flow (plan, approve, execute) with smart defaults')
   .requiredOption('--workspace <path>', 'target workspace path')
-  .requiredOption('--task <text>', 'task description')
+  .option('--task <text>', 'task description')
+  .option('--from-handoff-id <id>', 'derive the task description from a saved handoff artifact')
   .option('--validate <cmd>', 'validation command to run in the workspace', 'echo "Task completed"')
   .option('--max-iterations <n>', 'maximum iterations', '5')
   .option('--no-auto-approve', 'do not auto-approve the plan; require manual approval')
@@ -2183,16 +2445,34 @@ program
       llmMode: globalOpts.llmMode,
     });
     const autoApprove = options.autoApprove !== false;
+    const handoff = options.fromHandoffId
+      ? await loadHandoffArtifact(String(options.fromHandoffId)).then((item) => {
+          if (!item) {
+            throw new Error(`Handoff artifact not found: ${String(options.fromHandoffId)}`);
+          }
+          return item;
+        })
+      : null;
+    const task = typeof options.task === 'string' && options.task.length > 0
+      ? options.task
+      : handoff
+        ? deriveTaskFromHandoff(handoff)
+        : null;
+    if (!task) {
+      throw new Error('Provide either --task or --from-handoff-id');
+    }
     const renderOptions = { timestamps: Boolean(globalOpts.timestamps) };
     const progressRenderer = options.json ? undefined : createProgressRenderer('[auto-code]', renderOptions);
     const verboseRenderer = options.verbose ? createVerboseLlmRenderer(renderOptions, progressRenderer) : undefined;
-    const streamRenderer = Boolean(globalOpts.stream) ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer)) : undefined;
+    const streamRenderer = !options.json && Boolean(globalOpts.stream)
+      ? (verboseRenderer ?? createStreamTextRenderer(renderOptions, progressRenderer))
+      : undefined;
     let result;
     try {
       result = await runAutoCode(
         config,
         options.workspace,
-        options.task,
+        task,
         options.validate,
         Number(options.maxIterations),
         autoApprove,
@@ -2206,6 +2486,12 @@ program
           streamRenderer.streamChunk(chunk, label);
         } : undefined,
         parseEditMode(options.editMode),
+        handoff
+          ? {
+              sourceHandoffId: handoff.id,
+              sourceHandoffChain: [...handoff.handoffChain, handoff.id],
+            }
+          : undefined,
       );
     } finally {
       streamRenderer?.finishStream?.();

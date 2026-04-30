@@ -8,6 +8,10 @@ RocketClaw2 currently ships a runnable CLI with persistent sessions, retrieval, 
 - `rocketclaw2 config-show`
 - `rocketclaw2 run`
 - `rocketclaw2 roadmap`
+- `rocketclaw2 built-in-skills`
+- `rocketclaw2 karpathian-loop`
+- `rocketclaw2 evaluator-optimizer`
+- `rocketclaw2 team-orchestrate`
 - `rocketclaw2 channels`
 - `rocketclaw2 send`
 
@@ -85,6 +89,14 @@ Planned built-in skills:
 - **Multi-Agent Teams** — orchestrated specialist agents with scoped roles and handoffs
 - **Evaluator-Optimizer** — paired producer/evaluator loops for refinement and quality scoring
 
+You can also inspect the current maturity snapshot from the CLI with `rocketclaw2 built-in-skills` or `rocketclaw2 built-in-skills --skill world-model`.
+
+For the first productized compare/improve flow, use `rocketclaw2 karpathian-loop --period 7` to generate a scorecard from telemetry, doctor warnings, next actions, and recent harness outcomes.
+
+For explicit review loops around saved harness artifacts, use `rocketclaw2 evaluator-optimizer --id <run-or-plan-id> --criterion "Validation passes cleanly"`.
+
+If the evaluation outcome should stay attached to the artifact, add `--decision accepted|rejected|needs-review` and an optional `--note`.
+
 Most developed built-in skill docs right now:
 - `docs/skills-roadmap/RALPH-LOOP.md`
 - `docs/skills-roadmap/KARPATHIAN-LOOP.md`
@@ -124,6 +136,7 @@ Each pattern is expected to ship with:
 
 - `rocketclaw2 recall --query "alpha"`
 - `rocketclaw2 recall --query "alpha" --kind semantic`
+- `rocketclaw2 recall --query "alpha" --kind semantic --limit 5`
 - `rocketclaw2 recall --query "alpha" --summary`
 
 ## Yolo mode
@@ -156,6 +169,7 @@ Each pattern is expected to ship with:
 - `rocketclaw2 remember`
 - `rocketclaw2 recall --query "WhatsApp updates"`
 - `rocketclaw2 memory-list --summary`
+- `rocketclaw2 memory-list --query "WhatsApp" --limit 5`
 
 Recommended use:
 - capture stable preferences and repeated constraints in sessions first
@@ -335,8 +349,10 @@ Recommended paths:
 
 Commands:
 - `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
+- `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --from-handoff-id <handoff-id> --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" auto-code --workspace /path/to/repo --task "Draft the plan only" --validate "npm run build" --max-iterations 5 --no-auto-approve`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-plan --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --request-approval`
+- `rocketclaw2 --llm-api-key "$API_KEY" harness-plan --workspace /path/to/repo --from-handoff-id <handoff-id> --validate "npm test" --request-approval`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Make tests pass" --validate "npm test" --max-iterations 5`
 - `rocketclaw2 --llm-api-key "$API_KEY" harness-run --workspace /path/to/repo --task "Fix build issues" --validate "npm run build" --max-iterations 5`
 
@@ -349,16 +365,18 @@ If autonomous coding fails before any files are written, start with `llm-status`
 ## Evaluator-Optimizer operator flow
 
 - `rocketclaw2 auto-code --workspace . --task "Draft a feature plan" --validate "npm run build" --max-iterations 5 --no-auto-approve`
-- `rocketclaw2 harness-show --id <plan-id> --plan`
+- `rocketclaw2 evaluator-optimizer --id <plan-id> --criterion "Plan is reviewable and approved" --decision needs-review --note "Clarify acceptance criteria before approval"`
 - `rocketclaw2 harness-approve --id <plan-id>`
 - `rocketclaw2 harness-run --id <plan-id> --require-approved-plan`
-- `rocketclaw2 harness-show --id <run-id> --full`
+- `rocketclaw2 evaluator-optimizer --id <run-id> --criterion "Validation passes cleanly" --criterion "No unresolved critic insight remains" --decision rejected --note "Still failing validation"`
 - `rocketclaw2 harness-iterations --id <run-id> --latest --guidance`
 
 Recommended use:
 - define explicit review criteria first
 - use `auto-code --no-auto-approve` as the fast path to create a reviewable plan artifact
 - inspect critic/evaluator feedback before another run
+- use `--json` when you want machine-readable evaluation output for wrappers or dashboards
+- use `--decision` when the review outcome should remain visible in later harness inspection flows
 - use this pattern when quality improves through review, not just raw retries
 
 ## Multi-Agent Teams operator pattern
@@ -370,6 +388,8 @@ Recommended role split:
 - Reviewer/QA → validation + final gaps
 
 Current RocketClaw2 building blocks for this pattern:
+- `rocketclaw2 team-orchestrate --goal "Ship a scoped runtime ergonomics improvement"`
+- `rocketclaw2 team-orchestrate --goal "Ship a scoped runtime ergonomics improvement" --save-handoffs`
 - `rocketclaw2 team-role-template --role pm --goal "Clarify scope and acceptance criteria"`
 - `rocketclaw2 team-role-template --role architect --goal "Design the approach"`
 - `rocketclaw2 team-role-template --role reviewer --from-handoff-id <handoff-id>`
@@ -381,8 +401,11 @@ Current RocketClaw2 building blocks for this pattern:
 - `rocketclaw2 next-actions`
 
 Recommended use:
-- start with `team-role-template` to stamp a narrow brief before delegating work
-- use `--from-handoff-id` when you want to turn an existing saved handoff directly into a role brief
+- start with `team-orchestrate` when you want the default PM → architect → implementer → reviewer flow laid out in one place
+- add `--save-handoffs` when you want that staged workflow to immediately emit durable handoff artifacts per role, linked as a sequential parent-child chain
+- use `team-role-template` when you only need one scoped brief instead of the whole workflow
+- use `--from-handoff-id` when you want to turn an existing saved handoff directly into a role brief, staged workflow, or derived planning/execution task
+- handoff-derived harness artifacts now retain source handoff lineage so later `harness-show --lineage` inspection can trace what launched the work
 - keep role briefs small and explicit
 - pass artifacts forward between roles
 - always end with reviewer/QA validation
@@ -421,12 +444,16 @@ Each `harness-run` now writes a persistent JSON artifact under the RocketClaw2 d
 - `rocketclaw2 harness-list`
 - `rocketclaw2 harness-list --kind plan --approval draft`
 - `rocketclaw2 harness-list --kind run --ok false`
+- `rocketclaw2 harness-list --evaluation accepted`
 - `rocketclaw2 harness-list --summary`
+- `rocketclaw2 harness-list --source-handoff-id <handoff-id>`
+- `rocketclaw2 harness-list --source-handoff-any <ancestor-handoff-id>`
+- list/summary views now expose source handoff provenance too, so handoff-launched work is visible without drilling into each artifact
 - `rocketclaw2 harness-show --id <run-id>`
 - `rocketclaw2 harness-show --id <run-id> --guidance`
 - `rocketclaw2 harness-show --id <run-id> --validation`
 - `rocketclaw2 harness-show --id <run-id> --plan`
-- `rocketclaw2 harness-show --id <run-id> --lineage`
+- `rocketclaw2 harness-show --id <run-id> --lineage` — includes source handoff provenance plus latest evaluator decision/note and evaluation-history count
 - `rocketclaw2 harness-chain --id <run-id>`
 - `rocketclaw2 harness-chain --id <run-id> --summary`
 - `rocketclaw2 harness-iterations --id <run-id>`

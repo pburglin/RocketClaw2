@@ -21,6 +21,7 @@ Useful Karpathian Loop signals in RocketClaw2 include:
 - `doctor` readiness warnings
 - `next-actions` recommendations
 - harness validation pass/fail history
+- handoff-derived harness artifact volume, so delegated/team-launched work can be tracked over time
 - operator-defined quality scorecards for plans, docs, or demos
 
 ## Current RocketClaw2 fit
@@ -31,16 +32,19 @@ RocketClaw2 already has several building blocks for this pattern:
 - harness artifacts and iteration history
 - approval and governance checkpoints for high-risk changes
 
-What is still emerging is the higher-level guidance that turns these signals into a repeatable improve/measure/compare workflow.
+What is still emerging is deeper operator productization beyond the new scorecard surface — especially persistent baselines, explicit operator-written scorecards, and richer trend history.
 
 ## Operator flow
 ```bash
+rocketclaw2 karpathian-loop --period 7
 rocketclaw2 telemetry --period 7 --perf
 rocketclaw2 doctor
 rocketclaw2 next-actions
 rocketclaw2 harness-list --summary
 rocketclaw2 harness-iterations --id <run-id> --failed-only
 ```
+
+`rocketclaw2 karpathian-loop` is the new first-class scorecard surface: it compares the current window against the previous one, highlights improving/regressing signals, and suggests the next focus area. It now also surfaces whether handoff-launched harness work is increasing or shrinking over time.
 
 ## Good defaults
 - pick 1-3 metrics that matter before changing anything
